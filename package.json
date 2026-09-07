@@ -1,0 +1,18 @@
+{
+  "name": "w2-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "某手游私有 TCP 协议解析与自动化工具",
+  "bin": {
+    "w2watch": "bin/w2watch.js",
+    "w2signin": "bin/w2signin.js"
+  },
+  "scripts": {
+    "watch": "node bin/w2watch.js",
+    "signin": "node bin/w2signin.js",
+    "parse": "node bin/w2watch.js --file"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
