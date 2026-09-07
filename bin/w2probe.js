@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+
 'use strict';
+
 /**
  * w2probe.js —— 探测工具：登录后可连续发送任意帧，看服务器返回什么
  *
@@ -9,6 +11,7 @@
  *
  * 用来摸清：不同参数对应哪个分类、响应里有哪些任务 ID/名称。
  */
+
 const net = require('net');
 const fs = require('fs');
 const config = require('../lib/config.js');

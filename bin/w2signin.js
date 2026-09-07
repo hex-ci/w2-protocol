@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+
 'use strict';
+
 /**
  * w2signin.js —— 每日任务自动领取
  *
@@ -11,6 +13,7 @@
  *   node bin/w2signin.js --id 5042    只领指定任务
  *   node bin/w2signin.js --dry        只查询不领取
  */
+
 const net = require('net');
 const fs = require('fs');
 const path = require('path');

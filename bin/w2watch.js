@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+
 'use strict';
+
 /**
  * w2watch.js —— 实时协议嗅探器（某手游私有 TCP 协议）
  *
@@ -19,6 +21,7 @@
  *   captures/<日期>/<时间>_<tag>.pcap    原始包
  *   captures/<日期>/<时间>_<tag>.new.txt 本次发现的新命令（直接发给分析者）
  */
+
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
