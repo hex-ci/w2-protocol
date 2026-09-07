@@ -81,6 +81,8 @@ function reportClaims(buf) {
     process.exit(1);
   }
   console.log(`目标 ${frames.host}:${frames.port}`);
+  // 单会话限制：本连接建立后，已在线的客户端会被服务端挤下线
+  console.log('注意: 会建立独立会话，已在线的客户端可能被挤下线。');
 
   const sock = net.connect(frames.port, frames.host);
   sock.on('error', (e) => { console.log('连接失败:', e.message); process.exit(1); });
