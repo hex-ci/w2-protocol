@@ -8,28 +8,28 @@
 > 本项目仅用于**学习网络协议分析**，不含任何游戏素材、客户端代码或规避付费/反作弊的内容。
 > 文中不出现产品名与厂商信息；服务器地址、设备 IP、账号凭据一律通过 `.env` 配置，不入库。
 
+开发者与 AI 协作指引见 **[AGENTS.md](AGENTS.md)**（目录详解、命令、代码约定、已知坑）。
+
 ## 快速开始
 
 ```bash
 cp .env.example .env      # 填入你自己的服务器地址 / 设备 IP
 npm run signin            # 每日任务自动领取
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探
-node bin/w2watch.js --file captures/xxx.pcap    # 离线解析
+node bin/w2watch.js --file captures/xxx.pcap    # 离线解析已有 pcap
 ```
 
 ## 目录
 
 ```
-bin/w2watch.js     实时嗅探器（拉起 tcpdump，边抓边解析，控制台实时反馈）
-bin/w2signin.js    每日任务自动领取
-lib/w2.js          协议解析库（pcap 流 / IP-TCP / 帧解析 / body 解码）
-lib/config.js      配置加载（.env）
-protocol/commands.json       命令字典（持续完善）
-protocol/frames.example.json 可重放帧模板  ← 真实值放 frames.local.json，不入库
-protocol/NOTES.md            字段规律笔记
-captures/<日期>/   .jsonl 事件流 + .pcap + .new.txt（已 gitignore）
-scripts/capture.sh 路由器抓包脚本（含 flow offload 自检）
+bin/        三个入口：w2watch 实时嗅探 · w2signin 每日领取 · w2probe 帧探测
+lib/        w2.js 协议解析库 · config.js 配置加载（.env）
+protocol/   commands.json 命令字典 · NOTES.md 协议笔记 · frames.example.json 帧模板
+scripts/    capture.sh 路由器抓包（含 flow offload 自检）
+captures/   抓包产物，已 gitignore
 ```
+
+> 真实帧存 `protocol/frames.local.json`（不入库），模板见 `frames.example.json`。
 
 ## 协议速查
 
@@ -59,36 +59,38 @@ scripts/capture.sh 路由器抓包脚本（含 flow offload 自检）
 ```
 
 命令字大致按功能分段：1xxx 心跳 / 9xxx 邮件 / 10xxx 任务奖励 / 26xxx 推送。
+完整字典见 `protocol/commands.json`。
 
-## 已知命令
+## 能力概览
 
-| 命令 | 含义 |
-|---|---|
-| 6 | 握手 hello |
-| 1001 | 登录（加密凭据，**可原样重放**） |
-| 1 / 1005 / 2026 | 心跳三连（每 50s） |
-| 9001 / 9002 | 邮件列表 / 详情 |
-| 10001 | 查询任务·奖励列表 |
-| 10003 | 领取奖励（参数 16B 随任务 ID 变化） |
-| 26044 | [推送] 会话 ID |
+协议骨架已完整解析，覆盖握手登录、心跳保活、邮件、任务/奖励查询与领取、服务端推送等。
 
-## 工作流（持续完善协议）
+完整命令字典（含任务 ID 对照）在 [`protocol/commands.json`](protocol/commands.json)，
+**那里是唯一数据源**——本文件不再重复列举，以免两边不同步。抓包时遇到未收录的命令会自动标 `★NEW`。
 
-1. 想分析某个操作 → `node bin/w2watch.js --ip <IP> --tag <标签>`
-2. 只做这一个操作，看控制台冒出的 `★NEW` 命令
-3. Ctrl+C 结束，把 `captures/<日期>/*.new.txt` 拿去分析
-4. 确认后补进 `protocol/commands.json`，下次就显示中文名了
+支撑自动化的两个关键机制：
+
+- **登录凭据可重放**：握手包里的加密凭据能被服务器原样接受，无需破解即可建立会话。
+- **操作帧可重放**：业务帧整帧复用长期有效，服务器不防重放（重复领取会被拒绝，但无副作用）。
+
+## 扩展新操作
+
+想让工具支持新动作（造兵、采集等），流程是固定的：
+
+1. `node bin/w2watch.js --ip <IP> --tag <标签>` 开始抓包
+2. 只做这一个操作，记下控制台冒出的 `★NEW` 命令
+3. 从 `captures/<日期>/*.jsonl` 里取出该操作的完整帧（53 字节那类）
+4. 把帧写进 `protocol/frames.local.json`，命令名补进 `commands.json`
+
+**关键点**：帧末 16 字节是校验值，无法凭空构造——**只能原样重放**。
+抓一次就能永久使用（服务器不防重放）。细节见 `protocol/NOTES.md`。
 
 ## 坑记录
 
-- **flow offload**：软路由开了流量卸载后 tcpdump 抓不到长连接数据。
-  关闭 `firewall.@defaults[0].flow_offloading` 与 `flow_offloading_hw`，抓完记得开回去。
-- **设备端通用**：关「随机/私有 MAC 地址」（否则按 MAC 过滤会失效）；**保持屏幕常亮**，锁屏后 App 被系统挂起、长连接会断。
-- **iOS 额外**：关「无线局域网助理」（Wi-Fi 信号弱时可能切蜂窝，流量就不走路由器了）。
-- **Android 额外**：开发者选项里关「移动数据始终活跃」；把游戏加入电池优化白名单，否则切后台被杀。
-- **抓包要跑满时长**，中途 Ctrl+C 只会拿到连接收尾包。
-- pcap magic 的字节序判断：以 LE 读出的值 `0xa1b2c3d4` = 小端、`0xd4c3b2a1` = 大端。
+- **flow offload**：软路由开了流量卸载后抓不到长连接数据，需先关闭（抓完记得开回去）。
+- **设备端**：关「随机 MAC 地址」；**保持屏幕常亮**——锁屏后 App 被挂起、连接会断。
+- **抓包跑满时长**：中途 Ctrl+C 只会拿到连接收尾包。
 
 ## 许可
 
-代码部分可自由使用。请勿将本项目用于破坏他人游戏体验或商业牟利。
+代码部分可自由使用（MIT）。请勿将本项目用于破坏他人游戏体验或商业牟利。

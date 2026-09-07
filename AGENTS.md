@@ -2,6 +2,8 @@
 
 某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。零依赖，纯 Node 18+ 与 POSIX sh，无框架、无构建、无 CI。核心是 `lib/w2.js`（pcap/IP-TCP/WiST-WIST 帧/body 解码）配三个 bin 脚本（实时嗅探、每日领奖、帧探测）。协议逆向细节见 `protocol/NOTES.md`，命令字典见 `protocol/commands.json`。
 
+> 面向使用者的介绍在 `README.md`；本文件面向开发者与 AI 助手（环境、命令、约定、坑、扩展流程）。
+
 ## 环境
 
 - 无需 `npm install`：没有第三方依赖、没有 lockfile、没有 build 步骤。`node` 即可运行。
@@ -43,6 +45,24 @@ scripts/capture.sh <设备IP> [iface] [秒]   # 在路由器/设备侧抓包（O
 - 提交信息用 Conventional Commits（英文，如 `feat:` `refactor(core):`）。
 - 代码注释用中文，且克制：只解释「为什么」和长期约束，不记过程。
 
+## 扩展协议：标准流程
+
+新增一个可自动化的操作（造兵 / 采集 / 领取等）一律走这五步：
+
+1. **抓包**：`node bin/w2watch.js --ip <设备IP> --tag <动作名>`，然后在客户端**只做这一个动作**，Ctrl+C 结束。
+2. **定位命令**：看控制台的 `★NEW` 行，或翻 `captures/<日期>/*.jsonl` 找该时刻的 `cmd`。
+3. **取完整帧**：帧末 16B 是校验值、无法构造，必须整帧复制。从 pcap 里按命令字抠 hex：
+
+   ```js
+   const { PcapParser, decode, framesOut } = require('./lib/w2.js');
+   // 遍历 pcap，d.dport === 8083 的即客户端帧，framesOut(payload) 里按 cmd 过滤，取 f.raw.toString('hex')
+   ```
+
+4. **入库**：完整 hex 写进 `protocol/frames.local.json`（`claims` 或新增字段）；命令名补进 `protocol/commands.json`。
+5. **验证**：重放该帧，看响应长度——`10003` 响应 `len>40` 表示成功，`len≈36` 表示"已领取过"，**没有响应**表示帧无效（参数不匹配会被静默丢弃）。
+
+配套说明：`captures/<日期>/*.new.txt` 会列出本次出现的未收录命令，可直接据此补字典。
+
 ## 坑
 
 - 领取帧有校验/签名（payload 末 16B），算法未破解——**只能整帧原样重放，不能凭空构造**；改序号/nonce/fieldA/参数任何一个字节都会被静默丢弃。新操作 = 抓一次包取帧，之后永久重放。
@@ -51,3 +71,6 @@ scripts/capture.sh <设备IP> [iface] [秒]   # 在路由器/设备侧抓包（O
 - 软路由开流量卸载（flow offload / SFE / Shortcut-FE）会导致 tcpdump 抓不到业务数据（握手能抓到、数据抓不到），先关再抓。
 - `idNamePairs` 的 ID 过滤下限别抬高：曾设 500 导致 290/307 这些低 ID 任务被漏掉。
 - `decoded` 混编字段是非自描述的，按命令逐个解析；字符串长度前缀是字节数不是字符数（中文 3 字节/字）。
+- pcap magic 字节序：以 LE 读出的值 `0xa1b2c3d4` = 小端、`0xd4c3b2a1` = 大端（写反会解析出 0 个包）。
+- 抓包必须跑满设定时长，中途 Ctrl+C 只会拿到连接收尾包，几乎无有效数据。
+- 设备端：关「随机/私有 MAC」、保持屏幕常亮（锁屏会挂起 App 并断开长连接）。
