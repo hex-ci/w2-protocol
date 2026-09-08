@@ -69,9 +69,10 @@ body   = u32 cmd + u8 status + 响应数据（仅 status 表示成功时存在�
 | `0x01` | 成功（标准） | 接口定义的响应字段 |
 | `0x00` | 成功（部分接口如建筑操作视为成功） | 同上 |
 | `0x02` / `0x03` | 特殊成功分支（如登录的「确认顶号」流程） | 接口自定义 |
-| 其他（通常为负） | 失败 | `str errorMessage`（人类可读错误文案），**没有数字错误码** |
+| 其他（负值，int8） | 失败 | `str errorMessage`（人类可读错误文案），**没有数字错误码** |
 
 > 失败响应无统一错误码表，只有服务端下发的本地化错误文案字符串；客户端按 `status<0` 统一走错误分支。
+> 实测已知的负值语义：`-2` = 未登录连接上发业务请求；`-10` = 同一连接重复登录。其余负值含义随命令而定。
 
 ### 2.3 数据类型编码（大端序）
 
@@ -130,7 +131,7 @@ TCP connect
 |---|---|---|
 | userId | long | 数字账号 ID |
 | username | string | 账号 UUID |
-| clientVer | int | 客户端版本整数（如 3036900） |
+| clientVer | int | 客户端版本整数 |
 | platform | string | `"ios"` / `"android"` |
 | channel | string | 渠道名 |
 | language | string | `"zh"` |
@@ -147,7 +148,7 @@ const { buildFrame, p } = require('./lib/w2build.js');
 const params = p.cat(
   p.u64(10001),                 // userId
   p.str('0f0e1d2c-3b4a-5968-7700-112233445566'),
-  p.u32(3036900),               // clientVer
+  p.u32(3036900),               // clientVer（示例值）
   p.str('ios'),
   p.str('wst_zh_001'),
   p.str('zh'),
@@ -158,6 +159,8 @@ const params = p.cat(
 const frame = buildFrame(1, 88888, 1001, params);
 socket.write(frame);
 ```
+
+- **凭据提取**：从抓包登录帧可解密出全部字段（AES key = 帧内 sessionId 补零，见 NOTES §2），提取一次后填入 `.env` 的 `W2_LOGIN_*`，供 `config.loginParams()` 与 SDK 使用。
 
 #### `cmd=1005` — 玩家核心信息
 - **请求**：无参数。
@@ -367,18 +370,41 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
 
 ---
 
-## 7. 调试工具链
+## 7. 调试工具链与 SDK
+
+**推荐业务脚本统一走 SDK**（`lib/sdk.js`），底层传输、加密、请求-响应配对全部封装：
+
+```js
+const { W2Client, p } = require('../lib/sdk.js');
+const c = new W2Client({ host, port, loginParams });  // loginParams 来自 config.loginParams()
+await c.connect();                                   // hello + 登录
+const r = await c.call(10001, p.byte(0), {           // schema 照抄 reference/ 字段表
+  skip: 1, list: true,
+  item: [['task_id','u32'], ['task_name','string'], ['completed','u8']],
+});
+if (r.ok) r.items.forEach(t => console.log(t.task_id, t.task_name));
+c.onPush(26044, (push) => { /* 服务端推送 */ });
+await c.close();
+```
+
+- `loginParams` 优先走凭据构造登录；`login`（整帧 hex 重放）仅作调试回退
+
+- `c.call(cmd, params, schema?, opts?)`：`schema` 声明响应字段表（`fields`/`list`/`item`/`tail`/`skip`），自动解析成对象；`opts.okStatuses` 指定成功 status 集合（默认 `>0`，建筑类传 `[0, 1]`）
+- 失败响应统一返回 `{ ok: false, status, message }`，`message` 为服务端错误文案
+- 内置 10s 超时、500ms 请求间隔（对齐客户端频控）、单会话单连接
+- 推送：`c.onPush(cmd, fn)`，收到 `26000` 段帧时触发回调
 
 | 工具 | 用途 |
 |---|---|
+| `lib/sdk.js` | ★ 业务脚本首选：`W2Client` 标准化接口调用 |
 | `scripts/w2watch.js` | 实时/离线嗅探，pcap → 可读事件流（jsonl） |
 | `scripts/w2probe.js` | 登录后按序发送 hex 帧，观察响应 |
-| `lib/w2build.js` | 程序化组帧（`buildFrame(no, sid, cmd, params)`） |
+| `lib/w2build.js` | 程序化组帧（`buildFrame(no, sid, cmd, params)`），SDK 底层依赖 |
 | `lib/w2.js` | 帧切分、body 混编解码、字符串提取 |
-| `protocol/commands.json` | cmd → 语义字典 |
+| `protocol/commands.json` | cmd → 语义字典（SDK 无关，工具加载用） |
 | `tools/genapi.js` | 从客户端协议定义重新生成 `reference/` 全量参数表（客户端更新后重跑） |
 
-推荐调试顺序：`w2watch` 抓真实操作 → 从 jsonl 定位 cmd → 查 [reference/](reference/README.md) 对应条目确认字段 → `w2build` 复现请求 → `w2probe` 验证响应。
+推荐调试顺序：`w2watch` 抓真实操作 → 从 jsonl 定位 cmd → 查 [reference/](reference/README.md) 对应条目确认字段 → SDK `c.call()` 直接收发 → 异常时用 `w2probe` 发裸帧对照。
 
 ---
 

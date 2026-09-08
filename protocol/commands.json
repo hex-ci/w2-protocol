@@ -1,5 +1,5 @@
 {
-  "_comment": "协议命令字典（单一数据源）。names=全量 cmd→中文名（w2watch/w2signin/genapi 共用，抓到新命令在此补一条）；push=服务端推送类 cmd 编号；tasks=任务/物品 ID 名称（人工维护）；_categories=10001 的 taskType 枚举。字段级输入输出规范由 tools/genapi.js 依据本文件+客户端协议定义生成到 protocol/reference/，参数细节以 reference/ 为准。",
+  "_comment": "协议命令字典（单一数据源）。names=全量 cmd→中文名（w2watch/w2signin/genapi 共用，抓到新命令在此补一条）；push=服务端推送类 cmd 编号；tasks=任务/物品 ID 名称（参考数据，脚本已改从 10002 接口取名，人工维护留档）；_categories=10001 的 taskType 枚举。字段级输入输出规范由 tools/genapi.js 依据本文件+客户端协议定义生成到 protocol/reference/，参数细节以 reference/ 为准。",
   "names": {
     "1": "获取服务器时间",
     "2": "获取服务器列表",

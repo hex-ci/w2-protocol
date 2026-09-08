@@ -31,7 +31,7 @@ tools/      genapi.js 参考手册生成器（从客户端协议定义提取）
 captures/   抓包产物，已 gitignore
 ```
 
-> 真实帧存 `protocol/frames.local.json`（不入库），模板见 `frames.example.json`。
+> 登录凭据等敏感配置存 `.env`（不入库），模板见 `.env.example`；登录凭据从抓包登录帧解密提取一次后填入，方法见 [`protocol/API.md`](protocol/API.md)。
 
 ## 协议速查
 
@@ -55,7 +55,7 @@ captures/   抓包产物，已 gitignore
 ```
 +0   4  magic "WIST"
 +4   4  u32 sessionId（0xffffffff = 主动推送）
-+8   4  u32 长度
++8   4  u32 长度 = body 全长（body = 命令字(4B) + status(1B) + 数据）
 +12  …  body：u32 命令字 + status + 响应字段
 ```
 

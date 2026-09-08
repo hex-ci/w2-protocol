@@ -16,6 +16,7 @@ const net = require('net');
 const fs = require('fs');
 const config = require('../lib/config.js');
 const { framesIn, idNamePairs, cjkStrings, decodeBody } = require('../lib/w2.js');
+const { W2Client } = require('../lib/sdk.js');
 
 const argv = process.argv.slice(2);
 let hexes = [];
@@ -29,50 +30,67 @@ if (!hexes.length) {
   process.exit(1);
 }
 
-const frames = config.frames();
-
-function sendSeq(sock, list, delays) {
-  return new Promise((resolve) => {
-    let buf = Buffer.alloc(0);
-    const onData = (d) => { buf = Buffer.concat([buf, d]); };
-    sock.on('data', onData);
-    let t = 0;
-    list.forEach((h, i) => {
-      t += delays[i] || 0;
-      setTimeout(() => sock.write(Buffer.from(h, 'hex')), t);
-    });
-    t += delays[list.length] || 2500;
-    setTimeout(() => { sock.removeListener('data', onData); resolve(buf); }, t);
-  });
-}
-
-function show(buf, label) {
-  console.log(`\n--- ${label} ---`);
-  if (!buf.length) { console.log('  (无响应)'); return; }
-  for (const f of framesIn(buf)) {
-    const cmd = f.body.length >= 4 ? f.body.readUInt32BE(0) : null;
-    const pairs = idNamePairs(f.body);
-    const texts = cjkStrings(f.body);
-    const { fields } = decodeBody(f.body.subarray(4), 8);
+/** 从响应缓冲切出 WIST 帧并打印可读摘要 */
+function showAll(buf) {
+  let n = 0;
+  while (buf.length >= 16 && buf.toString('latin1', 0, 4) === 'WIST') {
+    const L = buf.readUInt32BE(8);
+    if (buf.length < 12 + L) break;
+    const frame = buf.subarray(0, 12 + L);
+    buf = buf.subarray(12 + L);
+    const f = framesIn(frame)[0];
+    if (!f) continue;
+    n++;
+    // 入站 body: cmd(4B) + status(1B) + 数据
+    const cmd = f.body.readUInt32BE(0);
+    const status = f.body.length > 4 ? f.body.readInt8(4) : -1;
+    const data = f.body.subarray(5);
+    const pairs = idNamePairs(data);
+    const texts = cjkStrings(data);
+    const { fields } = decodeBody(data, 8);
     if (pairs.length) {
-      console.log(`  cmd=${cmd} len=${f.len}  任务:`);
+      console.log(`  cmd=${cmd} status=${status} len=${f.len}  任务:`);
       pairs.slice(0, 25).forEach((p) => console.log(`      ${String(p.id).padEnd(9)}${p.name}`));
     } else {
-      console.log(`  cmd=${cmd} len=${f.len}  ${fields.map((x) => (x.t === 'str' ? `"${x.v}"` : x.v)).join(', ').slice(0, 130)}`);
+      console.log(`  cmd=${cmd} status=${status} len=${f.len}  ${fields.map((x) => (x.t === 'str' ? `"${x.v}"` : x.v)).join(', ').slice(0, 130)}`);
       if (texts.length) console.log(`      中文: ${texts.slice(0, 3).join(' | ').slice(0, 100)}`);
     }
   }
+  return { rest: buf, count: n };
 }
 
 (async function main() {
-  const sock = net.connect(frames.port, frames.host);
-  sock.on('error', (e) => { console.log('连接失败:', e.message); process.exit(1); });
-  await sendSeq(sock, [frames.hello, frames.login], [1000, 2500]);
-  console.log('已登录，开始探测...');
-  for (let i = 0; i < hexes.length; i++) {
-    const r = await sendSeq(sock, [hexes[i]], [0, 2800]);
-    show(r, `帧${i + 1}: ...${hexes[i].slice(-16)}`);
+  const lp = config.loginParams();
+  if (!config.host || !lp) {
+    console.log('缺少配置：请把真实值写入 .env（W2_HOST 与 W2_LOGIN_*，模板见 .env.example）');
+    process.exit(1);
   }
+
+  const c = new W2Client({ host: config.host, port: config.port, loginParams: lp });
+  try {
+    await c.connect();
+  } catch (e) {
+    console.log('连接失败:', e.message);
+    process.exit(1);
+  }
+  console.log('已登录，开始探测...');
+
+  // 探测的是未知结构的响应，绕开 SDK 的 schema 解析：
+  // SDK _onData 会把响应吃掉，这里直接在 socket 上挂原始监听收集
+  let rawBuf = Buffer.alloc(0);
+  c.sock.on('data', (d) => { rawBuf = Buffer.concat([rawBuf, d]); });
+  // SDK 的 _onData 先注册会先消费，但它只 resolve pending（探测帧无 pending），
+  // 不影响这里追加监听收到的原始字节
+
+  for (let i = 0; i < hexes.length; i++) {
+    console.log(`帧${i + 1}: ...${hexes[i].slice(-16)}`);
+    c.sock.write(Buffer.from(hexes[i], 'hex'));
+    await new Promise((r) => setTimeout(r, 2800));
+    const { count } = showAll(rawBuf);
+    if (!count) console.log('  （无可解析响应）');
+    rawBuf = Buffer.alloc(0);
+  }
+
   console.log('\n探测结束。');
-  sock.end();
+  c.close();
 })();

@@ -14,7 +14,7 @@
 ## 环境
 
 - 无需 `npm install`：没有第三方依赖、没有 lockfile、没有 build 步骤。`node` 即可运行。
-- 真实服务器地址、设备 IP、账号凭据放 `.env` 与 `protocol/frames.local.json`，两者均已被 gitignore，仓库只留 `.env.example` / `frames.example.json` 模板。格式见对应 example 文件。
+- 真实服务器地址、设备 IP、登录凭据全部放 `.env`（已 gitignore），仓库只留 `.env.example` 模板。登录凭据 `W2_LOGIN_*` 从抓包登录帧解密提取一次后填入（方法见 `protocol/API.md`）。
 - 实时嗅探依赖本机 `tcpdump`（需 root/sudo 或已在路由器上）。
 
 ## 常用命令
@@ -41,7 +41,8 @@ npm run genapi                          # 从客户端协议定义重新生成 r
 - `scripts/` 功能脚本（w2watch / w2signin / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
 - `lib/w2.js` 纯解析库：`PcapParser`、`decode`（link type→IP→TCP/UDP）、`framesOut`/`framesIn`（WiST/WIST 帧切分）、`decodeBody`（u32 整数与 4 字节长度前缀 UTF-8 字符串混编）、`idNamePairs`、`cjkStrings`。
 - `lib/w2build.js` 帧构造器：`buildFrame(no, sessionId, cmd, params)` + AES/md5 原语 + 参数封装，带自检（`node lib/w2build.js`）。
-- `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.frames()` 优先读本地 `frames.local.json` 再回退 example。
+- `lib/sdk.js` 接口调用 SDK：`W2Client` 类封装连接/登录/请求-响应配对/推送监听/声明式响应解析，业务脚本直接 `client.call(cmd, params, schema)`，新脚本优先用它而不是裸写 socket。
+- `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.loginParams()` 组装 `W2_LOGIN_*` 凭据，`config.tasks` 读 `W2_TASK_IDS` 任务清单。
 - `protocol/NOTES.md` 协议全记录（帧格式、加密算法、命令语义、初始化流程），**协议问题先读它**。
 - `protocol/commands.json` 命令字典（单一数据源）：`names`（全量 cmd→中文名，w2watch/w2signin/genapi 共用）、`push`（推送类 cmd 编号）、`tasks`（任务/物品 ID）、`_categories`（taskType 分类）。抓包遇到未收录命令会标 `★NEW`，确认后补进 `names`。
 - `protocol/reference/` 全量参数表（由 `tools/genapi.js` 生成，勿手改；生成逻辑改动后重跑 `npm run genapi`）。
@@ -74,8 +75,9 @@ npm run genapi                          # 从客户端协议定义重新生成 r
 - **帧结构字段认知**：`+9` 是 MD5 校验（前 16 字节二进制）、`+25` 是 sessionId、`+37` 起是 AES-128-ECB 密文，切勿将其误当作固定 Nonce 或帧尾校验。
 - 构造帧三要素缺一会**静默丢弃**（无响应≠服务器没收到）：MD5 输入顺序（no+sid+cmd+密文）、AES key 补零到 16 字符、PKCS7 填充。排查时先本地复算 MD5 再查 AES。
 - 服务器每日约 00:00 重置任务，定时领取建议设在 00:10 后；重复领取会被拒绝但无副作用。
-- 任务列表 `cmd=10001` 参数是 **1 字节 taskType**，单分类查不全 →
-  `w2signin.js` 不依赖列表、直接尝试领取所有已收录任务，改这个逻辑前先读 `protocol/NOTES.md` §6。
+- 任务列表 `cmd=10001` 参数是 **1 字节 taskType**，单分类查不全，且已领尽的分类返回空列表 →
+  `w2signin.js` 不依赖列表、直接按 `.env` 的 `W2_TASK_IDS` 逐个领取；任务名展示走 `cmd=10002`
+  详情接口（已领任务也能取到名），改这个逻辑前先读 `protocol/NOTES.md` §6。
 - **单会话限制**：同一账号只能维持一个业务长连接，新登录会挤掉旧会话（客户端被踢下线）。
   因此脚本内所有操作必须**复用同一个 socket**，中途另建连接会把自己的前一个连接挤掉。
   测试时注意：跑脚本会把正在运行的客户端踢下线，这是预期行为，不是 bug。
