@@ -1,659 +1,604 @@
 # 战斗与演习
 
-> 26 个命令（cmd 20002 ~ 29006）
+> 26 个命令（cmd 20002 ~ 29006）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=20002` — report list 20002
+### `cmd=20002` — 查询战报列表
 
-- 常量: `Constant.PROT_REPORT_LIST_20002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `page_size` | 每页条数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u8 | `filte_by_coordinate` | — |
+| 4 | u32 | `tile_y)` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.pageSize` |
-| 2 | int | `this.pageNum` |
-| 3 | byte | `this.filteByCoordinate` |
-| 4 | int | `this.tileY)` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `filteByCoordinate` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | long | `reportId` |
-| 5 | byte | `readed` |
-| 6 | int | `reportType` |
-| 7 | string | `reportTitle` |
-| 8 | string | `startPlace` |
-| 9 | int | `startX` |
-| 10 | int | `startY` |
-| 11 | string | `targetPlace` |
-| 12 | int | `targetX` |
-| 13 | int | `targetY` |
-| 14 | long | `reportTime` |
-| 15 | string | `url` |
-| 16 | int | `color` |
-| 17 | int | `startPlaceType` |
-| 18 | string | `startIcon` |
-| 19 | int | `targetPlaceType` |
-| 20 | string | `targetIcon` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `filte_by_coordinate` | — |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u64 | `report_id` | — |
+| 5 | u8 | `readed` | 是否已读 |
+| 6 | u32 | `report_type` | 类型枚举 |
+| 7 | string | `report_title` | — |
+| 8 | string | `start_place` | — |
+| 9 | u32 | `start_x` | 地图 X 坐标 |
+| 10 | u32 | `start_y` | 地图 Y 坐标 |
+| 11 | string | `target_place` | — |
+| 12 | u32 | `target_x` | 地图 X 坐标 |
+| 13 | u32 | `target_y` | 地图 Y 坐标 |
+| 14 | u64 | `report_time` | 时间戳（毫秒） |
+| 15 | string | `url` | — |
+| 16 | u32 | `color` | — |
+| 17 | u32 | `start_place_type` | 类型枚举 |
+| 18 | string | `start_icon` | 图标编号 |
+| 19 | u32 | `target_place_type` | 类型枚举 |
+| 20 | string | `target_icon` | 图标编号 |
 
 ---
 
-#### `cmd=20003` — report delete 20003
+### `cmd=20003` — 删除战报
 
-- 常量: `Constant.PROT_REPORT_DELETE_20003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `report_ids.length` | — |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.reportIds.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=20004` — report step detail 20004
+### `cmd=20004` — 查询战报步骤详情
 
-- 常量: `Constant.PROT_REPORT_STEP_DETAIL_20004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `report_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.reportId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `htmlContent` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `html_content` | — |
 
 ---
 
-#### `cmd=20006` — report list by type 20006
+### `cmd=20006` — 按类型查询战报
 
-- 常量: `Constant.PROT_REPORT_LIST_BY_TYPE_20006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_size` | 每页条数 |
+| 3 | u8 | `report_type` | 类型枚举 |
+| 4 | u8 | `filte_by_coordinate` | — |
+| 5 | u32 | `tile_y)` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageNum` |
-| 2 | int | `this.pageSize` |
-| 3 | byte | `this.reportType` |
-| 4 | byte | `this.filteByCoordinate` |
-| 5 | int | `this.tileY)` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `filteByCoordinate` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | long | `reportId` |
-| 5 | byte | `readed` |
-| 6 | int | `reportType` |
-| 7 | string | `reportTitle` |
-| 8 | string | `startPlace` |
-| 9 | int | `startX` |
-| 10 | int | `startY` |
-| 11 | string | `targetPlace` |
-| 12 | int | `targetX` |
-| 13 | int | `targetY` |
-| 14 | long | `reportTime` |
-| 15 | string | `url` |
-| 16 | int | `color` |
-| 17 | int | `startPlaceType` |
-| 18 | string | `startIcon` |
-| 19 | int | `targetPlaceType` |
-| 20 | string | `targetIcon` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `filte_by_coordinate` | — |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u64 | `report_id` | — |
+| 5 | u8 | `readed` | 是否已读 |
+| 6 | u32 | `report_type` | 类型枚举 |
+| 7 | string | `report_title` | — |
+| 8 | string | `start_place` | — |
+| 9 | u32 | `start_x` | 地图 X 坐标 |
+| 10 | u32 | `start_y` | 地图 Y 坐标 |
+| 11 | string | `target_place` | — |
+| 12 | u32 | `target_x` | 地图 X 坐标 |
+| 13 | u32 | `target_y` | 地图 Y 坐标 |
+| 14 | u64 | `report_time` | 时间戳（毫秒） |
+| 15 | string | `url` | — |
+| 16 | u32 | `color` | — |
+| 17 | u32 | `start_place_type` | 类型枚举 |
+| 18 | string | `start_icon` | 图标编号 |
+| 19 | u32 | `target_place_type` | 类型枚举 |
+| 20 | string | `target_icon` | 图标编号 |
 
 ---
 
-#### `cmd=20011` — report detail 20011
+### `cmd=20011` — 查询战报详情
 
-- 常量: `Constant.PROT_REPORT_DETAIL_20011`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `report_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.reportId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `htmlContent` |
-| 2 | string | `flaundMessage` |
-| 3 | byte | `targetRoleType` |
-| 4 | byte | `hasInsurance` |
-| 5 | byte | `hasUsedInsurance` |
-| 6 | int | `lostTroopAmount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `html_content` | — |
+| 2 | string | `flaund_message` | — |
+| 3 | u8 | `target_role_type` | 类型枚举 |
+| 4 | u8 | `has_insurance` | 布尔标记（0/1） |
+| 5 | u8 | `has_used_insurance` | 布尔标记（0/1） |
+| 6 | u32 | `lost_troop_amount` | 数量 |
 
 ---
 
-#### `cmd=20012` — broadcast battle start notify 20012
+### `cmd=20012` — 推送：战斗开始通知
 
-- 常量: `Constant.PROT_BROADCAST_BATTLE_START_NOTIFY_20012`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | byte | `type` |
-| 3 | long | `battleID` |
-| 4 | string | `targetName` |
-| 5 | int | `x` |
-| 6 | int | `y` |
-| 7 | long | `battleID` |
-| 8 | byte | `battleType` |
-| 9 | byte | `visibleName` |
-| 10 | string | `targetName` |
-| 11 | int | `x` |
-| 12 | int | `y` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u8 | `type` | 类型枚举 |
+| 3 | u64 | `battle_id` | — |
+| 4 | string | `target_name` | 名称 |
+| 5 | u32 | `x` | 地图 X 坐标 |
+| 6 | u32 | `y` | 地图 Y 坐标 |
+| 7 | u64 | `battle_id` | — |
+| 8 | u8 | `battle_type` | 类型枚举 |
+| 9 | u8 | `visible_name` | 名称 |
+| 10 | string | `target_name` | 名称 |
+| 11 | u32 | `x` | 地图 X 坐标 |
+| 12 | u32 | `y` | 地图 Y 坐标 |
 
 ---
 
-#### `cmd=20013` — report battle list 20013
+### `cmd=20013` — 查询战斗战报列表
 
-- 常量: `Constant.PROT_REPORT_BATTLE_LIST_20013`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `per_page_size` | 每页条数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.perPageSize` |
-| 2 | int | `this.pageNum` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `totalPage` |
-| 3 | byte | `expeditionType` |
-| 4 | long | `battleId` |
-| 5 | byte | `side` |
-| 6 | string | `enemyPlayerName` |
-| 7 | byte | `targetType` |
-| 8 | string | `targetName` |
-| 9 | int | `targetX` |
-| 10 | int | `targetY` |
-| 11 | string | `targetIcon` |
-| 12 | int | `curRound` |
-| 13 | long | `remainTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `total_page` | — |
+| 3 | u8 | `expedition_type` | 类型枚举 |
+| 4 | u64 | `battle_id` | — |
+| 5 | u8 | `side` | — |
+| 6 | string | `enemy_player_name` | 玩家名称 |
+| 7 | u8 | `target_type` | 类型枚举 |
+| 8 | string | `target_name` | 名称 |
+| 9 | u32 | `target_x` | 地图 X 坐标 |
+| 10 | u32 | `target_y` | 地图 Y 坐标 |
+| 11 | string | `target_icon` | 图标编号 |
+| 12 | u32 | `cur_round` | 当前值 |
+| 13 | u64 | `remain_time` | 剩余毫秒数 |
 
 ---
 
-#### `cmd=20014` — report battle insurance detail 20014
+### `cmd=20014` — 查询战斗保险详情
 
-- 常量: `Constant.PROT_REPORT_BATTLE_INSURANCE_DETAIL_20014`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `report_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.reportId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `itemID` |
-| 2 | int | `icon` |
-| 3 | string | `name` |
-| 4 | string | `description` |
-| 5 | int | `curAmount` |
-| 6 | int | `effectValue` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `icon` | 图标编号 |
+| 3 | string | `name` | 名称 |
+| 4 | string | `description` | 描述文案 |
+| 5 | u32 | `cur_amount` | 当前数量 |
+| 6 | u32 | `effect_value` | — |
 
 ---
 
-#### `cmd=20015` — report battle use insurance 20015
+### `cmd=20015` — 使用战斗保险
 
-- 常量: `Constant.PROT_REPORT_BATTLE_USE_INSURANCE_20015`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u64 | `report_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | long | `this.reportId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=21001` — battle get battle data 21001
+### `cmd=21001` — 获取战斗数据
 
-- 常量: `Constant.PROT_BATTLE_GET_BATTLE_DATA_21001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
+| 2 | u8 | `is_blade_clash_battle` | 布尔标记（0/1） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.battleId` |
-| 2 | byte | `this.isBladeClashBattle` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `battlegroundMaxRange` |
-| 2 | int | `side` |
-| 3 | int | `battleType` |
-| 4 | int | `currentRound` |
-| 5 | string | `atkRoleName` |
-| 6 | int | `atkFrontLinePosition` |
-| 7 | int | `atkRacial` |
-| 8 | string | `defRoleName` |
-| 9 | int | `defRacial` |
-| 10 | int | `defMapType` |
-| 11 | int | `defFrontLinePosition` |
-| 12 | int | `roundRemainTime` |
-| 13 | int | `atkArmyKindCount` |
-| 14 | int | `armyId` |
-| 15 | int | `amount` |
-| 16 | int | `position` |
-| 17 | int | `action` |
-| 18 | int | `moveSpeed` |
-| 19 | int | `range` |
-| 20 | int | `defArmyKindCount` |
-| 21 | int | `armyId` |
-| 22 | int | `amount` |
-| 23 | int | `position` |
-| 24 | int | `action` |
-| 25 | int | `moveSpeed` |
-| 26 | int | `range` |
-| 27 | byte | `escaped` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `battleground_max_range` | — |
+| 2 | u32 | `side` | — |
+| 3 | u32 | `battle_type` | 类型枚举 |
+| 4 | u32 | `current_round` | — |
+| 5 | string | `atk_role_name` | 名称 |
+| 6 | u32 | `atk_front_line_position` | 格位编号 |
+| 7 | u32 | `atk_racial` | — |
+| 8 | string | `def_role_name` | 名称 |
+| 9 | u32 | `def_racial` | — |
+| 10 | u32 | `def_map_type` | 类型枚举 |
+| 11 | u32 | `def_front_line_position` | 格位编号 |
+| 12 | u32 | `round_remain_time` | 剩余毫秒数 |
+| 13 | u32 | `atk_army_kind_count` | 数量/计数 |
+| 14 | u32 | `army_id` | 兵种 ID |
+| 15 | u32 | `amount` | 数量 |
+| 16 | u32 | `position` | 格位编号 |
+| 17 | u32 | `action` | — |
+| 18 | u32 | `move_speed` | — |
+| 19 | u32 | `range` | — |
+| 20 | u32 | `def_army_kind_count` | 数量/计数 |
+| 21 | u32 | `army_id` | 兵种 ID |
+| 22 | u32 | `amount` | 数量 |
+| 23 | u32 | `position` | 格位编号 |
+| 24 | u32 | `action` | — |
+| 25 | u32 | `move_speed` | — |
+| 26 | u32 | `range` | — |
+| 27 | u8 | `escaped` | — |
 
 ---
 
-#### `cmd=21002` — battle send army action 21002
+### `cmd=21002` — 发送部队行动指令
 
-- 常量: `Constant.PROT_BATTLE_SEND_ARMY_ACTION_21002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
+| 2 | u32 | `send_army_id` | 兵种 ID |
+| 3 | u32 | `send_action` | — |
+| 4 | u32 | `send_army_id` | 兵种 ID |
+| 5 | u8 | `is_blade_clash_battle` | 布尔标记（0/1） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.battleId` |
-| 2 | int | `this.sendArmyId` |
-| 3 | int | `this.sendAction` |
-| 4 | int | `this.sendArmyId` |
-| 5 | byte | `this.isBladeClashBattle` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `responseSide` |
-| 2 | int | `responseArmyId` |
-| 3 | int | `responseAction` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `response_side` | — |
+| 2 | u32 | `response_army_id` | 兵种 ID |
+| 3 | u32 | `response_action` | — |
 
 ---
 
-#### `cmd=21003` — battle get retreat cost 21003
+### `cmd=21003` — 查询撤退消耗
 
-- 常量: `Constant.PROT_BATTLE_GET_RETREAT_COST_21003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.battleId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=21004` — battle retreat 21004
+### `cmd=21004` — 撤退
 
-- 常量: `Constant.PROT_BATTLE_RETREAT_21004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.battleId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=21005` — battle send quick msg 21005
+### `cmd=21005` — 发送战斗快捷消息
 
-- 常量: `Constant.PROT_BATTLE_SEND_QUICK_MSG_21005`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
+| 2 | string | `send_msg` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.battleId` |
-| 2 | string | `this.sendMsg` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=21006` — battle create simulation battle 21006
+### `cmd=21006` — 创建演习战
 
-- 常量: `Constant.PROT_BATTLE_CREATE_SIMULATION_BATTLE_21006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `simb_id` | — |
+| 2 | u32 | `level` | 等级 |
+| 3 | u8 | `armies.length` | — |
+| 4 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 5 | u8 | `i.army_id` | — |
+| 6 | u32 | `i.amount)}this._data.write_long(this.officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.simbId` |
-| 2 | int | `this.level` |
-| 3 | byte | `this.armies.length` |
-| … | 循环 | `for(var e` |
-| 4 | byte | `i.armyId` |
-| 5 | int | `i.amount)}this._data.writeLong(this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `battleId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
 
 ---
 
-#### `cmd=21008` — battle simulation battle status 21008
+### `cmd=21008` — 查询演习战状态
 
-- 常量: `Constant.PROT_BATTLE_SIMULATION_BATTLE_STATUS_21008`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `simbId` |
-| 2 | long | `startTime` |
-| 3 | long | `endTime` |
-| 4 | int | `level` |
-| 5 | int | `maxLevel` |
-| 6 | int | `bonusCountSelected` |
-| 7 | int | `bonusCountAvailable` |
-| 8 | int | `bonusRefreshFreeNextIndex` |
-| 9 | int | `bonusRefreshFreeMaxIndex` |
-| 10 | int | `bonusRefreshPayNextIndex` |
-| 11 | string | `bonusUsing` |
-| 12 | byte | `armyId` |
-| 13 | string | `bonus` |
-| 14 | long | `battleId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `simb_id` | — |
+| 2 | u64 | `start_time` | 开始时间戳 |
+| 3 | u64 | `end_time` | 结束时间戳 |
+| 4 | u32 | `level` | 等级 |
+| 5 | u32 | `max_level` | 等级 |
+| 6 | u32 | `bonus_count_selected` | 数量/计数 |
+| 7 | u32 | `bonus_count_available` | 数量/计数 |
+| 8 | u32 | `bonus_refresh_free_next_index` | — |
+| 9 | u32 | `bonus_refresh_free_max_index` | — |
+| 10 | u32 | `bonus_refresh_pay_next_index` | — |
+| 11 | string | `bonus_using` | — |
+| 12 | u8 | `army_id` | 兵种 ID |
+| 13 | string | `bonus` | — |
+| 14 | u64 | `battle_id` | — |
 
 ---
 
-#### `cmd=21009` — battle simulation battle apply bonus 21009
+### `cmd=21009` — 演习战应用加成
 
-- 常量: `Constant.PROT_BATTLE_SIMULATION_BATTLE_APPLY_BONUS_21009`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `index` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.index` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `bonusUsing` |
-| 2 | byte | `armyId` |
-| 3 | string | `bonus` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `bonus_using` | — |
+| 2 | u8 | `army_id` | 兵种 ID |
+| 3 | string | `bonus` | — |
 
 ---
 
-#### `cmd=21010` — battle simulation battle refresh bonus 21010
+### `cmd=21010` — 演习战刷新加成
 
-- 常量: `Constant.PROT_BATTLE_SIMULATION_BATTLE_REFRESH_BONUS_21010`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `confirm_diamond_usage` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.confirmDiamondUsage` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `armyId` |
-| 2 | string | `bonus` |
-| 3 | int | `diamondNeeded` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `army_id` | 兵种 ID |
+| 2 | string | `bonus` | — |
+| 3 | u32 | `diamond_needed` | — |
 
 ---
 
-#### `cmd=21011` — battle simulation battle rewards list 21011
+### `cmd=21011` — 演习战奖励列表
 
-- 常量: `Constant.PROT_BATTLE_SIMULATION_BATTLE_REWARDS_LIST_21011`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `simb_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.simbId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `simbId` |
-| 2 | int | `extraReward1DaysBefore` |
-| 3 | int | `extraReward2DaysBefore` |
-| 4 | int | `level` |
-| 5 | string | `description` |
-| 6 | int | `itemID` |
-| 7 | string | `name` |
-| 8 | string | `description` |
-| 9 | int | `icon` |
-| 10 | int | `amount` |
-| 11 | int | `itemID` |
-| 12 | string | `name` |
-| 13 | string | `description` |
-| 14 | int | `icon` |
-| 15 | int | `amount` |
-| 16 | int | `itemID` |
-| 17 | string | `name` |
-| 18 | string | `description` |
-| 19 | int | `icon` |
-| 20 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `simb_id` | — |
+| 2 | u32 | `extra_reward_1_days_before` | — |
+| 3 | u32 | `extra_reward_2_days_before` | — |
+| 4 | u32 | `level` | 等级 |
+| 5 | string | `description` | 描述文案 |
+| 6 | u32 | `item_id` | 道具 ID |
+| 7 | string | `name` | 名称 |
+| 8 | string | `description` | 描述文案 |
+| 9 | u32 | `icon` | 图标编号 |
+| 10 | u32 | `amount` | 数量 |
+| 11 | u32 | `item_id` | 道具 ID |
+| 12 | string | `name` | 名称 |
+| 13 | string | `description` | 描述文案 |
+| 14 | u32 | `icon` | 图标编号 |
+| 15 | u32 | `amount` | 数量 |
+| 16 | u32 | `item_id` | 道具 ID |
+| 17 | string | `name` | 名称 |
+| 18 | string | `description` | 描述文案 |
+| 19 | u32 | `icon` | 图标编号 |
+| 20 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=21012` — battle simulation battle rules 21012
+### `cmd=21012` — 演习战规则
 
-- 常量: `Constant.PROT_BATTLE_SIMULATION_BATTLE_RULES_21012`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `ruleDescription` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `rule_description` | 描述文案 |
 
 ---
 
-#### `cmd=29001` — blade clash submit entry list 29001 ｜ 推送
+### `cmd=29001` — 利刃之战报名（服务端推送）
 
-- 常量: `Constant.PROT_BLADE_CLASH_SUBMIT_ENTRY_LIST_29001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `p_1` | — |
+| 2 | u64 | `p_2` | — |
+| 3 | u64 | `p_3` | — |
+| 4 | u64 | `p_4` | — |
+| 5 | u64 | `p_5` | — |
+| 6 | u64 | `p_6` | — |
+| 7 | u64 | `p_7` | — |
+| 8 | u64 | `p_8` | — |
+| 9 | u64 | `p_9` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.p1` |
-| 2 | long | `this.p2` |
-| 3 | long | `this.p3` |
-| 4 | long | `this.p4` |
-| 5 | long | `this.p5` |
-| 6 | long | `this.p6` |
-| 7 | long | `this.p7` |
-| 8 | long | `this.p8` |
-| 9 | long | `this.p9` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=29002` — blade clash submit troop 29002 ｜ 推送
+### `cmd=29002` — 利刃之战提交部队（服务端推送）
 
-- 常量: `Constant.PROT_BLADE_CLASH_SUBMIT_TROOP_29002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `o_1` | — |
+| 2 | u8 | `armies_1.length` | — |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 4 | u8 | `i.id` | — |
+| 5 | u32 | `i.count)}this._data.write_long(this.o_2` | — |
+| 6 | u8 | `armies_2.length` | — |
+| 7 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 8 | u8 | `r.id` | — |
+| 9 | u32 | `r.count)}this._data.write_long(this.o_3` | — |
+| 10 | u8 | `armies_3.length` | — |
+| 11 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 12 | u8 | `l.id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.o1` |
-| 2 | byte | `this.armies1.length` |
-| … | 循环 | `for(var e` |
-| 3 | byte | `i.id` |
-| 4 | int | `i.count)}this._data.writeLong(this.o2` |
-| 5 | byte | `this.armies2.length` |
-| … | 循环 | `for(var n` |
-| 6 | byte | `r.id` |
-| 7 | int | `r.count)}this._data.writeLong(this.o3` |
-| 8 | byte | `this.armies3.length` |
-| … | 循环 | `for(var o` |
-| 9 | byte | `l.id` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=29003` — blade clash troop list 29003 ｜ 推送
+### `cmd=29003` — 利刃之战部队列表（服务端推送）
 
-- 常量: `Constant.PROT_BLADE_CLASH_TROOP_LIST_29003`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `joinedEvent` |
-| 2 | long | `playerId` |
-| 3 | string | `name` |
-| 4 | int | `avatar` |
-| 5 | int | `racial` |
-| 6 | long | `influence` |
-| 7 | byte | `troopConfigured` |
-| 8 | long | `mainOfficerId` |
-| 9 | byte | `id` |
-| 10 | int | `count` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `joined_event` | — |
+| 2 | u64 | `player_id` | 玩家 ID |
+| 3 | string | `name` | 名称 |
+| 4 | u32 | `avatar` | — |
+| 5 | u32 | `racial` | — |
+| 6 | u64 | `influence` | 影响力 |
+| 7 | u8 | `troop_configured` | — |
+| 8 | u64 | `main_officer_id` | — |
+| 9 | u8 | `id` | — |
+| 10 | u32 | `count` | 数量/计数 |
 
 ---
 
-#### `cmd=29004` — blade clash match 29004 ｜ 推送
+### `cmd=29004` — 利刃之战出战（服务端推送）
 
-- 常量: `Constant.PROT_BLADE_CLASH_MATCH_29004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `update` | — |
+| 2 | u64 | `train_officer_id` | — |
+| 3 | u8 | `train_mode` | — |
+| 4 | u8 | `idle_pop_percent` | — |
+| 5 | u8 | `times_add_pop_after_train` | — |
+| 6 | string | `city_config` | — |
+| 7 | u8 | `auto_train)` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.update` |
-| 2 | long | `this.trainOfficerId` |
-| 3 | byte | `this.trainMode` |
-| 4 | byte | `this.idlePopPercent` |
-| 5 | byte | `this.timesAddPopAfterTrain` |
-| 6 | string | `this.cityConfig` |
-| 7 | byte | `this.autoTrain)` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `enemyAllianceName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `enemy_alliance_name` | 军团名称 |
 
 ---
 
-#### `cmd=29005` — blade clash get battle 29005 ｜ 推送
+### `cmd=29005` — 获取利刃之战战斗（服务端推送）
 
-- 常量: `Constant.PROT_BLADE_CLASH_GET_BATTLE_29005`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `battleId` |
-| 2 | byte | `battleRound` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `battle_id` | — |
+| 2 | u8 | `battle_round` | — |
 
 ---
 
-#### `cmd=29006` — blade clash rules and rewards 29006 ｜ 推送
+### `cmd=29006` — 利刃之战规则与奖励（服务端推送）
 
-- 常量: `Constant.PROT_BLADE_CLASH_RULES_AND_REWARDS_29006`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `rules` |
-| 2 | string | `name` |
-| 3 | string | `description` |
-| 4 | int | `icon` |
-| 5 | int | `amount` |
-| 6 | string | `name` |
-| 7 | string | `description` |
-| 8 | int | `icon` |
-| 9 | int | `amount` |
-| 10 | string | `name` |
-| 11 | string | `description` |
-| 12 | int | `icon` |
-| 13 | int | `amount` |
-| 14 | string | `name` |
-| 15 | string | `description` |
-| 16 | int | `icon` |
-| 17 | int | `amount` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `rules` | — |
+| 2 | string | `name` | 名称 |
+| 3 | string | `description` | 描述文案 |
+| 4 | u32 | `icon` | 图标编号 |
+| 5 | u32 | `amount` | 数量 |
+| 6 | string | `name` | 名称 |
+| 7 | string | `description` | 描述文案 |
+| 8 | u32 | `icon` | 图标编号 |
+| 9 | u32 | `amount` | 数量 |
+| 10 | string | `name` | 名称 |
+| 11 | string | `description` | 描述文案 |
+| 12 | u32 | `icon` | 图标编号 |
+| 13 | u32 | `amount` | 数量 |
+| 14 | string | `name` | 名称 |
+| 15 | string | `description` | 描述文案 |
+| 16 | u32 | `icon` | 图标编号 |
+| 17 | u32 | `amount` | 数量 |

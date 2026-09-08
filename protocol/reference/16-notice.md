@@ -1,895 +1,856 @@
 # 公告与系统
 
-> 15 个命令（cmd 13002 ~ 14020）
+> 15 个命令（cmd 13002 ~ 14020）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=13002` — notice list 13002
+### `cmd=13002` — 查询公告列表
 
-- 常量: `Constant.PROT_NOTICE_LIST_13002`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `noticeId` |
-| 2 | byte | `type` |
-| 3 | string | `message` |
-| 4 | long | `createTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `notice_id` | 公告文案 |
+| 2 | u8 | `type` | 类型枚举 |
+| 3 | string | `message` | — |
+| 4 | u64 | `create_time` | 创建时间戳 |
 
 ---
 
-#### `cmd=14001` — capital message list 14001
+### `cmd=14001` — 查询首府公告列表
 
-- 常量: `Constant.PROT_CAPITAL_MESSAGE_LIST_14001`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `messageId` |
-| 2 | string | `messageTitle` |
-| 3 | string | `author` |
-| 4 | int | `priority` |
-| 5 | long | `messageTime` |
-| 6 | int | `allianceId` |
-| 7 | string | `allianceName` |
-| 8 | int | `capitalX` |
-| 9 | int | `capitalY` |
-| 10 | int | `position` |
-| 11 | int | `id` |
-| 12 | string | `name` |
-| 13 | int | `capitalStatus` |
-| 14 | string | `info1` |
-| 15 | string | `info1` |
-| 16 | string | `info2` |
-| 17 | int | `diamondRequired` |
-| 18 | string | `info1` |
-| 19 | string | `info2` |
-| 20 | int | `diamondRequired` |
-| 21 | long | `remainTime` |
-| 22 | string | `info1` |
-| 23 | int | `position` |
-| 24 | int | `state` |
-| 25 | long | `remainTime` |
-| 26 | int | `mineId` |
-| 27 | int | `prototypeID` |
-| 28 | int | `production` |
-| 29 | int | `totalTime` |
-| 30 | string | `nuclearDescription` |
-| 31 | int | `capitalState` |
-| 32 | string | `stateDescription` |
-| 33 | byte | `type` |
-| 34 | string | `message` |
-| 35 | int | `type` |
-| 36 | int | `fieldType` |
-| 37 | string | `cityIcon` |
-| 38 | string | `cityName` |
-| 39 | string | `nuclearIcon` |
-| 40 | string | `nuclearName` |
-| 41 | string | `allianceName` |
-| 42 | string | `fieldIcon` |
-| 43 | string | `fieldName` |
-| 44 | string | `strongholdIcon` |
-| 45 | string | `strongholdName` |
-| 46 | int | `x` |
-| 47 | int | `y` |
-| 48 | string | `remark` |
-| 49 | int | `linesCount` |
-| 50 | long | `expeditionId` |
-| 51 | int | `startX` |
-| 52 | int | `startY` |
-| 53 | int | `endX` |
-| 54 | int | `endY` |
-| 55 | string | `mark` |
-| 56 | string | `officerName` |
-| 57 | int | `officerIcon` |
-| 58 | int | `officerLevel` |
-| 59 | long | `playerId` |
-| 60 | string | `playerName` |
-| 61 | int | `avata` |
-| 62 | string | `playerName` |
-| 63 | string | `allianceName` |
-| 64 | string | `title` |
-| 65 | string | `titleColor` |
-| 66 | long | `onewayTime` |
-| 67 | long | `remainingTime` |
-| 68 | int | `state` |
-| 69 | int | `armyCount` |
-| 70 | int | `type` |
-| 71 | int | `relationship` |
-| 72 | long | `fromCityId` |
-| 73 | long | `targetExpeditionId` |
-| 74 | int | `x` |
-| 75 | int | `y` |
-| 76 | long | `arrivedTime` |
-| 77 | int | `pageNum` |
-| 78 | int | `pageCount` |
-| 79 | long | `tradeId` |
-| 80 | byte | `tradeResourceType` |
-| 81 | int | `tradeAmount` |
-| 82 | string | `unitPrice` |
-| 83 | int | `totalPrice` |
-| 84 | long | `tradeTime` |
-| 85 | int | `sellerAvata` |
-| 86 | string | `sellerNickname` |
-| 87 | string | `sellerAllianceName` |
-| 88 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `message_id` | — |
+| 2 | string | `message_title` | — |
+| 3 | string | `author` | — |
+| 4 | u32 | `priority` | — |
+| 5 | u64 | `message_time` | 时间戳（毫秒） |
+| 6 | u32 | `alliance_id` | 军团 ID |
+| 7 | string | `alliance_name` | 军团名称 |
+| 8 | u32 | `capital_x` | 地图 X 坐标 |
+| 9 | u32 | `capital_y` | 地图 Y 坐标 |
+| 10 | u32 | `position` | 格位编号 |
+| 11 | u32 | `id` | — |
+| 12 | string | `name` | 名称 |
+| 13 | u32 | `capital_status` | 结果状态 |
+| 14 | string | `info_1` | — |
+| 15 | string | `info_1` | — |
+| 16 | string | `info_2` | — |
+| 17 | u32 | `diamond_required` | — |
+| 18 | string | `info_1` | — |
+| 19 | string | `info_2` | — |
+| 20 | u32 | `diamond_required` | — |
+| 21 | u64 | `remain_time` | 剩余毫秒数 |
+| 22 | string | `info_1` | — |
+| 23 | u32 | `position` | 格位编号 |
+| 24 | u32 | `state` | — |
+| 25 | u64 | `remain_time` | 剩余毫秒数 |
+| 26 | u32 | `mine_id` | — |
+| 27 | u32 | `prototype_id` | 建筑原型 ID |
+| 28 | u32 | `production` | — |
+| 29 | u32 | `total_time` | 总耗时毫秒 |
+| 30 | string | `nuclear_description` | 描述文案 |
+| 31 | u32 | `capital_state` | — |
+| 32 | string | `state_description` | 描述文案 |
+| 33 | u8 | `type` | 类型枚举 |
+| 34 | string | `message` | — |
+| 35 | u32 | `type` | 类型枚举 |
+| 36 | u32 | `field_type` | 类型枚举 |
+| 37 | string | `city_icon` | 图标编号 |
+| 38 | string | `city_name` | 城池名称 |
+| 39 | string | `nuclear_icon` | 图标编号 |
+| 40 | string | `nuclear_name` | 名称 |
+| 41 | string | `alliance_name` | 军团名称 |
+| 42 | string | `field_icon` | 图标编号 |
+| 43 | string | `field_name` | 名称 |
+| 44 | string | `stronghold_icon` | 图标编号 |
+| 45 | string | `stronghold_name` | 名称 |
+| 46 | u32 | `x` | 地图 X 坐标 |
+| 47 | u32 | `y` | 地图 Y 坐标 |
+| 48 | string | `remark` | — |
+| 49 | u32 | `lines_count` | 数量/计数 |
+| 50 | u64 | `expedition_id` | — |
+| 51 | u32 | `start_x` | 地图 X 坐标 |
+| 52 | u32 | `start_y` | 地图 Y 坐标 |
+| 53 | u32 | `end_x` | 地图 X 坐标 |
+| 54 | u32 | `end_y` | 地图 Y 坐标 |
+| 55 | string | `mark` | — |
+| 56 | string | `officer_name` | 名称 |
+| 57 | u32 | `officer_icon` | 图标编号 |
+| 58 | u32 | `officer_level` | 等级 |
+| 59 | u64 | `player_id` | 玩家 ID |
+| 60 | string | `player_name` | 玩家名称 |
+| 61 | u32 | `avatar` | — |
+| 62 | string | `player_name` | 玩家名称 |
+| 63 | string | `alliance_name` | 军团名称 |
+| 64 | string | `title` | — |
+| 65 | string | `title_color` | — |
+| 66 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 67 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 68 | u32 | `state` | — |
+| 69 | u32 | `army_count` | 数量/计数 |
+| 70 | u32 | `type` | 类型枚举 |
+| 71 | u32 | `relationship` | — |
+| 72 | u64 | `from_city_id` | 城池 ID |
+| 73 | u64 | `target_expedition_id` | — |
+| 74 | u32 | `x` | 地图 X 坐标 |
+| 75 | u32 | `y` | 地图 Y 坐标 |
+| 76 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 77 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 78 | u32 | `page_count` | 总页数 |
+| 79 | u64 | `trade_id` | — |
+| 80 | u8 | `trade_resource_type` | 类型枚举 |
+| 81 | u32 | `trade_amount` | 数量 |
+| 82 | string | `unit_price` | 单价 |
+| 83 | u32 | `total_price` | 单价 |
+| 84 | u64 | `trade_time` | 时间戳（毫秒） |
+| 85 | u32 | `seller_avatar` | — |
+| 86 | string | `seller_nickname` | 玩家昵称 |
+| 87 | string | `seller_alliance_name` | 军团名称 |
+| 88 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14002` — capital message publish 14002
+### `cmd=14002` — 发布首府公告
 
-- 常量: `Constant.PROT_CAPITAL_MESSAGE_PUBLISH_14002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `title` | — |
+| 2 | string | `content` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.title` |
-| 2 | string | `this.content` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=14003` — capital message delete 14003
+### `cmd=14003` — 删除首府公告
 
-- 常量: `Constant.PROT_CAPITAL_MESSAGE_DELETE_14003`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_message_ids.length` | 军团 |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceMessageIds.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `allianceId` |
-| 2 | string | `allianceName` |
-| 3 | int | `capitalX` |
-| 4 | int | `capitalY` |
-| 5 | int | `position` |
-| 6 | int | `id` |
-| 7 | string | `name` |
-| 8 | int | `capitalStatus` |
-| 9 | string | `info1` |
-| 10 | string | `info1` |
-| 11 | string | `info2` |
-| 12 | int | `diamondRequired` |
-| 13 | string | `info1` |
-| 14 | string | `info2` |
-| 15 | int | `diamondRequired` |
-| 16 | long | `remainTime` |
-| 17 | string | `info1` |
-| 18 | int | `position` |
-| 19 | int | `state` |
-| 20 | long | `remainTime` |
-| 21 | int | `mineId` |
-| 22 | int | `prototypeID` |
-| 23 | int | `production` |
-| 24 | int | `totalTime` |
-| 25 | string | `nuclearDescription` |
-| 26 | int | `capitalState` |
-| 27 | string | `stateDescription` |
-| 28 | byte | `type` |
-| 29 | string | `message` |
-| 30 | int | `type` |
-| 31 | int | `fieldType` |
-| 32 | string | `cityIcon` |
-| 33 | string | `cityName` |
-| 34 | string | `nuclearIcon` |
-| 35 | string | `nuclearName` |
-| 36 | string | `allianceName` |
-| 37 | string | `fieldIcon` |
-| 38 | string | `fieldName` |
-| 39 | string | `strongholdIcon` |
-| 40 | string | `strongholdName` |
-| 41 | int | `x` |
-| 42 | int | `y` |
-| 43 | string | `remark` |
-| 44 | int | `linesCount` |
-| 45 | long | `expeditionId` |
-| 46 | int | `startX` |
-| 47 | int | `startY` |
-| 48 | int | `endX` |
-| 49 | int | `endY` |
-| 50 | string | `mark` |
-| 51 | string | `officerName` |
-| 52 | int | `officerIcon` |
-| 53 | int | `officerLevel` |
-| 54 | long | `playerId` |
-| 55 | string | `playerName` |
-| 56 | int | `avata` |
-| 57 | string | `playerName` |
-| 58 | string | `allianceName` |
-| 59 | string | `title` |
-| 60 | string | `titleColor` |
-| 61 | long | `onewayTime` |
-| 62 | long | `remainingTime` |
-| 63 | int | `state` |
-| 64 | int | `armyCount` |
-| 65 | int | `type` |
-| 66 | int | `relationship` |
-| 67 | long | `fromCityId` |
-| 68 | long | `targetExpeditionId` |
-| 69 | int | `x` |
-| 70 | int | `y` |
-| 71 | long | `arrivedTime` |
-| 72 | int | `pageNum` |
-| 73 | int | `pageCount` |
-| 74 | long | `tradeId` |
-| 75 | byte | `tradeResourceType` |
-| 76 | int | `tradeAmount` |
-| 77 | string | `unitPrice` |
-| 78 | int | `totalPrice` |
-| 79 | long | `tradeTime` |
-| 80 | int | `sellerAvata` |
-| 81 | string | `sellerNickname` |
-| 82 | string | `sellerAllianceName` |
-| 83 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
+| 2 | string | `alliance_name` | 军团名称 |
+| 3 | u32 | `capital_x` | 地图 X 坐标 |
+| 4 | u32 | `capital_y` | 地图 Y 坐标 |
+| 5 | u32 | `position` | 格位编号 |
+| 6 | u32 | `id` | — |
+| 7 | string | `name` | 名称 |
+| 8 | u32 | `capital_status` | 结果状态 |
+| 9 | string | `info_1` | — |
+| 10 | string | `info_1` | — |
+| 11 | string | `info_2` | — |
+| 12 | u32 | `diamond_required` | — |
+| 13 | string | `info_1` | — |
+| 14 | string | `info_2` | — |
+| 15 | u32 | `diamond_required` | — |
+| 16 | u64 | `remain_time` | 剩余毫秒数 |
+| 17 | string | `info_1` | — |
+| 18 | u32 | `position` | 格位编号 |
+| 19 | u32 | `state` | — |
+| 20 | u64 | `remain_time` | 剩余毫秒数 |
+| 21 | u32 | `mine_id` | — |
+| 22 | u32 | `prototype_id` | 建筑原型 ID |
+| 23 | u32 | `production` | — |
+| 24 | u32 | `total_time` | 总耗时毫秒 |
+| 25 | string | `nuclear_description` | 描述文案 |
+| 26 | u32 | `capital_state` | — |
+| 27 | string | `state_description` | 描述文案 |
+| 28 | u8 | `type` | 类型枚举 |
+| 29 | string | `message` | — |
+| 30 | u32 | `type` | 类型枚举 |
+| 31 | u32 | `field_type` | 类型枚举 |
+| 32 | string | `city_icon` | 图标编号 |
+| 33 | string | `city_name` | 城池名称 |
+| 34 | string | `nuclear_icon` | 图标编号 |
+| 35 | string | `nuclear_name` | 名称 |
+| 36 | string | `alliance_name` | 军团名称 |
+| 37 | string | `field_icon` | 图标编号 |
+| 38 | string | `field_name` | 名称 |
+| 39 | string | `stronghold_icon` | 图标编号 |
+| 40 | string | `stronghold_name` | 名称 |
+| 41 | u32 | `x` | 地图 X 坐标 |
+| 42 | u32 | `y` | 地图 Y 坐标 |
+| 43 | string | `remark` | — |
+| 44 | u32 | `lines_count` | 数量/计数 |
+| 45 | u64 | `expedition_id` | — |
+| 46 | u32 | `start_x` | 地图 X 坐标 |
+| 47 | u32 | `start_y` | 地图 Y 坐标 |
+| 48 | u32 | `end_x` | 地图 X 坐标 |
+| 49 | u32 | `end_y` | 地图 Y 坐标 |
+| 50 | string | `mark` | — |
+| 51 | string | `officer_name` | 名称 |
+| 52 | u32 | `officer_icon` | 图标编号 |
+| 53 | u32 | `officer_level` | 等级 |
+| 54 | u64 | `player_id` | 玩家 ID |
+| 55 | string | `player_name` | 玩家名称 |
+| 56 | u32 | `avatar` | — |
+| 57 | string | `player_name` | 玩家名称 |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `title` | — |
+| 60 | string | `title_color` | — |
+| 61 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 62 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 63 | u32 | `state` | — |
+| 64 | u32 | `army_count` | 数量/计数 |
+| 65 | u32 | `type` | 类型枚举 |
+| 66 | u32 | `relationship` | — |
+| 67 | u64 | `from_city_id` | 城池 ID |
+| 68 | u64 | `target_expedition_id` | — |
+| 69 | u32 | `x` | 地图 X 坐标 |
+| 70 | u32 | `y` | 地图 Y 坐标 |
+| 71 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 72 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 73 | u32 | `page_count` | 总页数 |
+| 74 | u64 | `trade_id` | — |
+| 75 | u8 | `trade_resource_type` | 类型枚举 |
+| 76 | u32 | `trade_amount` | 数量 |
+| 77 | string | `unit_price` | 单价 |
+| 78 | u32 | `total_price` | 单价 |
+| 79 | u64 | `trade_time` | 时间戳（毫秒） |
+| 80 | u32 | `seller_avatar` | — |
+| 81 | string | `seller_nickname` | 玩家昵称 |
+| 82 | string | `seller_alliance_name` | 军团名称 |
+| 83 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14004` — capital message detail 14004
+### `cmd=14004` — 查询首府公告详情
 
-- 常量: `Constant.PROT_CAPITAL_MESSAGE_DETAIL_14004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_message_id` | 军团 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceMessageId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `messageContent` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message_content` | — |
 
 ---
 
-#### `cmd=14005` — capital message lock top 14005
+### `cmd=14005` — 置顶首府公告
 
-- 常量: `Constant.PROT_CAPITAL_MESSAGE_LOCK_TOP_14005`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_message_id` | 军团 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceMessageId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `allianceId` |
-| 2 | string | `allianceName` |
-| 3 | int | `capitalX` |
-| 4 | int | `capitalY` |
-| 5 | int | `position` |
-| 6 | int | `id` |
-| 7 | string | `name` |
-| 8 | int | `capitalStatus` |
-| 9 | string | `info1` |
-| 10 | string | `info1` |
-| 11 | string | `info2` |
-| 12 | int | `diamondRequired` |
-| 13 | string | `info1` |
-| 14 | string | `info2` |
-| 15 | int | `diamondRequired` |
-| 16 | long | `remainTime` |
-| 17 | string | `info1` |
-| 18 | int | `position` |
-| 19 | int | `state` |
-| 20 | long | `remainTime` |
-| 21 | int | `mineId` |
-| 22 | int | `prototypeID` |
-| 23 | int | `production` |
-| 24 | int | `totalTime` |
-| 25 | string | `nuclearDescription` |
-| 26 | int | `capitalState` |
-| 27 | string | `stateDescription` |
-| 28 | byte | `type` |
-| 29 | string | `message` |
-| 30 | int | `type` |
-| 31 | int | `fieldType` |
-| 32 | string | `cityIcon` |
-| 33 | string | `cityName` |
-| 34 | string | `nuclearIcon` |
-| 35 | string | `nuclearName` |
-| 36 | string | `allianceName` |
-| 37 | string | `fieldIcon` |
-| 38 | string | `fieldName` |
-| 39 | string | `strongholdIcon` |
-| 40 | string | `strongholdName` |
-| 41 | int | `x` |
-| 42 | int | `y` |
-| 43 | string | `remark` |
-| 44 | int | `linesCount` |
-| 45 | long | `expeditionId` |
-| 46 | int | `startX` |
-| 47 | int | `startY` |
-| 48 | int | `endX` |
-| 49 | int | `endY` |
-| 50 | string | `mark` |
-| 51 | string | `officerName` |
-| 52 | int | `officerIcon` |
-| 53 | int | `officerLevel` |
-| 54 | long | `playerId` |
-| 55 | string | `playerName` |
-| 56 | int | `avata` |
-| 57 | string | `playerName` |
-| 58 | string | `allianceName` |
-| 59 | string | `title` |
-| 60 | string | `titleColor` |
-| 61 | long | `onewayTime` |
-| 62 | long | `remainingTime` |
-| 63 | int | `state` |
-| 64 | int | `armyCount` |
-| 65 | int | `type` |
-| 66 | int | `relationship` |
-| 67 | long | `fromCityId` |
-| 68 | long | `targetExpeditionId` |
-| 69 | int | `x` |
-| 70 | int | `y` |
-| 71 | long | `arrivedTime` |
-| 72 | int | `pageNum` |
-| 73 | int | `pageCount` |
-| 74 | long | `tradeId` |
-| 75 | byte | `tradeResourceType` |
-| 76 | int | `tradeAmount` |
-| 77 | string | `unitPrice` |
-| 78 | int | `totalPrice` |
-| 79 | long | `tradeTime` |
-| 80 | int | `sellerAvata` |
-| 81 | string | `sellerNickname` |
-| 82 | string | `sellerAllianceName` |
-| 83 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
+| 2 | string | `alliance_name` | 军团名称 |
+| 3 | u32 | `capital_x` | 地图 X 坐标 |
+| 4 | u32 | `capital_y` | 地图 Y 坐标 |
+| 5 | u32 | `position` | 格位编号 |
+| 6 | u32 | `id` | — |
+| 7 | string | `name` | 名称 |
+| 8 | u32 | `capital_status` | 结果状态 |
+| 9 | string | `info_1` | — |
+| 10 | string | `info_1` | — |
+| 11 | string | `info_2` | — |
+| 12 | u32 | `diamond_required` | — |
+| 13 | string | `info_1` | — |
+| 14 | string | `info_2` | — |
+| 15 | u32 | `diamond_required` | — |
+| 16 | u64 | `remain_time` | 剩余毫秒数 |
+| 17 | string | `info_1` | — |
+| 18 | u32 | `position` | 格位编号 |
+| 19 | u32 | `state` | — |
+| 20 | u64 | `remain_time` | 剩余毫秒数 |
+| 21 | u32 | `mine_id` | — |
+| 22 | u32 | `prototype_id` | 建筑原型 ID |
+| 23 | u32 | `production` | — |
+| 24 | u32 | `total_time` | 总耗时毫秒 |
+| 25 | string | `nuclear_description` | 描述文案 |
+| 26 | u32 | `capital_state` | — |
+| 27 | string | `state_description` | 描述文案 |
+| 28 | u8 | `type` | 类型枚举 |
+| 29 | string | `message` | — |
+| 30 | u32 | `type` | 类型枚举 |
+| 31 | u32 | `field_type` | 类型枚举 |
+| 32 | string | `city_icon` | 图标编号 |
+| 33 | string | `city_name` | 城池名称 |
+| 34 | string | `nuclear_icon` | 图标编号 |
+| 35 | string | `nuclear_name` | 名称 |
+| 36 | string | `alliance_name` | 军团名称 |
+| 37 | string | `field_icon` | 图标编号 |
+| 38 | string | `field_name` | 名称 |
+| 39 | string | `stronghold_icon` | 图标编号 |
+| 40 | string | `stronghold_name` | 名称 |
+| 41 | u32 | `x` | 地图 X 坐标 |
+| 42 | u32 | `y` | 地图 Y 坐标 |
+| 43 | string | `remark` | — |
+| 44 | u32 | `lines_count` | 数量/计数 |
+| 45 | u64 | `expedition_id` | — |
+| 46 | u32 | `start_x` | 地图 X 坐标 |
+| 47 | u32 | `start_y` | 地图 Y 坐标 |
+| 48 | u32 | `end_x` | 地图 X 坐标 |
+| 49 | u32 | `end_y` | 地图 Y 坐标 |
+| 50 | string | `mark` | — |
+| 51 | string | `officer_name` | 名称 |
+| 52 | u32 | `officer_icon` | 图标编号 |
+| 53 | u32 | `officer_level` | 等级 |
+| 54 | u64 | `player_id` | 玩家 ID |
+| 55 | string | `player_name` | 玩家名称 |
+| 56 | u32 | `avatar` | — |
+| 57 | string | `player_name` | 玩家名称 |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `title` | — |
+| 60 | string | `title_color` | — |
+| 61 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 62 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 63 | u32 | `state` | — |
+| 64 | u32 | `army_count` | 数量/计数 |
+| 65 | u32 | `type` | 类型枚举 |
+| 66 | u32 | `relationship` | — |
+| 67 | u64 | `from_city_id` | 城池 ID |
+| 68 | u64 | `target_expedition_id` | — |
+| 69 | u32 | `x` | 地图 X 坐标 |
+| 70 | u32 | `y` | 地图 Y 坐标 |
+| 71 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 72 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 73 | u32 | `page_count` | 总页数 |
+| 74 | u64 | `trade_id` | — |
+| 75 | u8 | `trade_resource_type` | 类型枚举 |
+| 76 | u32 | `trade_amount` | 数量 |
+| 77 | string | `unit_price` | 单价 |
+| 78 | u32 | `total_price` | 单价 |
+| 79 | u64 | `trade_time` | 时间戳（毫秒） |
+| 80 | u32 | `seller_avatar` | — |
+| 81 | string | `seller_nickname` | 玩家昵称 |
+| 82 | string | `seller_alliance_name` | 军团名称 |
+| 83 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14006` — capital message unlock top 14006
+### `cmd=14006` — 取消置顶
 
-- 常量: `Constant.PROT_CAPITAL_MESSAGE_UNLOCK_TOP_14006`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_message_id` | 军团 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceMessageId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `allianceId` |
-| 2 | string | `allianceName` |
-| 3 | int | `capitalX` |
-| 4 | int | `capitalY` |
-| 5 | int | `position` |
-| 6 | int | `id` |
-| 7 | string | `name` |
-| 8 | int | `capitalStatus` |
-| 9 | string | `info1` |
-| 10 | string | `info1` |
-| 11 | string | `info2` |
-| 12 | int | `diamondRequired` |
-| 13 | string | `info1` |
-| 14 | string | `info2` |
-| 15 | int | `diamondRequired` |
-| 16 | long | `remainTime` |
-| 17 | string | `info1` |
-| 18 | int | `position` |
-| 19 | int | `state` |
-| 20 | long | `remainTime` |
-| 21 | int | `mineId` |
-| 22 | int | `prototypeID` |
-| 23 | int | `production` |
-| 24 | int | `totalTime` |
-| 25 | string | `nuclearDescription` |
-| 26 | int | `capitalState` |
-| 27 | string | `stateDescription` |
-| 28 | byte | `type` |
-| 29 | string | `message` |
-| 30 | int | `type` |
-| 31 | int | `fieldType` |
-| 32 | string | `cityIcon` |
-| 33 | string | `cityName` |
-| 34 | string | `nuclearIcon` |
-| 35 | string | `nuclearName` |
-| 36 | string | `allianceName` |
-| 37 | string | `fieldIcon` |
-| 38 | string | `fieldName` |
-| 39 | string | `strongholdIcon` |
-| 40 | string | `strongholdName` |
-| 41 | int | `x` |
-| 42 | int | `y` |
-| 43 | string | `remark` |
-| 44 | int | `linesCount` |
-| 45 | long | `expeditionId` |
-| 46 | int | `startX` |
-| 47 | int | `startY` |
-| 48 | int | `endX` |
-| 49 | int | `endY` |
-| 50 | string | `mark` |
-| 51 | string | `officerName` |
-| 52 | int | `officerIcon` |
-| 53 | int | `officerLevel` |
-| 54 | long | `playerId` |
-| 55 | string | `playerName` |
-| 56 | int | `avata` |
-| 57 | string | `playerName` |
-| 58 | string | `allianceName` |
-| 59 | string | `title` |
-| 60 | string | `titleColor` |
-| 61 | long | `onewayTime` |
-| 62 | long | `remainingTime` |
-| 63 | int | `state` |
-| 64 | int | `armyCount` |
-| 65 | int | `type` |
-| 66 | int | `relationship` |
-| 67 | long | `fromCityId` |
-| 68 | long | `targetExpeditionId` |
-| 69 | int | `x` |
-| 70 | int | `y` |
-| 71 | long | `arrivedTime` |
-| 72 | int | `pageNum` |
-| 73 | int | `pageCount` |
-| 74 | long | `tradeId` |
-| 75 | byte | `tradeResourceType` |
-| 76 | int | `tradeAmount` |
-| 77 | string | `unitPrice` |
-| 78 | int | `totalPrice` |
-| 79 | long | `tradeTime` |
-| 80 | int | `sellerAvata` |
-| 81 | string | `sellerNickname` |
-| 82 | string | `sellerAllianceName` |
-| 83 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
+| 2 | string | `alliance_name` | 军团名称 |
+| 3 | u32 | `capital_x` | 地图 X 坐标 |
+| 4 | u32 | `capital_y` | 地图 Y 坐标 |
+| 5 | u32 | `position` | 格位编号 |
+| 6 | u32 | `id` | — |
+| 7 | string | `name` | 名称 |
+| 8 | u32 | `capital_status` | 结果状态 |
+| 9 | string | `info_1` | — |
+| 10 | string | `info_1` | — |
+| 11 | string | `info_2` | — |
+| 12 | u32 | `diamond_required` | — |
+| 13 | string | `info_1` | — |
+| 14 | string | `info_2` | — |
+| 15 | u32 | `diamond_required` | — |
+| 16 | u64 | `remain_time` | 剩余毫秒数 |
+| 17 | string | `info_1` | — |
+| 18 | u32 | `position` | 格位编号 |
+| 19 | u32 | `state` | — |
+| 20 | u64 | `remain_time` | 剩余毫秒数 |
+| 21 | u32 | `mine_id` | — |
+| 22 | u32 | `prototype_id` | 建筑原型 ID |
+| 23 | u32 | `production` | — |
+| 24 | u32 | `total_time` | 总耗时毫秒 |
+| 25 | string | `nuclear_description` | 描述文案 |
+| 26 | u32 | `capital_state` | — |
+| 27 | string | `state_description` | 描述文案 |
+| 28 | u8 | `type` | 类型枚举 |
+| 29 | string | `message` | — |
+| 30 | u32 | `type` | 类型枚举 |
+| 31 | u32 | `field_type` | 类型枚举 |
+| 32 | string | `city_icon` | 图标编号 |
+| 33 | string | `city_name` | 城池名称 |
+| 34 | string | `nuclear_icon` | 图标编号 |
+| 35 | string | `nuclear_name` | 名称 |
+| 36 | string | `alliance_name` | 军团名称 |
+| 37 | string | `field_icon` | 图标编号 |
+| 38 | string | `field_name` | 名称 |
+| 39 | string | `stronghold_icon` | 图标编号 |
+| 40 | string | `stronghold_name` | 名称 |
+| 41 | u32 | `x` | 地图 X 坐标 |
+| 42 | u32 | `y` | 地图 Y 坐标 |
+| 43 | string | `remark` | — |
+| 44 | u32 | `lines_count` | 数量/计数 |
+| 45 | u64 | `expedition_id` | — |
+| 46 | u32 | `start_x` | 地图 X 坐标 |
+| 47 | u32 | `start_y` | 地图 Y 坐标 |
+| 48 | u32 | `end_x` | 地图 X 坐标 |
+| 49 | u32 | `end_y` | 地图 Y 坐标 |
+| 50 | string | `mark` | — |
+| 51 | string | `officer_name` | 名称 |
+| 52 | u32 | `officer_icon` | 图标编号 |
+| 53 | u32 | `officer_level` | 等级 |
+| 54 | u64 | `player_id` | 玩家 ID |
+| 55 | string | `player_name` | 玩家名称 |
+| 56 | u32 | `avatar` | — |
+| 57 | string | `player_name` | 玩家名称 |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `title` | — |
+| 60 | string | `title_color` | — |
+| 61 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 62 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 63 | u32 | `state` | — |
+| 64 | u32 | `army_count` | 数量/计数 |
+| 65 | u32 | `type` | 类型枚举 |
+| 66 | u32 | `relationship` | — |
+| 67 | u64 | `from_city_id` | 城池 ID |
+| 68 | u64 | `target_expedition_id` | — |
+| 69 | u32 | `x` | 地图 X 坐标 |
+| 70 | u32 | `y` | 地图 Y 坐标 |
+| 71 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 72 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 73 | u32 | `page_count` | 总页数 |
+| 74 | u64 | `trade_id` | — |
+| 75 | u8 | `trade_resource_type` | 类型枚举 |
+| 76 | u32 | `trade_amount` | 数量 |
+| 77 | string | `unit_price` | 单价 |
+| 78 | u32 | `total_price` | 单价 |
+| 79 | u64 | `trade_time` | 时间戳（毫秒） |
+| 80 | u32 | `seller_avatar` | — |
+| 81 | string | `seller_nickname` | 玩家昵称 |
+| 82 | string | `seller_alliance_name` | 军团名称 |
+| 83 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14007` — capital build 14007
+### `cmd=14007` — 建造首府
 
-- 常量: `Constant.PROT_CAPITAL_BUILD_14007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `tile_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.tileId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `messgae` |
-| 2 | int | `allianceId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `messgae` | — |
+| 2 | u32 | `alliance_id` | 军团 ID |
 
 ---
 
-#### `cmd=14008` — capital check 14008
+### `cmd=14008` — 首府校验
 
-- 常量: `Constant.PROT_CAPITAL_CHECK_14008`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `allianceId` |
-| 2 | string | `allianceName` |
-| 3 | int | `capitalX` |
-| 4 | int | `capitalY` |
-| 5 | int | `position` |
-| 6 | int | `id` |
-| 7 | string | `name` |
-| 8 | int | `capitalStatus` |
-| 9 | string | `info1` |
-| 10 | string | `info1` |
-| 11 | string | `info2` |
-| 12 | int | `diamondRequired` |
-| 13 | string | `info1` |
-| 14 | string | `info2` |
-| 15 | int | `diamondRequired` |
-| 16 | long | `remainTime` |
-| 17 | string | `info1` |
-| 18 | int | `position` |
-| 19 | int | `state` |
-| 20 | long | `remainTime` |
-| 21 | int | `mineId` |
-| 22 | int | `prototypeID` |
-| 23 | int | `production` |
-| 24 | int | `totalTime` |
-| 25 | string | `nuclearDescription` |
-| 26 | int | `capitalState` |
-| 27 | string | `stateDescription` |
-| 28 | byte | `type` |
-| 29 | string | `message` |
-| 30 | int | `type` |
-| 31 | int | `fieldType` |
-| 32 | string | `cityIcon` |
-| 33 | string | `cityName` |
-| 34 | string | `nuclearIcon` |
-| 35 | string | `nuclearName` |
-| 36 | string | `allianceName` |
-| 37 | string | `fieldIcon` |
-| 38 | string | `fieldName` |
-| 39 | string | `strongholdIcon` |
-| 40 | string | `strongholdName` |
-| 41 | int | `x` |
-| 42 | int | `y` |
-| 43 | string | `remark` |
-| 44 | int | `linesCount` |
-| 45 | long | `expeditionId` |
-| 46 | int | `startX` |
-| 47 | int | `startY` |
-| 48 | int | `endX` |
-| 49 | int | `endY` |
-| 50 | string | `mark` |
-| 51 | string | `officerName` |
-| 52 | int | `officerIcon` |
-| 53 | int | `officerLevel` |
-| 54 | long | `playerId` |
-| 55 | string | `playerName` |
-| 56 | int | `avata` |
-| 57 | string | `playerName` |
-| 58 | string | `allianceName` |
-| 59 | string | `title` |
-| 60 | string | `titleColor` |
-| 61 | long | `onewayTime` |
-| 62 | long | `remainingTime` |
-| 63 | int | `state` |
-| 64 | int | `armyCount` |
-| 65 | int | `type` |
-| 66 | int | `relationship` |
-| 67 | long | `fromCityId` |
-| 68 | long | `targetExpeditionId` |
-| 69 | int | `x` |
-| 70 | int | `y` |
-| 71 | long | `arrivedTime` |
-| 72 | int | `pageNum` |
-| 73 | int | `pageCount` |
-| 74 | long | `tradeId` |
-| 75 | byte | `tradeResourceType` |
-| 76 | int | `tradeAmount` |
-| 77 | string | `unitPrice` |
-| 78 | int | `totalPrice` |
-| 79 | long | `tradeTime` |
-| 80 | int | `sellerAvata` |
-| 81 | string | `sellerNickname` |
-| 82 | string | `sellerAllianceName` |
-| 83 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
+| 2 | string | `alliance_name` | 军团名称 |
+| 3 | u32 | `capital_x` | 地图 X 坐标 |
+| 4 | u32 | `capital_y` | 地图 Y 坐标 |
+| 5 | u32 | `position` | 格位编号 |
+| 6 | u32 | `id` | — |
+| 7 | string | `name` | 名称 |
+| 8 | u32 | `capital_status` | 结果状态 |
+| 9 | string | `info_1` | — |
+| 10 | string | `info_1` | — |
+| 11 | string | `info_2` | — |
+| 12 | u32 | `diamond_required` | — |
+| 13 | string | `info_1` | — |
+| 14 | string | `info_2` | — |
+| 15 | u32 | `diamond_required` | — |
+| 16 | u64 | `remain_time` | 剩余毫秒数 |
+| 17 | string | `info_1` | — |
+| 18 | u32 | `position` | 格位编号 |
+| 19 | u32 | `state` | — |
+| 20 | u64 | `remain_time` | 剩余毫秒数 |
+| 21 | u32 | `mine_id` | — |
+| 22 | u32 | `prototype_id` | 建筑原型 ID |
+| 23 | u32 | `production` | — |
+| 24 | u32 | `total_time` | 总耗时毫秒 |
+| 25 | string | `nuclear_description` | 描述文案 |
+| 26 | u32 | `capital_state` | — |
+| 27 | string | `state_description` | 描述文案 |
+| 28 | u8 | `type` | 类型枚举 |
+| 29 | string | `message` | — |
+| 30 | u32 | `type` | 类型枚举 |
+| 31 | u32 | `field_type` | 类型枚举 |
+| 32 | string | `city_icon` | 图标编号 |
+| 33 | string | `city_name` | 城池名称 |
+| 34 | string | `nuclear_icon` | 图标编号 |
+| 35 | string | `nuclear_name` | 名称 |
+| 36 | string | `alliance_name` | 军团名称 |
+| 37 | string | `field_icon` | 图标编号 |
+| 38 | string | `field_name` | 名称 |
+| 39 | string | `stronghold_icon` | 图标编号 |
+| 40 | string | `stronghold_name` | 名称 |
+| 41 | u32 | `x` | 地图 X 坐标 |
+| 42 | u32 | `y` | 地图 Y 坐标 |
+| 43 | string | `remark` | — |
+| 44 | u32 | `lines_count` | 数量/计数 |
+| 45 | u64 | `expedition_id` | — |
+| 46 | u32 | `start_x` | 地图 X 坐标 |
+| 47 | u32 | `start_y` | 地图 Y 坐标 |
+| 48 | u32 | `end_x` | 地图 X 坐标 |
+| 49 | u32 | `end_y` | 地图 Y 坐标 |
+| 50 | string | `mark` | — |
+| 51 | string | `officer_name` | 名称 |
+| 52 | u32 | `officer_icon` | 图标编号 |
+| 53 | u32 | `officer_level` | 等级 |
+| 54 | u64 | `player_id` | 玩家 ID |
+| 55 | string | `player_name` | 玩家名称 |
+| 56 | u32 | `avatar` | — |
+| 57 | string | `player_name` | 玩家名称 |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `title` | — |
+| 60 | string | `title_color` | — |
+| 61 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 62 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 63 | u32 | `state` | — |
+| 64 | u32 | `army_count` | 数量/计数 |
+| 65 | u32 | `type` | 类型枚举 |
+| 66 | u32 | `relationship` | — |
+| 67 | u64 | `from_city_id` | 城池 ID |
+| 68 | u64 | `target_expedition_id` | — |
+| 69 | u32 | `x` | 地图 X 坐标 |
+| 70 | u32 | `y` | 地图 Y 坐标 |
+| 71 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 72 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 73 | u32 | `page_count` | 总页数 |
+| 74 | u64 | `trade_id` | — |
+| 75 | u8 | `trade_resource_type` | 类型枚举 |
+| 76 | u32 | `trade_amount` | 数量 |
+| 77 | string | `unit_price` | 单价 |
+| 78 | u32 | `total_price` | 单价 |
+| 79 | u64 | `trade_time` | 时间戳（毫秒） |
+| 80 | u32 | `seller_avatar` | — |
+| 81 | string | `seller_nickname` | 玩家昵称 |
+| 82 | string | `seller_alliance_name` | 军团名称 |
+| 83 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14010` — capital base info 14010
+### `cmd=14010` — 查询首府基础信息
 
-- 常量: `Constant.PROT_CAPITAL_BASE_INFO_14010`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `allianceName` |
-| 2 | int | `capitalX` |
-| 3 | int | `capitalY` |
-| 4 | int | `position` |
-| 5 | int | `id` |
-| 6 | string | `name` |
-| 7 | int | `capitalStatus` |
-| 8 | string | `info1` |
-| 9 | string | `info1` |
-| 10 | string | `info2` |
-| 11 | int | `diamondRequired` |
-| 12 | string | `info1` |
-| 13 | string | `info2` |
-| 14 | int | `diamondRequired` |
-| 15 | long | `remainTime` |
-| 16 | string | `info1` |
-| 17 | int | `position` |
-| 18 | int | `state` |
-| 19 | long | `remainTime` |
-| 20 | int | `mineId` |
-| 21 | int | `prototypeID` |
-| 22 | int | `production` |
-| 23 | int | `totalTime` |
-| 24 | string | `nuclearDescription` |
-| 25 | int | `capitalState` |
-| 26 | string | `stateDescription` |
-| 27 | byte | `type` |
-| 28 | string | `message` |
-| 29 | int | `type` |
-| 30 | int | `fieldType` |
-| 31 | string | `cityIcon` |
-| 32 | string | `cityName` |
-| 33 | string | `nuclearIcon` |
-| 34 | string | `nuclearName` |
-| 35 | string | `allianceName` |
-| 36 | string | `fieldIcon` |
-| 37 | string | `fieldName` |
-| 38 | string | `strongholdIcon` |
-| 39 | string | `strongholdName` |
-| 40 | int | `x` |
-| 41 | int | `y` |
-| 42 | string | `remark` |
-| 43 | int | `linesCount` |
-| 44 | long | `expeditionId` |
-| 45 | int | `startX` |
-| 46 | int | `startY` |
-| 47 | int | `endX` |
-| 48 | int | `endY` |
-| 49 | string | `mark` |
-| 50 | string | `officerName` |
-| 51 | int | `officerIcon` |
-| 52 | int | `officerLevel` |
-| 53 | long | `playerId` |
-| 54 | string | `playerName` |
-| 55 | int | `avata` |
-| 56 | string | `playerName` |
-| 57 | string | `allianceName` |
-| 58 | string | `title` |
-| 59 | string | `titleColor` |
-| 60 | long | `onewayTime` |
-| 61 | long | `remainingTime` |
-| 62 | int | `state` |
-| 63 | int | `armyCount` |
-| 64 | int | `type` |
-| 65 | int | `relationship` |
-| 66 | long | `fromCityId` |
-| 67 | long | `targetExpeditionId` |
-| 68 | int | `x` |
-| 69 | int | `y` |
-| 70 | long | `arrivedTime` |
-| 71 | int | `pageNum` |
-| 72 | int | `pageCount` |
-| 73 | long | `tradeId` |
-| 74 | byte | `tradeResourceType` |
-| 75 | int | `tradeAmount` |
-| 76 | string | `unitPrice` |
-| 77 | int | `totalPrice` |
-| 78 | long | `tradeTime` |
-| 79 | int | `sellerAvata` |
-| 80 | string | `sellerNickname` |
-| 81 | string | `sellerAllianceName` |
-| 82 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `alliance_name` | 军团名称 |
+| 2 | u32 | `capital_x` | 地图 X 坐标 |
+| 3 | u32 | `capital_y` | 地图 Y 坐标 |
+| 4 | u32 | `position` | 格位编号 |
+| 5 | u32 | `id` | — |
+| 6 | string | `name` | 名称 |
+| 7 | u32 | `capital_status` | 结果状态 |
+| 8 | string | `info_1` | — |
+| 9 | string | `info_1` | — |
+| 10 | string | `info_2` | — |
+| 11 | u32 | `diamond_required` | — |
+| 12 | string | `info_1` | — |
+| 13 | string | `info_2` | — |
+| 14 | u32 | `diamond_required` | — |
+| 15 | u64 | `remain_time` | 剩余毫秒数 |
+| 16 | string | `info_1` | — |
+| 17 | u32 | `position` | 格位编号 |
+| 18 | u32 | `state` | — |
+| 19 | u64 | `remain_time` | 剩余毫秒数 |
+| 20 | u32 | `mine_id` | — |
+| 21 | u32 | `prototype_id` | 建筑原型 ID |
+| 22 | u32 | `production` | — |
+| 23 | u32 | `total_time` | 总耗时毫秒 |
+| 24 | string | `nuclear_description` | 描述文案 |
+| 25 | u32 | `capital_state` | — |
+| 26 | string | `state_description` | 描述文案 |
+| 27 | u8 | `type` | 类型枚举 |
+| 28 | string | `message` | — |
+| 29 | u32 | `type` | 类型枚举 |
+| 30 | u32 | `field_type` | 类型枚举 |
+| 31 | string | `city_icon` | 图标编号 |
+| 32 | string | `city_name` | 城池名称 |
+| 33 | string | `nuclear_icon` | 图标编号 |
+| 34 | string | `nuclear_name` | 名称 |
+| 35 | string | `alliance_name` | 军团名称 |
+| 36 | string | `field_icon` | 图标编号 |
+| 37 | string | `field_name` | 名称 |
+| 38 | string | `stronghold_icon` | 图标编号 |
+| 39 | string | `stronghold_name` | 名称 |
+| 40 | u32 | `x` | 地图 X 坐标 |
+| 41 | u32 | `y` | 地图 Y 坐标 |
+| 42 | string | `remark` | — |
+| 43 | u32 | `lines_count` | 数量/计数 |
+| 44 | u64 | `expedition_id` | — |
+| 45 | u32 | `start_x` | 地图 X 坐标 |
+| 46 | u32 | `start_y` | 地图 Y 坐标 |
+| 47 | u32 | `end_x` | 地图 X 坐标 |
+| 48 | u32 | `end_y` | 地图 Y 坐标 |
+| 49 | string | `mark` | — |
+| 50 | string | `officer_name` | 名称 |
+| 51 | u32 | `officer_icon` | 图标编号 |
+| 52 | u32 | `officer_level` | 等级 |
+| 53 | u64 | `player_id` | 玩家 ID |
+| 54 | string | `player_name` | 玩家名称 |
+| 55 | u32 | `avatar` | — |
+| 56 | string | `player_name` | 玩家名称 |
+| 57 | string | `alliance_name` | 军团名称 |
+| 58 | string | `title` | — |
+| 59 | string | `title_color` | — |
+| 60 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 61 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 62 | u32 | `state` | — |
+| 63 | u32 | `army_count` | 数量/计数 |
+| 64 | u32 | `type` | 类型枚举 |
+| 65 | u32 | `relationship` | — |
+| 66 | u64 | `from_city_id` | 城池 ID |
+| 67 | u64 | `target_expedition_id` | — |
+| 68 | u32 | `x` | 地图 X 坐标 |
+| 69 | u32 | `y` | 地图 Y 坐标 |
+| 70 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 71 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 72 | u32 | `page_count` | 总页数 |
+| 73 | u64 | `trade_id` | — |
+| 74 | u8 | `trade_resource_type` | 类型枚举 |
+| 75 | u32 | `trade_amount` | 数量 |
+| 76 | string | `unit_price` | 单价 |
+| 77 | u32 | `total_price` | 单价 |
+| 78 | u64 | `trade_time` | 时间戳（毫秒） |
+| 79 | u32 | `seller_avatar` | — |
+| 80 | string | `seller_nickname` | 玩家昵称 |
+| 81 | string | `seller_alliance_name` | 军团名称 |
+| 82 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14011` — capital nuclear mine info 14011
+### `cmd=14011` — 查询核弹矿信息
 
-- 常量: `Constant.PROT_CAPITAL_NUCLEAR_MINE_INFO_14011`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `position` |
-| 2 | int | `state` |
-| 3 | long | `remainTime` |
-| 4 | int | `mineId` |
-| 5 | int | `prototypeID` |
-| 6 | int | `production` |
-| 7 | int | `totalTime` |
-| 8 | string | `nuclearDescription` |
-| 9 | int | `capitalState` |
-| 10 | string | `stateDescription` |
-| 11 | byte | `type` |
-| 12 | string | `message` |
-| 13 | int | `type` |
-| 14 | int | `fieldType` |
-| 15 | string | `cityIcon` |
-| 16 | string | `cityName` |
-| 17 | string | `nuclearIcon` |
-| 18 | string | `nuclearName` |
-| 19 | string | `allianceName` |
-| 20 | string | `fieldIcon` |
-| 21 | string | `fieldName` |
-| 22 | string | `strongholdIcon` |
-| 23 | string | `strongholdName` |
-| 24 | int | `x` |
-| 25 | int | `y` |
-| 26 | string | `remark` |
-| 27 | int | `linesCount` |
-| 28 | long | `expeditionId` |
-| 29 | int | `startX` |
-| 30 | int | `startY` |
-| 31 | int | `endX` |
-| 32 | int | `endY` |
-| 33 | string | `mark` |
-| 34 | string | `officerName` |
-| 35 | int | `officerIcon` |
-| 36 | int | `officerLevel` |
-| 37 | long | `playerId` |
-| 38 | string | `playerName` |
-| 39 | int | `avata` |
-| 40 | string | `playerName` |
-| 41 | string | `allianceName` |
-| 42 | string | `title` |
-| 43 | string | `titleColor` |
-| 44 | long | `onewayTime` |
-| 45 | long | `remainingTime` |
-| 46 | int | `state` |
-| 47 | int | `armyCount` |
-| 48 | int | `type` |
-| 49 | int | `relationship` |
-| 50 | long | `fromCityId` |
-| 51 | long | `targetExpeditionId` |
-| 52 | int | `x` |
-| 53 | int | `y` |
-| 54 | long | `arrivedTime` |
-| 55 | int | `pageNum` |
-| 56 | int | `pageCount` |
-| 57 | long | `tradeId` |
-| 58 | byte | `tradeResourceType` |
-| 59 | int | `tradeAmount` |
-| 60 | string | `unitPrice` |
-| 61 | int | `totalPrice` |
-| 62 | long | `tradeTime` |
-| 63 | int | `sellerAvata` |
-| 64 | string | `sellerNickname` |
-| 65 | string | `sellerAllianceName` |
-| 66 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `position` | 格位编号 |
+| 2 | u32 | `state` | — |
+| 3 | u64 | `remain_time` | 剩余毫秒数 |
+| 4 | u32 | `mine_id` | — |
+| 5 | u32 | `prototype_id` | 建筑原型 ID |
+| 6 | u32 | `production` | — |
+| 7 | u32 | `total_time` | 总耗时毫秒 |
+| 8 | string | `nuclear_description` | 描述文案 |
+| 9 | u32 | `capital_state` | — |
+| 10 | string | `state_description` | 描述文案 |
+| 11 | u8 | `type` | 类型枚举 |
+| 12 | string | `message` | — |
+| 13 | u32 | `type` | 类型枚举 |
+| 14 | u32 | `field_type` | 类型枚举 |
+| 15 | string | `city_icon` | 图标编号 |
+| 16 | string | `city_name` | 城池名称 |
+| 17 | string | `nuclear_icon` | 图标编号 |
+| 18 | string | `nuclear_name` | 名称 |
+| 19 | string | `alliance_name` | 军团名称 |
+| 20 | string | `field_icon` | 图标编号 |
+| 21 | string | `field_name` | 名称 |
+| 22 | string | `stronghold_icon` | 图标编号 |
+| 23 | string | `stronghold_name` | 名称 |
+| 24 | u32 | `x` | 地图 X 坐标 |
+| 25 | u32 | `y` | 地图 Y 坐标 |
+| 26 | string | `remark` | — |
+| 27 | u32 | `lines_count` | 数量/计数 |
+| 28 | u64 | `expedition_id` | — |
+| 29 | u32 | `start_x` | 地图 X 坐标 |
+| 30 | u32 | `start_y` | 地图 Y 坐标 |
+| 31 | u32 | `end_x` | 地图 X 坐标 |
+| 32 | u32 | `end_y` | 地图 Y 坐标 |
+| 33 | string | `mark` | — |
+| 34 | string | `officer_name` | 名称 |
+| 35 | u32 | `officer_icon` | 图标编号 |
+| 36 | u32 | `officer_level` | 等级 |
+| 37 | u64 | `player_id` | 玩家 ID |
+| 38 | string | `player_name` | 玩家名称 |
+| 39 | u32 | `avatar` | — |
+| 40 | string | `player_name` | 玩家名称 |
+| 41 | string | `alliance_name` | 军团名称 |
+| 42 | string | `title` | — |
+| 43 | string | `title_color` | — |
+| 44 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 45 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 46 | u32 | `state` | — |
+| 47 | u32 | `army_count` | 数量/计数 |
+| 48 | u32 | `type` | 类型枚举 |
+| 49 | u32 | `relationship` | — |
+| 50 | u64 | `from_city_id` | 城池 ID |
+| 51 | u64 | `target_expedition_id` | — |
+| 52 | u32 | `x` | 地图 X 坐标 |
+| 53 | u32 | `y` | 地图 Y 坐标 |
+| 54 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 55 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 56 | u32 | `page_count` | 总页数 |
+| 57 | u64 | `trade_id` | — |
+| 58 | u8 | `trade_resource_type` | 类型枚举 |
+| 59 | u32 | `trade_amount` | 数量 |
+| 60 | string | `unit_price` | 单价 |
+| 61 | u32 | `total_price` | 单价 |
+| 62 | u64 | `trade_time` | 时间戳（毫秒） |
+| 63 | u32 | `seller_avatar` | — |
+| 64 | string | `seller_nickname` | 玩家昵称 |
+| 65 | string | `seller_alliance_name` | 军团名称 |
+| 66 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=14013` — capital supply info 14013
+### `cmd=14013` — 查询首府补给信息
 
-- 常量: `Constant.PROT_CAPITAL_SUPPLY_INFO_14013`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `nuclearAmount` |
-| 2 | long | `nuclearMaxAmount` |
-| 3 | long | `foodAmount` |
-| 4 | long | `foodMaxAmount` |
-| 5 | long | `steelAmount` |
-| 6 | long | `steelMaxAmount` |
-| 7 | long | `oilAmount` |
-| 8 | long | `oilMaxAmount` |
-| 9 | long | `mineralAmount` |
-| 10 | long | `mineralMaxAmount` |
-| 11 | long | `officerId` |
-| 12 | string | `officerName` |
-| 13 | int | `icon` |
-| 14 | int | `isSpecialOfficer` |
-| 15 | int | `level` |
-| 16 | int | `status` |
-| 17 | int | `star` |
-| 18 | int | `militaryWithoutItemAndTroop` |
-| 19 | int | `knowledgeWithoutItemAndTroop` |
-| 20 | int | `logisticsWithoutItemAndTroop` |
-| 21 | int | `armyId` |
-| 22 | int | `amount` |
-| 23 | int | `fortressId` |
-| 24 | string | `name` |
-| 25 | byte | `state` |
-| 26 | int | `defence` |
-| 27 | int | `defenceMax` |
-| 28 | string | `officerName` |
-| 29 | string | `garrisionOfficerName` |
-| 30 | int | `armyId` |
-| 31 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `nuclear_amount` | 数量 |
+| 2 | u64 | `nuclear_max_amount` | 数量 |
+| 3 | u64 | `food_amount` | 粮食储量 |
+| 4 | u64 | `food_max_amount` | 数量 |
+| 5 | u64 | `steel_amount` | 钢铁储量 |
+| 6 | u64 | `steel_max_amount` | 数量 |
+| 7 | u64 | `oil_amount` | 石油储量 |
+| 8 | u64 | `oil_max_amount` | 数量 |
+| 9 | u64 | `mineral_amount` | 稀矿储量 |
+| 10 | u64 | `mineral_max_amount` | 数量 |
+| 11 | u64 | `officer_id` | — |
+| 12 | string | `officer_name` | 名称 |
+| 13 | u32 | `icon` | 图标编号 |
+| 14 | u32 | `is_special_officer` | 布尔标记（0/1） |
+| 15 | u32 | `level` | 等级 |
+| 16 | u32 | `status` | 结果状态 |
+| 17 | u32 | `star` | — |
+| 18 | u32 | `military_without_item_and_troop` | 道具 |
+| 19 | u32 | `knowledge_without_item_and_troop` | 道具 |
+| 20 | u32 | `logistics_without_item_and_troop` | 道具 |
+| 21 | u32 | `army_id` | 兵种 ID |
+| 22 | u32 | `amount` | 数量 |
+| 23 | u32 | `fortress_id` | — |
+| 24 | string | `name` | 名称 |
+| 25 | u8 | `state` | — |
+| 26 | u32 | `defence` | — |
+| 27 | u32 | `defence_max` | — |
+| 28 | string | `officer_name` | 名称 |
+| 29 | string | `garrision_officer_name` | 名称 |
+| 30 | u32 | `army_id` | 兵种 ID |
+| 31 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=14014` — capital technique research info 14014
+### `cmd=14014` — 查询首府科技信息
 
-- 常量: `Constant.PROT_CAPITAL_TECHNIQUE_RESEARCH_INFO_14014`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `nuclearMineCount` |
-| 2 | int | `capitalLevel` |
-| 3 | int | `nuclearDonated` |
-| 4 | int | `capitalTechId` |
-| 5 | string | `name` |
-| 6 | int | `level` |
-| 7 | int | `isMaxLevel` |
-| 8 | int | `upgradeable` |
-| 9 | string | `description` |
-| 10 | string | `levelDescription` |
-| 11 | string | `nextLevelDescription` |
-| 12 | int | `savedNuclear` |
-| 13 | int | `upgradeRequiredNuclear` |
-| 14 | int | `upgradeRequiredCapitalLevel` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `nuclear_mine_count` | 数量/计数 |
+| 2 | u32 | `capital_level` | 等级 |
+| 3 | u32 | `nuclear_donated` | — |
+| 4 | u32 | `capital_tech_id` | — |
+| 5 | string | `name` | 名称 |
+| 6 | u32 | `level` | 等级 |
+| 7 | u32 | `is_max_level` | 等级 |
+| 8 | u32 | `upgradeable` | — |
+| 9 | string | `description` | 描述文案 |
+| 10 | string | `level_description` | 描述文案 |
+| 11 | string | `next_level_description` | 描述文案 |
+| 12 | u32 | `saved_nuclear` | — |
+| 13 | u32 | `upgrade_required_nuclear` | — |
+| 14 | u32 | `upgrade_required_capital_level` | 等级 |
 
 ---
 
-#### `cmd=14015` — capital technique upgrade 14015
+### `cmd=14015` — 升级首府科技
 
-- 常量: `Constant.PROT_CAPITAL_TECHNIQUE_UPGRADE_14015`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `capital_tech_id` | — |
+| 2 | u32 | `nuclear_donate_count` | 数量/计数 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.capitalTechId` |
-| 2 | int | `this.nuclearDonateCount` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=14020` — capital donate resources 14020
+### `cmd=14020` — 问题反馈
 
-- 常量: `Constant.PROT_CAPITAL_DONATE_RESOURCES_14020`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `nuclear_amount` | 数量 |
+| 2 | u64 | `food_amount` | 粮食储量 |
+| 3 | u64 | `steel_amount` | 钢铁储量 |
+| 4 | u64 | `oil_amount` | 石油储量 |
+| 5 | u64 | `mineral_amount` | 稀矿储量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.nuclearAmount` |
-| 2 | long | `this.foodAmount` |
-| 3 | long | `this.steelAmount` |
-| 4 | long | `this.oilAmount` |
-| 5 | long | `this.mineralAmount` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |

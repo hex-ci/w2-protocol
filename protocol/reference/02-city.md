@@ -1,594 +1,538 @@
 # 城池与资源
 
-> 27 个命令（cmd 2001 ~ 2030）
+> 27 个命令（cmd 2001 ~ 2030）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=2001` — city list 2001
+### `cmd=2001` — 查询城池列表
 
-- 常量: `Constant.PROT_CITY_LIST_2001`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `isJoinLeagueWar` |
-| 2 | byte | `cityCount` |
-| 3 | long | `cityId` |
-| 4 | string | `cityName` |
-| 5 | int | `x` |
-| 6 | int | `y` |
-| 7 | string | `mayor` |
-| 8 | int | `population` |
-| 9 | int | `morale` |
-| 10 | int | `coastal` |
-| 11 | int | `hasCarrier` |
-| 12 | string | `imgID` |
-| 13 | byte | `isColonial` |
-| 14 | int | `mayorIcon` |
-| 15 | int | `constructNum` |
-| 16 | byte | `haveResearchingTech` |
-| 17 | int | `researchingTechId` |
-| 18 | int | `researchingTechLevel` |
-| 19 | int | `helpNum` |
-| 20 | int | `leagueScorePlunderable` |
-| 21 | int | `trainingCount` |
-| 22 | int | `officerCount` |
-| 23 | int | `officerCountMax` |
-| 24 | int | `randomMoveChance` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `is_join_league_war` | 布尔标记（0/1） |
+| 2 | u8 | `city_count` | 城池数量 |
+| 3 | u64 | `city_id` | 城池 ID |
+| 4 | string | `city_name` | 城池名称 |
+| 5 | u32 | `x` | 地图 X 坐标 |
+| 6 | u32 | `y` | 地图 Y 坐标 |
+| 7 | string | `mayor` | 驻守市长名 |
+| 8 | u32 | `population` | 人口数 |
+| 9 | u32 | `morale` | 士气值 |
+| 10 | u32 | `coastal` | — |
+| 11 | u32 | `has_carrier` | 布尔标记（0/1） |
+| 12 | string | `img_id` | — |
+| 13 | u8 | `is_colonial` | 布尔标记（0/1） |
+| 14 | u32 | `mayor_icon` | 驻守市长名 |
+| 15 | u32 | `construct_num` | 数量 |
+| 16 | u8 | `have_researching_tech` | 研究 |
+| 17 | u32 | `researching_tech_id` | 研究 |
+| 18 | u32 | `researching_tech_level` | 研究 |
+| 19 | u32 | `help_num` | 数量 |
+| 20 | u32 | `league_score_plunderable` | 积分 |
+| 21 | u32 | `training_count` | 数量/计数 |
+| 22 | u32 | `officer_count` | 数量/计数 |
+| 23 | u32 | `officer_count_max` | 数量/计数 |
+| 24 | u32 | `random_move_chance` | 概率（万分比） |
 
 ---
 
-#### `cmd=2002` — city switch 2002
+### `cmd=2002` — 切换主城
 
-- 常量: `Constant.PROT_CITY_SWITCH_2002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `cityId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
 
 ---
 
-#### `cmd=2003` — city base info 2003
+### `cmd=2003` — 查询城内资源
 
-- 常量: `Constant.PROT_CITY_BASE_INFO_2003`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `foodAmount` |
-| 2 | long | `foodCapacity` |
-| 3 | int | `foodOriginalOutput` |
-| 4 | int | `foodBasicOutput` |
-| 5 | long | `foodArmyUsed` |
-| 6 | int | `foodCurrentOutput` |
-| 7 | long | `steelAmount` |
-| 8 | long | `steelCapacity` |
-| 9 | int | `steelOutput` |
-| 10 | int | `steelBasicOutput` |
-| 11 | long | `mineralAmount` |
-| 12 | long | `mineralCapacity` |
-| 13 | int | `mineralOutput` |
-| 14 | int | `mineralBasicOutput` |
-| 15 | long | `oilAmount` |
-| 16 | long | `oilCapacity` |
-| 17 | int | `oilOutput` |
-| 18 | int | `oilBasicOutput` |
-| 19 | int | `armyFortCount` |
-| 20 | int | `armyId` |
-| 21 | int | `curAmount` |
-| 22 | long | `goldAmount` |
-| 23 | long | `goldCapacity` |
-| 24 | int | `goldBasicOutput` |
-| 25 | int | `goldOfficerUsed` |
-| 26 | int | `goldOutput` |
-| 27 | int | `populationAmount` |
-| 28 | int | `populationCapacity` |
-| 29 | int | `populationIdle` |
-| 30 | int | `populationTrend` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `food_amount` | 粮食储量 |
+| 2 | u64 | `food_capacity` | 粮食容量 |
+| 3 | u32 | `food_original_output` | 产量 |
+| 4 | u32 | `food_basic_output` | 产量 |
+| 5 | u64 | `food_army_used` | — |
+| 6 | u32 | `food_current_output` | 产量 |
+| 7 | u64 | `steel_amount` | 钢铁储量 |
+| 8 | u64 | `steel_capacity` | 钢铁容量 |
+| 9 | u32 | `steel_output` | 产量 |
+| 10 | u32 | `steel_basic_output` | 产量 |
+| 11 | u64 | `mineral_amount` | 稀矿储量 |
+| 12 | u64 | `mineral_capacity` | 稀矿容量 |
+| 13 | u32 | `mineral_output` | 产量 |
+| 14 | u32 | `mineral_basic_output` | 产量 |
+| 15 | u64 | `oil_amount` | 石油储量 |
+| 16 | u64 | `oil_capacity` | 石油容量 |
+| 17 | u32 | `oil_output` | 产量 |
+| 18 | u32 | `oil_basic_output` | 产量 |
+| 19 | u32 | `army_fort_count` | 数量/计数 |
+| 20 | u32 | `army_id` | 兵种 ID |
+| 21 | u32 | `cur_amount` | 当前数量 |
+| 22 | u64 | `gold_amount` | 黄金储量 |
+| 23 | u64 | `gold_capacity` | 黄金容量 |
+| 24 | u32 | `gold_basic_output` | 产量 |
+| 25 | u32 | `gold_officer_used` | — |
+| 26 | u32 | `gold_output` | 产量 |
+| 27 | u32 | `population_amount` | 人口数 |
+| 28 | u32 | `population_capacity` | 人口数 |
+| 29 | u32 | `population_idle` | 人口数 |
+| 30 | u32 | `population_trend` | 人口数 |
 
 ---
 
-#### `cmd=2004` — city relocate with target 2004
+### `cmd=2004` — 迁城到指定坐标
 
-- 常量: `Constant.PROT_CITY_RELOCATE_WITH_TARGET_2004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `type` | 类型枚举 |
+| 2 | u32 | `new_x` | 地图 X 坐标 |
+| 3 | u32 | `new_y` | 地图 Y 坐标 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.type` |
-| 2 | int | `this.newX` |
-| 3 | int | `this.newY` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `newX` |
-| 2 | int | `newY` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `new_x` | 地图 X 坐标 |
+| 2 | u32 | `new_y` | 地图 Y 坐标 |
 
 ---
 
-#### `cmd=2006` — city avata list 2006
+### `cmd=2006` — 查询城市外观列表
 
-- 常量: `Constant.PROT_CITY_AVATA_LIST_2006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_size` | 每页条数 |
+| 3 | u64 | `city_id` | 城池 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageNum` |
-| 2 | int | `this.pageSize` |
-| 3 | long | `this.cityId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageCount` |
-| 2 | int | `pageNum` |
-| 3 | int | `cityAvataId` |
-| 4 | string | `imageId` |
-| 5 | string | `cityAvataName` |
-| 6 | int | `orignalPrice` |
-| 7 | byte | `promotion` |
-| 8 | int | `promotionPrice` |
-| 9 | long | `promotionStartTime` |
-| 10 | long | `promotionEndTime` |
-| 11 | byte | `restriction` |
-| 12 | long | `restrictionStartTime` |
-| 13 | long | `restrictionEndtime` |
-| 14 | byte | `purchaseAble` |
-| 15 | byte | `alreadyPurchased` |
-| 16 | byte | `currentActived` |
-| 17 | long | `remainOrDurationTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_count` | 总页数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `city_avatar_id` | — |
+| 4 | string | `image_id` | — |
+| 5 | string | `city_avatar_name` | 名称 |
+| 6 | u32 | `orignal_price` | 单价 |
+| 7 | u8 | `promotion` | — |
+| 8 | u32 | `promotion_price` | 单价 |
+| 9 | u64 | `promotion_start_time` | 开始时间戳 |
+| 10 | u64 | `promotion_end_time` | 结束时间戳 |
+| 11 | u8 | `restriction` | — |
+| 12 | u64 | `restriction_start_time` | 开始时间戳 |
+| 13 | u64 | `restriction_endtime` | 时间戳（毫秒） |
+| 14 | u8 | `purchase_able` | 布尔标记（0/1） |
+| 15 | u8 | `already_purchased` | — |
+| 16 | u8 | `current_actived` | — |
+| 17 | u64 | `remain_or_duration_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=2007` — city avata purchase 2007
+### `cmd=2007` — 购买城市外观
 
-- 常量: `Constant.PROT_CITY_AVATA_PURCHASE_2007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
+| 2 | u32 | `city_avatar_id` | — |
+| 3 | u8 | `price_mode` | 单价 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
-| 2 | int | `this.cityAvataId` |
-| 3 | byte | `this.priceMode` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2008` — city avata info 2008
+### `cmd=2008` — 查询城市外观信息
 
-- 常量: `Constant.PROT_CITY_AVATA_INFO_2008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
+| 2 | u32 | `city_avatar_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
-| 2 | int | `this.cityAvataId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `cityAvataId` |
-| 2 | string | `imageId` |
-| 3 | string | `cityAvataName` |
-| 4 | int | `orignalPrice` |
-| 5 | byte | `alreadyPurchased` |
-| 6 | byte | `currentActived` |
-| 7 | long | `remainOrDurationTime` |
-| 8 | byte | `purchaseAble` |
-| 9 | byte | `fameConditionDone` |
-| 10 | long | `fameRequired` |
-| 11 | byte | `attributeConditionDone` |
-| 12 | int | `attributeMilitaryRequired` |
-| 13 | int | `attributeLogisticsRequired` |
-| 14 | int | `attributeKnowledgeRequired` |
-| 15 | byte | `restriction` |
-| 16 | long | `restrictionStartTime` |
-| 17 | byte | `promotion` |
-| 18 | int | `promotionPrice` |
-| 19 | long | `promotionStartTime` |
-| 20 | int | `promotionPrice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `city_avatar_id` | — |
+| 2 | string | `image_id` | — |
+| 3 | string | `city_avatar_name` | 名称 |
+| 4 | u32 | `orignal_price` | 单价 |
+| 5 | u8 | `already_purchased` | — |
+| 6 | u8 | `current_actived` | — |
+| 7 | u64 | `remain_or_duration_time` | 时间戳（毫秒） |
+| 8 | u8 | `purchase_able` | 布尔标记（0/1） |
+| 9 | u8 | `fame_condition_done` | 声望值 |
+| 10 | u64 | `fame_required` | 声望值 |
+| 11 | u8 | `attribute_condition_done` | — |
+| 12 | u32 | `attribute_military_required` | — |
+| 13 | u32 | `attribute_logistics_required` | — |
+| 14 | u32 | `attribute_knowledge_required` | — |
+| 15 | u8 | `restriction` | — |
+| 16 | u64 | `restriction_start_time` | 开始时间戳 |
+| 17 | u8 | `promotion` | — |
+| 18 | u32 | `promotion_price` | 单价 |
+| 19 | u64 | `promotion_start_time` | 开始时间戳 |
+| 20 | u32 | `promotion_price` | 单价 |
 
 ---
 
-#### `cmd=2009` — city avata active 2009
+### `cmd=2009` — 激活城市外观
 
-- 常量: `Constant.PROT_CITY_AVATA_ACTIVE_2009`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `use_type` | 类型枚举 |
+| 2 | u64 | `city_id` | 城池 ID |
+| 3 | u32 | `city_avatar_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.useType` |
-| 2 | long | `this.cityId` |
-| 3 | int | `this.cityAvataId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `imageId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `image_id` | — |
 
 ---
 
-#### `cmd=2010` — city defense setting anti conquer 2010
+### `cmd=2010` — 设置防征服阵型
 
-- 常量: `Constant.PROT_CITY_DEFENSE_SETTING_ANTI_CONQUER_2010`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `conquerTime` |
-| 2 | int | `chongfengValue` |
-| 3 | int | `maxCount` |
-| 4 | int | `armyId` |
-| 5 | string | `name` |
-| 6 | int | `ownedAmount` |
-| 7 | int | `playAmount` |
-| 8 | int | `actionCmd` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `conquer_time` | 时间戳（毫秒） |
+| 2 | u32 | `chongfeng_value` | — |
+| 3 | u32 | `max_count` | 数量/计数 |
+| 4 | u32 | `army_id` | 兵种 ID |
+| 5 | string | `name` | 名称 |
+| 6 | u32 | `owned_amount` | 数量 |
+| 7 | u32 | `play_amount` | 数量 |
+| 8 | u32 | `action_cmd` | — |
 
 ---
 
-#### `cmd=2012` — city defense setting save 2012
+### `cmd=2012` — 保存城防设置
 
-- 常量: `Constant.PROT_CITY_DEFENSE_SETTING_SAVE_2012`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
+| 2 | u32 | `type` | 类型枚举 |
+| 3 | u32 | `send_army_list.length` | — |
+| 4 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 5 | u32 | `t.army_id` | — |
+| 6 | u32 | `t.play_amount` | 数量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
-| 2 | int | `this.type` |
-| 3 | int | `this.sendArmyList.length` |
-| … | 循环 | `for(var e=0` |
-| 4 | int | `t.armyId` |
-| 5 | int | `t.playAmount` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2013` — city defense setting anti plunder 2013
+### `cmd=2013` — 设置防掠夺阵型
 
-- 常量: `Constant.PROT_CITY_DEFENSE_SETTING_ANTI_PLUNDER_2013`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `conquerTime` |
-| 2 | int | `chongfengValue` |
-| 3 | int | `maxCount` |
-| 4 | int | `armyId` |
-| 5 | string | `name` |
-| 6 | int | `ownedAmount` |
-| 7 | int | `playAmount` |
-| 8 | int | `actionCmd` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `conquer_time` | 时间戳（毫秒） |
+| 2 | u32 | `chongfeng_value` | — |
+| 3 | u32 | `max_count` | 数量/计数 |
+| 4 | u32 | `army_id` | 兵种 ID |
+| 5 | string | `name` | 名称 |
+| 6 | u32 | `owned_amount` | 数量 |
+| 7 | u32 | `play_amount` | 数量 |
+| 8 | u32 | `action_cmd` | — |
 
 ---
 
-#### `cmd=2014` — city ware house configuration 2014
+### `cmd=2014` — 查询仓库配置
 
-- 常量: `Constant.PROT_CITY_WARE_HOUSE_CONFIGURATION_2014`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `storageCount` |
-| 2 | int | `storageVolume` |
-| 3 | byte | `foodPercent` |
-| 4 | byte | `steelPercent` |
-| 5 | byte | `oilPercent` |
-| 6 | byte | `mineralPercent` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `storage_count` | 数量/计数 |
+| 2 | u32 | `storage_volume` | — |
+| 3 | u8 | `food_percent` | — |
+| 4 | u8 | `steel_percent` | — |
+| 5 | u8 | `oil_percent` | — |
+| 6 | u8 | `mineral_percent` | — |
 
 ---
 
-#### `cmd=2015` — city ware house update configuration 2015
+### `cmd=2015` — 更新仓库保护配置
 
-- 常量: `Constant.PROT_CITY_WARE_HOUSE_UPDATE_CONFIGURATION_2015`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `food_percent` | — |
+| 2 | u8 | `steel_percent` | — |
+| 3 | u8 | `oil_percent` | — |
+| 4 | u8 | `mineral_percent` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.foodPercent` |
-| 2 | byte | `this.steelPercent` |
-| 3 | byte | `this.oilPercent` |
-| 4 | byte | `this.mineralPercent` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2016` — city morale order1 2016
+### `cmd=2016` — 发布士气政令
 
-- 常量: `Constant.PROT_CITY_MORALE_ORDER1_2016`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2017` — city population order1 2017
+### `cmd=2017` — 发布人口政令
 
-- 常量: `Constant.PROT_CITY_POPULATION_ORDER1_2017`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2018` — city resource production rate 2018
+### `cmd=2018` — 查询产量加成
 
-- 常量: `Constant.PROT_CITY_RESOURCE_PRODUCTION_RATE_2018`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `productionCapacity` |
-| 2 | int | `maxPopulation` |
-| 3 | int | `workingRate` |
-| 4 | int | `natureAddition` |
-| 5 | int | `technologyAdditionPercent` |
-| 6 | int | `armyAddition` |
-| 7 | int | `officerAdditionPercent` |
-| 8 | int | `itemAdditionPercent` |
-| 9 | int | `titleAdditionPercent` |
-| 10 | int | `countryMettleAdditionPercent` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `production_capacity` | 容量上限 |
+| 2 | u32 | `max_population` | 人口数 |
+| 3 | u32 | `working_rate` | — |
+| 4 | u32 | `nature_addition` | — |
+| 5 | u32 | `technology_addition_percent` | — |
+| 6 | u32 | `army_addition` | — |
+| 7 | u32 | `officer_addition_percent` | — |
+| 8 | u32 | `item_addition_percent` | 道具 |
+| 9 | u32 | `title_addition_percent` | — |
+| 10 | u32 | `country_mettle_addition_percent` | — |
 
 ---
 
-#### `cmd=2019` — city update tax rate 2019
+### `cmd=2019` — 调整税率
 
-- 常量: `Constant.PROT_CITY_UPDATE_TAX_RATE_2019`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `new_tax_rate` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.newTaxRate` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2020` — city free order for morale or population 2020
+### `cmd=2020` — 免费发布士气/人口政令
 
-- 常量: `Constant.PROT_CITY_FREE_ORDER_FOR_MORALE_OR_POPULATION_2020`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.type` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2021` — city rename 2021
+### `cmd=2021` — 城市改名
 
-- 常量: `Constant.PROT_CITY_RENAME_2021`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `new_name` | 名称 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.newName` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `newName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `new_name` | 名称 |
 
 ---
 
-#### `cmd=2022` — city abandon 2022
+### `cmd=2022` — 放弃城池
 
-- 常量: `Constant.PROT_CITY_ABANDON_2022`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2023` — city build 2023
+### `cmd=2023` — 野外筑城
 
-- 常量: `Constant.PROT_CITY_BUILD_2023`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `tile_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.tileId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
-| 2 | long | `newCityId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
+| 2 | u64 | `new_city_id` | 城池 ID |
 
 ---
 
-#### `cmd=2025` — city relocate randomly 2025
+### `cmd=2025` — 随机迁城
 
-- 常量: `Constant.PROT_CITY_RELOCATE_RANDOMLY_2025`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `area_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.areaId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2026` — city resource production info 2026
+### `cmd=2026` — 查询资源生产信息
 
-- 常量: `Constant.PROT_CITY_RESOURCE_PRODUCTION_INFO_2026`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `foodAmount` |
-| 2 | long | `foodCapacity` |
-| 3 | int | `foodBasicOutput` |
-| 4 | long | `foodArmyUsed` |
-| 5 | long | `steelAmount` |
-| 6 | long | `steelCapacity` |
-| 7 | int | `steelBasicOutput` |
-| 8 | long | `mineralAmount` |
-| 9 | long | `mineralCapacity` |
-| 10 | int | `mineralBasicOutput` |
-| 11 | long | `oilAmount` |
-| 12 | long | `oilCapacity` |
-| 13 | int | `oilBasicOutput` |
-| 14 | long | `goldAmount` |
-| 15 | long | `goldCapacity` |
-| 16 | int | `goldBasicOutput` |
-| 17 | int | `goldTitleExtraAdd` |
-| 18 | int | `goldOutput` |
-| 19 | int | `populationAmount` |
-| 20 | int | `populationCapacity` |
-| 21 | int | `populationIdle` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `food_amount` | 粮食储量 |
+| 2 | u64 | `food_capacity` | 粮食容量 |
+| 3 | u32 | `food_basic_output` | 产量 |
+| 4 | u64 | `food_army_used` | — |
+| 5 | u64 | `steel_amount` | 钢铁储量 |
+| 6 | u64 | `steel_capacity` | 钢铁容量 |
+| 7 | u32 | `steel_basic_output` | 产量 |
+| 8 | u64 | `mineral_amount` | 稀矿储量 |
+| 9 | u64 | `mineral_capacity` | 稀矿容量 |
+| 10 | u32 | `mineral_basic_output` | 产量 |
+| 11 | u64 | `oil_amount` | 石油储量 |
+| 12 | u64 | `oil_capacity` | 石油容量 |
+| 13 | u32 | `oil_basic_output` | 产量 |
+| 14 | u64 | `gold_amount` | 黄金储量 |
+| 15 | u64 | `gold_capacity` | 黄金容量 |
+| 16 | u32 | `gold_basic_output` | 产量 |
+| 17 | u32 | `gold_title_extra_add` | — |
+| 18 | u32 | `gold_output` | 产量 |
+| 19 | u32 | `population_amount` | 人口数 |
+| 20 | u32 | `population_capacity` | 人口数 |
+| 21 | u32 | `population_idle` | 人口数 |
 
 ---
 
-#### `cmd=2027` — city order status 2027
+### `cmd=2027` — 查询政令状态
 
-- 常量: `Constant.PROT_CITY_ORDER_STATUS_2027`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `morale` |
-| 2 | int | `grievance` |
-| 3 | int | `moraleTrend` |
-| 4 | int | `goldAmount` |
-| 5 | int | `goldCapacity` |
-| 6 | int | `taxRate` |
-| 7 | int | `goldBasicOutput` |
-| 8 | int | `goldTitleExtraAdd` |
-| 9 | int | `goldOfficerUsed` |
-| 10 | int | `goldOutput` |
-| 11 | int | `populationAmount` |
-| 12 | int | `populationCapacity` |
-| 13 | int | `populationInWorking` |
-| 14 | int | `populationIdle` |
-| 15 | int | `populationTrend` |
-| 16 | int | `remainingTime` |
-| 17 | int | `diamondCostToAppease` |
-| 18 | string | `ruleDescription` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `morale` | 士气值 |
+| 2 | u32 | `grievance` | — |
+| 3 | u32 | `morale_trend` | 士气值 |
+| 4 | u32 | `gold_amount` | 黄金储量 |
+| 5 | u32 | `gold_capacity` | 黄金容量 |
+| 6 | u32 | `tax_rate` | — |
+| 7 | u32 | `gold_basic_output` | 产量 |
+| 8 | u32 | `gold_title_extra_add` | — |
+| 9 | u32 | `gold_officer_used` | — |
+| 10 | u32 | `gold_output` | 产量 |
+| 11 | u32 | `population_amount` | 人口数 |
+| 12 | u32 | `population_capacity` | 人口数 |
+| 13 | u32 | `population_in_working` | 人口数 |
+| 14 | u32 | `population_idle` | 人口数 |
+| 15 | u32 | `population_trend` | 人口数 |
+| 16 | u32 | `remaining_time` | 时间戳（毫秒） |
+| 17 | u32 | `diamond_cost_to_appease` | — |
+| 18 | string | `rule_description` | 描述文案 |
 
 ---
 
-#### `cmd=2028` — city random name 2028
+### `cmd=2028` — 城市随机起名
 
-- 常量: `Constant.PROT_CITY_RANDOM_NAME_2028`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `randomId` |
-| 2 | string | `randomName` |
-| 3 | long | `expireTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `random_id` | — |
+| 2 | string | `random_name` | 名称 |
+| 3 | u64 | `expire_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=2029` — city formation submit 2029
+### `cmd=2029` — 提交布阵
 
-- 常量: `Constant.PROT_CITY_FORMATION_SUBMIT_2029`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `formation_config` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.formationConfig` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=2030` — city download formation 2030
+### `cmd=2030` — 城市资源速览
 
-- 常量: `Constant.PROT_CITY_DOWNLOAD_FORMATION_2030`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `formationConfig` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `formation_config` | — |

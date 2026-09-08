@@ -1,146 +1,131 @@
 # 任务与奖励
 
-> 6 个命令（cmd 10001 ~ 10008）
+> 6 个命令（cmd 10001 ~ 10008）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=10001` — task list 10001
+### `cmd=10001` — 查询任务列表
 
-- 常量: `Constant.PROT_TASK_LIST_10001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `task_type` | 任务分类 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.taskType` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `taskId` |
-| 2 | string | `taskName` |
-| 3 | byte | `completed` |
-| 4 | byte | `readed` |
-| 5 | int | `pri` |
-| 6 | byte | `mainTask` |
-| 7 | string | `notice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_id` | 任务 ID |
+| 2 | string | `task_name` | 任务名称 |
+| 3 | u8 | `completed` | 是否已完成 |
+| 4 | u8 | `readed` | 是否已读 |
+| 5 | u32 | `pri` | — |
+| 6 | u8 | `main_task` | — |
+| 7 | string | `notice` | 公告文案 |
 
 ---
 
-#### `cmd=10002` — task detail 10002
+### `cmd=10002` — 查询任务详情
 
-- 常量: `Constant.PROT_TASK_DETAIL_10002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_id` | 任务 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.taskId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `taskId` |
-| 2 | string | `taskName` |
-| 3 | string | `taskGuide` |
-| 4 | string | `actionDescription` |
-| 5 | byte | `actionCompleted` |
-| 6 | string | `rcName` |
-| 7 | int | `rcType` |
-| 8 | string | `rcImage` |
-| 9 | int | `rcAmount` |
-| 10 | byte | `isTypeConsume` |
-| 11 | byte | `taskVisible` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_id` | 任务 ID |
+| 2 | string | `task_name` | 任务名称 |
+| 3 | string | `task_guide` | — |
+| 4 | string | `action_description` | 描述文案 |
+| 5 | u8 | `action_completed` | 是否已完成 |
+| 6 | string | `rc_name` | 名称 |
+| 7 | u32 | `rc_type` | 类型枚举 |
+| 8 | string | `rc_image` | — |
+| 9 | u32 | `rc_amount` | 数量 |
+| 10 | u8 | `is_type_consume` | 类型枚举 |
+| 11 | u8 | `task_visible` | — |
 
 ---
 
-#### `cmd=10003` — task collect reward 10003
+### `cmd=10003` — 领取任务奖励
 
-- 常量: `Constant.PROT_TASK_COLLECT_REWARD_10003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_id` | 任务 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.taskId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `rcName` |
-| 2 | int | `rcType` |
-| 3 | string | `rcImage` |
-| 4 | int | `rcAmount` |
-| 5 | byte | `isTypeConsume` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `rc_name` | 名称 |
+| 2 | u32 | `rc_type` | 类型枚举 |
+| 3 | string | `rc_image` | — |
+| 4 | u32 | `rc_amount` | 数量 |
+| 5 | u8 | `is_type_consume` | 类型枚举 |
 
 ---
 
-#### `cmd=10005` — task type list 10005
+### `cmd=10005` — 查询任务分类
 
-- 常量: `Constant.PROT_TASK_TYPE_LIST_10005`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `taskType` |
-| 2 | string | `taskTypeName` |
-| 3 | int | `unread` |
-| 4 | int | `completed` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_type` | 任务分类 |
+| 2 | string | `task_type_name` | 任务分类 |
+| 3 | u32 | `unread` | — |
+| 4 | u32 | `completed` | 是否已完成 |
 
 ---
 
-#### `cmd=10006` — task rookie kind 10006
+### `cmd=10006` — 查询新手任务
 
-- 常量: `Constant.PROT_TASK_ROOKIE_KIND_10006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `4` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `4` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `taskId` |
-| 2 | string | `taskName` |
-| 3 | byte | `completed` |
-| 4 | byte | `readed` |
-| 5 | string | `notice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_id` | 任务 ID |
+| 2 | string | `task_name` | 任务名称 |
+| 3 | u8 | `completed` | 是否已完成 |
+| 4 | u8 | `readed` | 是否已读 |
+| 5 | string | `notice` | 公告文案 |
 
 ---
 
-#### `cmd=10008` — task main kind status 10008
+### `cmd=10008` — 查询主线任务状态
 
-- 常量: `Constant.PROT_TASK_MAIN_KIND_STATUS_10008`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `taskId` |
-| 2 | string | `taskName` |
-| 3 | byte | `completed` |
-| 4 | byte | `identity` |
-| 5 | long | `pushThreshold` |
-| 6 | byte | `age` |
-| 7 | long | `onlineTime` |
-| 8 | string | `realName` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `task_id` | 任务 ID |
+| 2 | string | `task_name` | 任务名称 |
+| 3 | u8 | `completed` | 是否已完成 |
+| 4 | u8 | `identity` | — |
+| 5 | u64 | `push_threshold` | — |
+| 6 | u8 | `age` | — |
+| 7 | u64 | `online_time` | 时间戳（毫秒） |
+| 8 | string | `real_name` | 名称 |

@@ -1,138 +1,124 @@
 # 科技研发
 
-> 6 个命令（cmd 4001 ~ 4008）
+> 6 个命令（cmd 4001 ~ 4008）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=4001` — technique researching info 4001
+### `cmd=4001` — 查询科技研究信息
 
-- 常量: `Constant.PROT_TECHNIQUE_RESEARCHING_INFO_4001`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `researchCenterCount` |
-| 2 | byte | `currentCityTask` |
-| 3 | long | `researchingId` |
-| 4 | int | `techniqueId` |
-| 5 | int | `level` |
-| 6 | long | `totalTime` |
-| 7 | long | `remainTime` |
-| 8 | byte | `helped` |
-| 9 | int | `techniqueId` |
-| 10 | int | `level` |
-| 11 | string | `currentLevelDescription` |
-| 12 | string | `nextLevelDescription` |
-| 13 | int | `effectiveLevel` |
-| 14 | int | `isMaxLevel` |
-| 15 | int | `foodRequired` |
-| 16 | int | `mineralRequired` |
-| 17 | int | `oilRequired` |
-| 18 | int | `steelRequired` |
-| 19 | int | `goldRequired` |
-| 20 | int | `prototypeId` |
-| 21 | int | `level` |
-| 22 | int | `curLevel` |
-| 23 | int | `techniqueId` |
-| 24 | int | `level` |
-| 25 | int | `curLevel` |
-| 26 | int | `itemId` |
-| 27 | int | `icon` |
-| 28 | string | `name` |
-| 29 | int | `amount` |
-| 30 | int | `curAmount` |
-| 31 | long | `time` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `research_center_count` | 数量/计数 |
+| 2 | u8 | `current_city_task` | — |
+| 3 | u64 | `researching_id` | 研究队列 ID |
+| 4 | u32 | `technique_id` | 科技 ID |
+| 5 | u32 | `level` | 等级 |
+| 6 | u64 | `total_time` | 总耗时毫秒 |
+| 7 | u64 | `remain_time` | 剩余毫秒数 |
+| 8 | u8 | `helped` | — |
+| 9 | u32 | `technique_id` | 科技 ID |
+| 10 | u32 | `level` | 等级 |
+| 11 | string | `current_level_description` | 描述文案 |
+| 12 | string | `next_level_description` | 描述文案 |
+| 13 | u32 | `effective_level` | 等级 |
+| 14 | u32 | `is_max_level` | 等级 |
+| 15 | u32 | `food_required` | — |
+| 16 | u32 | `mineral_required` | — |
+| 17 | u32 | `oil_required` | — |
+| 18 | u32 | `steel_required` | — |
+| 19 | u32 | `gold_required` | — |
+| 20 | u32 | `prototype_id` | 建筑原型 ID |
+| 21 | u32 | `level` | 等级 |
+| 22 | u32 | `cur_level` | 等级 |
+| 23 | u32 | `technique_id` | 科技 ID |
+| 24 | u32 | `level` | 等级 |
+| 25 | u32 | `cur_level` | 等级 |
+| 26 | u32 | `item_id` | 道具 ID |
+| 27 | u32 | `icon` | 图标编号 |
+| 28 | string | `name` | 名称 |
+| 29 | u32 | `amount` | 数量 |
+| 30 | u32 | `cur_amount` | 当前数量 |
+| 31 | u64 | `time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=4002` — technique research 4002
+### `cmd=4002` — 开始研究科技
 
-- 常量: `Constant.PROT_TECHNIQUE_RESEARCH_4002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `technique_id` | 科技 ID |
+| 2 | u32 | `racial` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.techniqueId` |
-| 2 | int | `this.racial` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `currentCityTask` |
-| 2 | long | `researchingId` |
-| 3 | int | `techniqueId` |
-| 4 | int | `level` |
-| 5 | long | `totalTime` |
-| 6 | long | `remainTime` |
-| 7 | byte | `helped` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `current_city_task` | — |
+| 2 | u64 | `researching_id` | 研究队列 ID |
+| 3 | u32 | `technique_id` | 科技 ID |
+| 4 | u32 | `level` | 等级 |
+| 5 | u64 | `total_time` | 总耗时毫秒 |
+| 6 | u64 | `remain_time` | 剩余毫秒数 |
+| 7 | u8 | `helped` | — |
 
 ---
 
-#### `cmd=4003` — technique research abort 4003
+### `cmd=4003` — 取消研究
 
-- 常量: `Constant.PROT_TECHNIQUE_RESEARCH_ABORT_4003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `researching_id` | 研究队列 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.researchingId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=4005` — technique speedup research 4005
+### `cmd=4005` — 研究加速
 
-- 常量: `Constant.PROT_TECHNIQUE_SPEEDUP_RESEARCH_4005`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u64 | `researching_id` | 研究队列 ID |
+| 3 | u32 | `use_count` | 数量/计数 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | long | `this.researchingId` |
-| 3 | int | `this.useCount` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=4006` — technique prototype list 4006
+### `cmd=4006` — 查询科技原型表
 
-- 常量: `Constant.PROT_TECHNIQUE_PROTOTYPE_LIST_4006`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `prototypeId` |
-| 2 | string | `name` |
-| 3 | string | `des` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `prototype_id` | 建筑原型 ID |
+| 2 | string | `name` | 名称 |
+| 3 | string | `des` | — |
 
 ---
 
-#### `cmd=4008` — technique speedup free 4008
+### `cmd=4008` — 科技研究回调
 
-- 常量: `Constant.PROT_TECHNIQUE_SPEEDUP_FREE_4008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `researching_id` | 研究队列 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.researchingId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
-
----
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。

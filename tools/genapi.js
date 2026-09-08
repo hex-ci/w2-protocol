@@ -1,7 +1,7 @@
 'use strict';
-
 // 从客户端协议定义全量提取各命令的请求/响应字段，按业务域分文件生成 API 参考手册
-// 用法: node tools/genapi.js [协议定义文件路径]（缺省读环境变量 W2_PROTO_SRC）
+// 输出面向接口调用者：字段统一 snake_case + 中文说明，成功判定折算为具体 status 值
+// 用法: W2_PROTO_SRC=<客户端协议定义文件> node tools/genapi.js
 
 const fs = require('fs');
 const path = require('path');
@@ -13,7 +13,7 @@ if (!SRC) {
 }
 const OUT_DIR = path.join(__dirname, '..', 'protocol', 'reference');
 
-// ---------- 1. 扫描所有 Prot 类 ----------
+// ---------- 1. 扫描所有协议类 ----------
 const src = fs.readFileSync(SRC, 'utf8');
 const classes = new Map();
 const re = /Prot(\d+)=function\(/g;
@@ -38,23 +38,170 @@ const DOMAINS = [
   { id: '10-officer',   title: '名将',                         test: n => n >= 11000 && n < 12000 },
   { id: '11-shop-pay',  title: '商城与支付',                   test: n => (n >= 7000 && n < 8000) || (n >= 12000 && n < 13000) },
   { id: '12-map',       title: '地图与战报',                   test: n => n >= 15000 && n < 20000 },
-  { id: '13-activity',  title: '活动',                         test: n => (n >= 22000 && n < 24000) },
+  { id: '13-activity',  title: '活动',                         test: n => n >= 22000 && n < 24000 },
   { id: '14-ranking',   title: '排行榜',                       test: n => n >= 24000 && n < 25000 },
   { id: '15-battle',    title: '战斗与演习',                   test: n => (n >= 20000 && n < 22000) || (n >= 25000 && n < 26000) || (n >= 29000 && n < 30000) },
   { id: '16-notice',    title: '公告与系统',                   test: n => n >= 13000 && n < 15000 },
   { id: '17-push',      title: '服务端推送（Broadcast）',      test: n => n >= 26000 && n < 27000 },
 ];
 
-// ---------- 3. 代码翻译 ----------
+// ---------- 3. 类型与命名 ----------
 const TYPE_MAP = {
-  readByte: 'byte', readShort: 'short', readInt: 'int',
-  readLong: 'long', readString: 'string', readRawString: 'raw',
+  readByte: 'u8', readShort: 'u16', readInt: 'u32',
+  readLong: 'u64', readString: 'string', readRawString: 'raw',
 };
 const WTYPE_MAP = {
-  Byte: 'byte', Short: 'short', Int: 'int',
-  Long: 'long', String: 'string', RawString: 'raw', Bytes: 'bytes',
+  Byte: 'u8', Short: 'u16', Int: 'u32',
+  Long: 'u64', String: 'string', RawString: 'raw', Bytes: 'bytes',
 };
 
+// 常见缩写与词缀归一
+const ABBR = {
+  id: 'id', ip: 'ip', url: 'url', cd: 'cd', npc: 'npc', vip: 'vip',
+  uid: 'uid', icon: 'icon', exp: 'exp', ios: 'ios', uc: 'uc',
+  avata: 'avatar', techno: 'tech', officer: 'officer',
+};
+
+// 变量名 → snake_case（处理 _ 前缀、连续大写、数字边界）
+function toSnake(name) {
+  let s = name.replace(/^_+/, '');
+  // 插入下划线：小写→大写、大写串尾→大写后跟小写、字母→数字
+  s = s.replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+       .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+       .replace(/([a-zA-Z])(\d)/g, '$1_$2');
+  s = s.toLowerCase();
+  // 已有下划线去重
+  s = s.replace(/_+/g, '_').replace(/^_|_$/g, '');
+  // 缩写纠正
+  for (const [bad, good] of Object.entries(ABBR)) {
+    if (bad === good) continue;
+    const re = new RegExp(`(^|_)${bad}(_|$)`, 'g');
+    s = s.replace(re, `$1${good}$2`);
+  }
+  return s;
+}
+
+// 字段语义中文注释表：snake_case 关键词 → 说明
+// 按最长关键词优先匹配
+const SEMANTIC = [
+  ['diamond_owned', '当前钻石数'],
+  ['diamond_charged', '累计充值钻石'],
+  ['active_city_id', '当前主城 ID'],
+  ['city_id', '城池 ID'],
+  ['city_name', '城池名称'],
+  ['city_count', '城池数量'],
+  ['city_img', '城池外观标识'],
+  ['building_id', '建筑实例 ID'],
+  ['buildingid', '建筑实例 ID'],
+  ['prototype_id', '建筑原型 ID'],
+  ['prototypeid', '建筑原型 ID'],
+  ['position', '格位编号'],
+  ['level', '等级'],
+  ['remain_time', '剩余毫秒数'],
+  ['finish_time', '完成时间戳'],
+  ['total_time', '总耗时毫秒'],
+  ['task_id', '任务 ID'],
+  ['task_name', '任务名称'],
+  ['task_type', '任务分类'],
+  ['completed', '是否已完成'],
+  ['readed', '是否已读'],
+  ['item_id', '道具 ID'],
+  ['item_name', '道具名称'],
+  ['item', '道具'],
+  ['amount', '数量'],
+  ['price', '单价'],
+  ['chance', '概率（万分比）'],
+  ['cur_amount', '当前数量'],
+  ['army_id', '兵种 ID'],
+  ['training_id', '训练队列 ID'],
+  ['technique_id', '科技 ID'],
+  ['researching_id', '研究队列 ID'],
+  ['researching', '研究'],
+  ['mail_id', '邮件 ID'],
+  ['mail_title', '邮件标题'],
+  ['mail_type', '邮件分类'],
+  ['page_num', '页码（从 0 或 1 起，随接口）'],
+  ['page_size', '每页条数'],
+  ['page_count', '总页数'],
+  ['player_id', '玩家 ID'],
+  ['player_name', '玩家名称'],
+  ['nickname', '玩家昵称'],
+  ['user_id', '账号 ID'],
+  ['username', '账号名'],
+  ['alliance_id', '军团 ID'],
+  ['alliance_name', '军团名称'],
+  ['alliance', '军团'],
+  ['server_id', '服务器编号'],
+  ['server_name', '服务器名称'],
+  ['server_host', '服务器地址'],
+  ['client_ver', '客户端版本整数'],
+  ['client_version', '客户端版本号'],
+  ['channel', '渠道名'],
+  ['language', '语言代码'],
+  ['app_key', '客户端应用密钥'],
+  ['install_id', '设备安装 ID'],
+  ['rank', '军衔等级'],
+  ['ranking', '名次'],
+  ['score', '积分'],
+  ['fame', '声望值'],
+  ['influence', '影响力'],
+  ['morale', '士气值'],
+  ['population', '人口数'],
+  ['mayor', '驻守市长名'],
+  ['x', '地图 X 坐标'],
+  ['y', '地图 Y 坐标'],
+  ['food_amount', '粮食储量'],
+  ['food_capacity', '粮食容量'],
+  ['steel_amount', '钢铁储量'],
+  ['steel_capacity', '钢铁容量'],
+  ['oil_amount', '石油储量'],
+  ['oil_capacity', '石油容量'],
+  ['mineral_amount', '稀矿储量'],
+  ['mineral_capacity', '稀矿容量'],
+  ['gold_amount', '黄金储量'],
+  ['gold_capacity', '黄金容量'],
+  ['output', '产量'],
+  ['capacity', '容量上限'],
+  ['chat_id', '聊天消息 ID'],
+  ['chat_message', '聊天内容'],
+  ['chat_time', '聊天时间戳'],
+  ['chat_type', '消息类型'],
+  ['attachment_flag', '是否有附件'],
+  ['create_time', '创建时间戳'],
+  ['start_time', '开始时间戳'],
+  ['end_time', '结束时间戳'],
+  ['status', '结果状态'],
+  ['error_message', '错误描述'],
+  ['token', '推送/会话凭据'],
+  ['notice', '公告文案'],
+  ['description', '描述文案'],
+  ['name', '名称'],
+  ['type', '类型枚举'],
+  ['count', '数量/计数'],
+  ['time', '时间戳（毫秒）'],
+  ['level', '等级'],
+  ['icon', '图标编号'],
+];
+
+function explain(field) {
+  const f = field.toLowerCase();
+  // 精确/前缀关键词匹配，最长优先
+  const sorted = [...SEMANTIC].sort((a, b) => b[0].length - a[0].length);
+  for (const [key, zh] of sorted) {
+    if (f === key || f.startsWith(key + '_') || f.endsWith('_' + key) || f.includes('_' + key + '_')) {
+      return zh;
+    }
+  }
+  // 布尔推断
+  if (/^(is|has|can|need)_/.test(f) || /_able$/.test(f)) return '布尔标记（0/1）';
+  if (/count$|_num$|num_$/.test(f)) return '数量';
+  if (/time$|_at$/.test(f)) return '时间戳（毫秒）';
+  if (/^max_/.test(f)) return '上限';
+  if (/^cur_/.test(f)) return '当前值';
+  return '';
+}
+
+// ---------- 4. encode/decode 解析 ----------
 function parseEncode(code) {
   const fields = [];
   const stmts = code.split(/[,;]/).map(s => s.trim()).filter(Boolean);
@@ -65,7 +212,16 @@ function parseEncode(code) {
     } else if (/^for/.test(st)) {
       fields.push({ op: 'loop', raw: st.slice(0, 150) });
     } else if (st.startsWith('if')) {
-      fields.push({ op: 'cond', raw: st.slice(0, 180) });
+      // if(...) 内的 write 调用逐个提取（常见: if(writeInt(a),writeInt(b),cond){...}）
+      const inner = st.match(/this\._data\.write(\w+)\(([^)]*)\)/g);
+      if (inner) {
+        for (const w of inner) {
+          const wm = w.match(/write(\w+)\(([^)]*)\)/);
+          fields.push({ op: 'write', type: wm[1], arg: wm[2].trim() });
+        }
+      } else {
+        fields.push({ op: 'cond', raw: st.slice(0, 180) });
+      }
     } else if (st.length && !/^var\s/.test(st)) {
       fields.push({ op: 'expr', raw: st.slice(0, 150) });
     }
@@ -76,7 +232,6 @@ function parseEncode(code) {
 function parseDecode(code) {
   const fields = [];
   const flat = code.replace(/\s+/g, ' ');
-  // 匹配所有 obj.field=e.readXxx() 形式（this./t./循环变量 i 等前缀一律接受）
   const reAssign = /(?:\w+)\.(\w+)=e\.(read\w+)\(([^)]*)\)/g;
   let mm;
   while ((mm = reAssign.exec(flat)) !== null) {
@@ -85,100 +240,118 @@ function parseDecode(code) {
   return { fields, flat };
 }
 
-// 检测 decode 中的内联对象结构（数组元素字段）
-function inlineStructs(flat) {
-  const out = [];
-  const re = /\{(\w+):[^{}]{0,40},(\w+):[^{}]{0,40}/g;
+// ---------- 5. 成功判定折算 ----------
+function successStatuses(succ) {
+  if (!succ) return [1]; // 默认 status=1 成功
+  const vals = [];
+  const re = /(\d+)==this\.status\(\)|this\.status\(\)==(\d+)/g;
   let mm;
-  while ((mm = re.exec(flat)) !== null) {
-    out.push(mm[1]);
-  }
-  return [...new Set(out)].slice(0, 12);
+  while ((mm = re.exec(succ)) !== null) vals.push(Number(mm[1] || mm[2]));
+  if (!vals.length && /1==/.test(succ)) vals.push(1);
+  return vals.length ? vals.sort((a, b) => a - b) : [1];
+}
+function succText(succ) {
+  const vals = successStatuses(succ);
+  return 'status 为 ' + vals.map(v => `**${v}**`).join(' 或 ') + ' 时成功';
 }
 
-// ---------- 4. 提取每个类 ----------
+// ---------- 6. 条目渲染 ----------
 function extract(num) {
+  const start0 = classes.get(num);
+  const seg0 = src.slice(start0, start0 + 16000);
+  const blockEnd0 = seg0.indexOf('_RF.pop()', seg0.indexOf('_RF.push('));
+  const block0 = seg0.slice(0, blockEnd0 > 0 ? blockEnd0 : 3000);
+  // 空壳继承类（无 protId 且无 encode/decode，服务端不会单独寻址）跳过
+  if (!/protId=function/.test(block0) && !/encode=function/.test(block0) && !/decode=function/.test(block0)) {
+    return { num, pid: null, enc: '', dec: '', succ: null, ghost: true };
+  }
   const start = classes.get(num);
   const seg = src.slice(start, start + 16000);
   const pid = seg.match(/protId=function\(\)\{return Constant\.([A-Z_0-9]+)/);
-  const encM = seg.match(/encode=function\(\)\{([\s\S]*?)\},i\.decode=/s)
-            || seg.match(/encode=function\(\)\{([\s\S]*?)\},i\.protId=/s);
+  const encM = seg.match(/encode=function\(\)\{([\s\S]*?)\},i\.(?:decode|success|protId|handle0)=/s);
   const decM = seg.match(/decode=function\(e\)\{([\s\S]*?)\},i\.(?:success|isBroadcast|handle0|abandonData)\b/s)
             || seg.match(/decode=function\(e\)\{([\s\S]*?)\},t\}/s);
-  const reqM = seg.match(/request(\w+)\(([^)]*)\)\s*\{(?:this\.|void 0)/);
   const succM = seg.match(/success=function\(\)\{return([^}]+)\}/);
-  return { num, pid: pid ? pid[1] : null, enc: encM ? encM[1] : '', dec: decM ? decM[1] : '', req: reqM, succ: succM ? succM[1].trim() : null };
+  return { num, pid: pid ? pid[1] : null, enc: encM ? encM[1] : '', dec: decM ? decM[1] : '', succ: succM ? succM[1].trim() : null };
 }
+
+// 接口英文名 → 中文接口名
+const NAME_ZH = require('./api-names.json');
 
 function renderEntry(e) {
   const L = [];
-  const name = e.pid ? e.pid.replace(/^PROT_/, '').replace(/_/g, ' ').toLowerCase() : '未命名';
-  const isPush = e.dec.includes('isBroadcast=function(){return!0}') || Number(e.num) >= 26000;
-  L.push(`#### \`cmd=${e.num}\` — ${name}${isPush ? ' ｜ 推送' : ''}`);
-  L.push('');
-  if (e.pid) L.push(`- 常量: \`Constant.${e.pid}\``);
-  if (e.req) L.push(`- 客户端触发: \`request${e.req[1]}(${e.req[2]})\``);
-  if (e.succ && e.succ !== '1==this.status()') L.push(`- 成功判定: \`status${e.succ.replace(/==/g, '=')}\``);
+  const isPush = /isBroadcast=function\(\)\{return!0\}/.test(e.dec) || Number(e.num) >= 26000;
+  const zhName = NAME_ZH[e.num] || (e.pid ? e.pid.replace(/^PROT_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '未命名');
+  L.push(`### \`cmd=${e.num}\` — ${zhName}${isPush ? '（服务端推送）' : ''}`);
   L.push('');
 
-  // encode
+  // 请求
   if (e.enc.trim()) {
     const fields = parseEncode(e.enc);
     const real = fields.filter(f => f.op === 'write' || f.op === 'loop' || f.op === 'cond');
     if (real.length) {
-      L.push('**请求参数**（按序列化顺序）:');
+      L.push('**请求参数**（按序拼接为 AES 明文）:');
       L.push('');
-      L.push('| # | 类型 | 字段 / 表达式 |');
-      L.push('|---|---|---|');
+      L.push('| 顺序 | 类型 | 字段 | 说明 |');
+      L.push('|---|---|---|---|');
       let i = 0;
       for (const f of fields) {
-        if (f.op === 'write') L.push(`| ${++i} | ${WTYPE_MAP[f.type] || f.type} | \`${f.arg}\` |`);
-        else if (f.op === 'loop') L.push(`| … | 循环 | \`${f.raw}\` |`);
-        else if (f.op === 'cond') L.push(`| ? | 条件 | \`${f.raw}\` |`);
+        if (f.op === 'write') {
+          const snake = toSnake(f.arg.replace(/^this\./, '').replace(/^this\._/, ''));
+          L.push(`| ${++i} | ${WTYPE_MAP[f.type] || f.type} | \`${snake}\` | ${explain(snake) || '—'} |`);
+        } else if (f.op === 'loop') {
+          L.push(`| ${++i} | 循环 | — | 按前导计数字段循环写入后续字段 |`);
+        } else if (f.op === 'cond') {
+          L.push(`| ? | 条件 | — | 满足条件时写入：\`${f.raw}\` |`);
+        }
       }
       L.push('');
     } else {
-      L.push('**请求参数**: 无（空参命令，AES 明文 0 字节，密文恒为 16B 填充块）');
+      L.push('**请求参数**: 无（明文 0 字节）');
       L.push('');
     }
   } else {
-    L.push('**请求参数**: 无（类未定义 encode）');
+    L.push('**请求参数**: 无');
     L.push('');
   }
 
-  // decode
+  // 响应
+  const succLine = succText(e.succ);
   if (e.dec.trim()) {
     const { fields, flat } = parseDecode(e.dec);
+    const isList = /new \w+info/i.test(flat) || /for\(var \w+=e\.readInt\(\)/.test(flat);
     if (fields.length) {
-      // 检测是否在数组循环内（出现 new XxxInfo 类实例化即视为列表条目）
-      const isList = /new \w+info/i.test(flat) || /for\(var \w+=e\.readInt\(\)/.test(flat);
-      L.push(isPush ? '**推送数据**（按序读取）:' : '**响应字段**（`status` 成功分支后按序读取）:');
+      L.push(`**响应**（${succLine}；失败时仅 1 字节状态 + 错误文案字符串）:`);
       L.push('');
-      if (isList) L.push('> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：');
-      if (isList) L.push('');
-      L.push('| # | 类型 | 字段 |');
-      L.push('|---|---|---|');
+      if (isList) {
+        L.push('> 含列表：先读计数字段，再按下列顺序循环读取每个条目。');
+        L.push('');
+      }
+      L.push('| 顺序 | 类型 | 字段 | 说明 |');
+      L.push('|---|---|---|---|');
       fields.forEach((f, i) => {
-        L.push(`| ${i + 1} | ${TYPE_MAP[f.type] || f.type}${f.arg ? `（${f.arg}）` : ''} | \`${f.field}\` |`);
+        const snake = toSnake(f.field);
+        L.push(`| ${i + 1} | ${TYPE_MAP[f.type] || f.type} | \`${snake}\` | ${explain(snake) || '—'} |`);
       });
       L.push('');
     } else {
-      L.push('**响应字段**: 空（仅 `status` 字节，纯操作命令）');
+      L.push(`**响应**: 无业务数据。${succLine}；失败时为状态字节 + 错误文案。`);
       L.push('');
     }
   } else {
-    L.push('**响应字段**: 空（类未定义 decode，仅 `status` 字节）');
+    L.push(`**响应**: 无业务数据。${succLine}；失败时为状态字节 + 错误文案。`);
     L.push('');
   }
   return L.join('\n');
 }
 
-// ---------- 5. 分域输出 ----------
+// ---------- 7. 分域输出 ----------
 fs.mkdirSync(OUT_DIR, { recursive: true });
-const entries = [...classes.keys()].sort((a, b) => Number(a) - Number(b)).map(extract);
+const entries = [...classes.keys()].sort((a, b) => Number(a) - Number(b)).map(extract).filter(e => !e.ghost);
 
-const indexLines = ['# W2 接口参考手册 · 索引', '', '> 全量 ' + entries.length + ' 个命令，按业务域分文件。字段名与客户端协议定义一一对应。', '',
-  '> 编码规则、status 语义、会话约束、调用示例见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](NOTES.md)。', '',
+const indexLines = ['# W2 接口参考手册 · 索引', '',
+  '> 全量 ' + entries.length + ' 个命令，按业务域分文件。字段名为 snake_case 规范命名，附中文说明。', '',
+  '> 如何组装请求、判断成功失败见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](NOTES.md)。', '',
   '| 文件 | 业务域 | 命令数 | cmd 范围 |', '|---|---|---|---|'];
 
 let totalRendered = 0;
@@ -187,12 +360,9 @@ for (const dom of DOMAINS) {
   if (!list.length) continue;
   const file = path.join(OUT_DIR, dom.id + '.md');
   const rel = dom.id + '.md';
-  const buf = [`# ${dom.title}`, '', `> ${list.length} 个命令（cmd ${list[0].num} ~ ${list[list.length - 1].num}）`, ''];
-  for (const e of list) {
-    buf.push(renderEntry(e));
-    buf.push('---');
-    buf.push('');
-  }
+  const buf = [`# ${dom.title}`, '', `> ${list.length} 个命令（cmd ${list[0].num} ~ ${list[list.length - 1].num}）。所有响应均以 1 字节 status 打头，成功值见各条目。`, ''];
+  const bodies = list.map(renderEntry);
+  buf.push(bodies.join('\n---\n\n'));
   fs.writeFileSync(file, buf.join('\n'));
   indexLines.push(`| [${rel}](${rel}) | ${dom.title} | ${list.length} | ${list[0].num} ~ ${list[list.length - 1].num} |`);
   totalRendered += list.length;
@@ -202,13 +372,15 @@ for (const dom of DOMAINS) {
 const ungrouped = entries.filter(e => !DOMAINS.some(d => d.test(Number(e.num))));
 if (ungrouped.length) {
   const file = path.join(OUT_DIR, '99-ungrouped.md');
-  const buf = ['# 未归类命令', '', `> ${ungrouped.length} 个（提取器未匹配到业务域，多为新段位或特殊协议）`, ''];
-  for (const e of ungrouped) { buf.push(renderEntry(e)); buf.push('---'); buf.push(''); }
+  const buf = ['# 未归类命令', '', `> ${ungrouped.length} 个（未匹配到业务域）`, ''];
+  buf.push(ungrouped.map(renderEntry).join('\n---\n\n'));
   fs.writeFileSync(file, buf.join('\n'));
   indexLines.push(`| [99-ungrouped.md](99-ungrouped.md) | 未归类 | ${ungrouped.length} | ${ungrouped.map(e => e.num).join(', ')} |`);
   totalRendered += ungrouped.length;
 }
 
-indexLines.push('', `> 共 ${totalRendered} 个命令，与客户端协议定义总数一致。`);
+indexLines.push('', `> 共 ${totalRendered} 个命令（另有继承空壳类不计入）。`);
 fs.writeFileSync(path.join(OUT_DIR, 'README.md'), indexLines.join('\n') + '\n');
 console.log(`已生成 ${DOMAINS.filter(d => entries.some(e => d.test(Number(e.num)))).length + (ungrouped.length ? 1 : 0)} + 1(索引) 个文件，共 ${totalRendered} 个命令`);
+const missingNames = entries.filter(e => !NAME_ZH[e.num]).length;
+console.log(`中文接口名覆盖: ${entries.length - missingNames}/${entries.length}（缺 ${missingNames} 个，缺省用英文名）`);

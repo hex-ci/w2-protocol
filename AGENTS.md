@@ -59,7 +59,7 @@ scripts/capture.sh <设备IP> [iface] [秒]   # 在路由器/设备侧抓包（O
 
 1. **抓包**：`node bin/w2watch.js --ip <设备IP> --tag <动作名>`，客户端**只做这一个动作**，Ctrl+C 结束。
 2. **定位命令**：控制台 `★NEW` 行或 `captures/<日期>/*.jsonl` 找 cmd。
-3. **取参数结构**：查 [reference/](protocol/reference/README.md) 对应业务域文件的命令条目，确认请求/响应字段；
+3. **取参数结构**：查 [reference/](protocol/reference/README.md) 对应业务域文件的命令条目（字段为 snake_case + 中文说明），确认请求/响应字段与成功 status 值；
    reference 未覆盖的新命令，从 Android 客户端的协议定义中定位该命令的参数序列化顺序。
 4. **组帧**：按 NOTES §1/§2 调用 `lib/w2build.js` 构造新帧（AES key = sessionId 十进制左补零、MD5 前 16B 二进制）；亦可直接从 pcap 提取原始帧进行对比测试。
 5. **入库与验证**：命令名补进 `protocol/commands.json`；发出后看响应——

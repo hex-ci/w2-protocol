@@ -1,2234 +1,2113 @@
 # 军团
 
-> 50 个命令（cmd 5001 ~ 5062）
+> 50 个命令（cmd 5001 ~ 5062）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=5001` — alliance info 5001
+### `cmd=5001` — 查询军团信息
 
-- 常量: `Constant.PROT_ALLIANCE_INFO_5001`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `isJoinAlliance` |
-| 2 | int | `allianceId` |
-| 3 | string | `allianceName` |
-| 4 | string | `leaderName` |
-| 5 | string | `founderName` |
-| 6 | int | `memberCount` |
-| 7 | int | `memberCountMax` |
-| 8 | byte | `allianceWarState` |
-| 9 | byte | `allianceWarJoinState` |
-| 10 | long | `allianceWarNextStateTime` |
-| 11 | long | `allianceScore` |
-| 12 | int | `ranking` |
-| 13 | long | `fame` |
-| 14 | string | `allianceDescription` |
-| 15 | string | `allianceAnnouncement` |
-| 16 | string | `allianceName` |
-| 17 | int | `ranking` |
-| 18 | int | `memberCount` |
-| 19 | int | `badgeId` |
-| 20 | byte | `hasCapital` |
-| 21 | int | `capitalLevel` |
-| 22 | byte | `badgeEditable` |
-| 23 | byte | `joinAllianceDirectly` |
-| 24 | long | `goldRequired` |
-| 25 | long | `fameRequired` |
-| 26 | int | `allianceId` |
-| 27 | int | `badgeId` |
-| 28 | string | `allianceName` |
-| 29 | int | `allianceId` |
-| 30 | int | `badgeId` |
-| 31 | string | `allianceName` |
-| 32 | int | `ranking` |
-| 33 | int | `memberCount` |
-| 34 | long | `fame` |
-| 35 | byte | `allianceWarState` |
-| 36 | long | `allianceWarNextStateTime` |
-| 37 | byte | `_status` |
-| 38 | long | `allianceWarStartTime` |
-| 39 | long | `allianceWarEndTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `is_join_alliance` | 军团 |
+| 2 | u32 | `alliance_id` | 军团 ID |
+| 3 | string | `alliance_name` | 军团名称 |
+| 4 | string | `leader_name` | 名称 |
+| 5 | string | `founder_name` | 名称 |
+| 6 | u32 | `member_count` | 数量/计数 |
+| 7 | u32 | `member_count_max` | 数量/计数 |
+| 8 | u8 | `alliance_war_state` | 军团 |
+| 9 | u8 | `alliance_war_join_state` | 军团 |
+| 10 | u64 | `alliance_war_next_state_time` | 军团 |
+| 11 | u64 | `alliance_score` | 军团 |
+| 12 | u32 | `ranking` | 名次 |
+| 13 | u64 | `fame` | 声望值 |
+| 14 | string | `alliance_description` | 描述文案 |
+| 15 | string | `alliance_announcement` | 军团 |
+| 16 | string | `alliance_name` | 军团名称 |
+| 17 | u32 | `ranking` | 名次 |
+| 18 | u32 | `member_count` | 数量/计数 |
+| 19 | u32 | `badge_id` | — |
+| 20 | u8 | `has_capital` | 布尔标记（0/1） |
+| 21 | u32 | `capital_level` | 等级 |
+| 22 | u8 | `badge_editable` | — |
+| 23 | u8 | `join_alliance_directly` | 军团 |
+| 24 | u64 | `gold_required` | — |
+| 25 | u64 | `fame_required` | 声望值 |
+| 26 | u32 | `alliance_id` | 军团 ID |
+| 27 | u32 | `badge_id` | — |
+| 28 | string | `alliance_name` | 军团名称 |
+| 29 | u32 | `alliance_id` | 军团 ID |
+| 30 | u32 | `badge_id` | — |
+| 31 | string | `alliance_name` | 军团名称 |
+| 32 | u32 | `ranking` | 名次 |
+| 33 | u32 | `member_count` | 数量/计数 |
+| 34 | u64 | `fame` | 声望值 |
+| 35 | u8 | `alliance_war_state` | 军团 |
+| 36 | u64 | `alliance_war_next_state_time` | 军团 |
+| 37 | u8 | `status` | 结果状态 |
+| 38 | u64 | `alliance_war_start_time` | 开始时间戳 |
+| 39 | u64 | `alliance_war_end_time` | 军团 |
 
 ---
 
-#### `cmd=5002` — alliance create 5002
+### `cmd=5002` — 创建军团
 
-- 常量: `Constant.PROT_ALLIANCE_CREATE_5002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `alliance_name` | 军团名称 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.allianceName` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5003` — alliance invitation list 5003
+### `cmd=5003` — 查询收到的邀请
 
-- 常量: `Constant.PROT_ALLIANCE_INVITATION_LIST_5003`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `playerId` |
-| 2 | string | `nickname` |
-| 3 | int | `avata` |
-| 4 | int | `ranking` |
-| 5 | long | `fame` |
-| 6 | string | `inviter` |
-| 7 | long | `inviteTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
+| 2 | string | `nickname` | 玩家昵称 |
+| 3 | u32 | `avatar` | — |
+| 4 | u32 | `ranking` | 名次 |
+| 5 | u64 | `fame` | 声望值 |
+| 6 | string | `inviter` | — |
+| 7 | u64 | `invite_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=5004` — alliance invitation invite 5004
+### `cmd=5004` — 邀请玩家入团
 
-- 常量: `Constant.PROT_ALLIANCE_INVITATION_INVITE_5004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `nickname` | 玩家昵称 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.nickname` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5005` — alliance invitation abort 5005
+### `cmd=5005` — 取消邀请
 
-- 常量: `Constant.PROT_ALLIANCE_INVITATION_ABORT_5005`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5006` — alliance invitation accept 5006
+### `cmd=5006` — 接受邀请入团
 
-- 常量: `Constant.PROT_ALLIANCE_INVITATION_ACCEPT_5006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceId` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5007` — alliance invitation reject 5007
+### `cmd=5007` — 拒绝邀请
 
-- 常量: `Constant.PROT_ALLIANCE_INVITATION_REJECT_5007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5008` — alliance list 5008
+### `cmd=5008` — 查询军团列表
 
-- 常量: `Constant.PROT_ALLIANCE_LIST_5008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_size` | 每页条数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u8 | `list_type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageSize` |
-| 2 | int | `this.pageNum` |
-| 3 | byte | `this.listType` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `listType` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | int | `allianceId` |
-| 5 | int | `ranking` |
-| 6 | string | `allianceName` |
-| 7 | string | `leaderName` |
-| 8 | int | `memberCount` |
-| 9 | long | `fame` |
-| 10 | int | `badgeId` |
-| 11 | byte | `joinAllianceDirectly` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `list_type` | 类型枚举 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u32 | `alliance_id` | 军团 ID |
+| 5 | u32 | `ranking` | 名次 |
+| 6 | string | `alliance_name` | 军团名称 |
+| 7 | string | `leader_name` | 名称 |
+| 8 | u32 | `member_count` | 数量/计数 |
+| 9 | u64 | `fame` | 声望值 |
+| 10 | u32 | `badge_id` | — |
+| 11 | u8 | `join_alliance_directly` | 军团 |
 
 ---
 
-#### `cmd=5009` — alliance list filter by keyword 5009
+### `cmd=5009` — 按关键字搜军团
 
-- 常量: `Constant.PROT_ALLIANCE_LIST_FILTER_BY_KEYWORD_5009`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_size` | 每页条数 |
+| 2 | string | `keyword` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageSize` |
-| 2 | string | `this.keyword` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | int | `allianceId` |
-| 4 | int | `ranking` |
-| 5 | string | `allianceName` |
-| 6 | string | `leaderName` |
-| 7 | int | `memberCount` |
-| 8 | long | `fame` |
-| 9 | int | `badgeId` |
-| 10 | byte | `joinAllianceDirectly` |
-| 11 | byte | `resultCode` |
-| 12 | int | `pageNum` |
-| 13 | int | `pageCount` |
-| 14 | byte | `eventType` |
-| 15 | string | `eventMessage` |
-| 16 | long | `eventTime` |
-| 17 | string | `nickname` |
-| 18 | int | `avata` |
-| 19 | long | `playerId` |
-| 20 | int | `ranking` |
-| 21 | long | `fame` |
-| 22 | byte | `cityCount` |
-| 23 | long | `applyTime` |
-| 24 | int | `pageNum` |
-| 25 | int | `pageCount` |
-| 26 | long | `allianceGiftId` |
-| 27 | int | `rcType` |
-| 28 | string | `from` |
-| 29 | string | `rcImage` |
-| 30 | string | `description` |
-| 31 | byte | `status` |
-| 32 | long | `remainTime` |
-| 33 | int | `rcType` |
-| 34 | string | `rcImage` |
-| 35 | string | `rcName` |
-| 36 | int | `rcAmount` |
-| 37 | int | `channelType` |
-| 38 | byte | `earlierLoadMode` |
-| 39 | byte | `chatType` |
-| 40 | int | `chatChannel` |
-| 41 | long | `chatId` |
-| 42 | int | `senderPlayerType` |
-| 43 | long | `playerId` |
-| 44 | string | `nickname` |
-| 45 | long | `fame` |
-| 46 | byte | `rank` |
-| 47 | byte | `position` |
-| 48 | string | `playerTitle` |
-| 49 | string | `allianceTitle` |
-| 50 | long | `receiverPlayerId` |
-| 51 | string | `receiverNickname` |
-| 52 | int | `avata` |
-| 53 | string | `allianceName` |
-| 54 | long | `chatTime` |
-| 55 | int | `chatChannel` |
-| 56 | long | `chatId` |
-| 57 | int | `senderPlayerType` |
-| 58 | long | `playerId` |
-| 59 | string | `nickname` |
-| 60 | long | `fame` |
-| 61 | byte | `rank` |
-| 62 | byte | `position` |
-| 63 | string | `playerTitle` |
-| 64 | string | `allianceTitle` |
-| 65 | long | `receiverPlayerId` |
-| 66 | string | `receiverNickname` |
-| 67 | int | `avata` |
-| 68 | string | `allianceName` |
-| 69 | string | `voiceFilePath` |
-| 70 | long | `chatTime` |
-| 71 | int | `chatChannel` |
-| 72 | long | `chatId` |
-| 73 | int | `senderPlayerType` |
-| 74 | long | `playerId` |
-| 75 | string | `nickname` |
-| 76 | long | `fame` |
-| 77 | byte | `rank` |
-| 78 | byte | `position` |
-| 79 | string | `playerTitle` |
-| 80 | string | `allianceTitle` |
-| 81 | long | `receiverPlayerId` |
-| 82 | string | `receiverNickname` |
-| 83 | int | `avata` |
-| 84 | string | `allianceName` |
-| 85 | long | `flaundId` |
-| 86 | long | `chatTime` |
-| 87 | long | `chatId` |
-| 88 | string | `chatColor` |
-| 89 | byte | `boldFont` |
-| 90 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u32 | `alliance_id` | 军团 ID |
+| 4 | u32 | `ranking` | 名次 |
+| 5 | string | `alliance_name` | 军团名称 |
+| 6 | string | `leader_name` | 名称 |
+| 7 | u32 | `member_count` | 数量/计数 |
+| 8 | u64 | `fame` | 声望值 |
+| 9 | u32 | `badge_id` | — |
+| 10 | u8 | `join_alliance_directly` | 军团 |
+| 11 | u8 | `result_code` | — |
+| 12 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 13 | u32 | `page_count` | 总页数 |
+| 14 | u8 | `event_type` | 类型枚举 |
+| 15 | string | `event_message` | — |
+| 16 | u64 | `event_time` | 时间戳（毫秒） |
+| 17 | string | `nickname` | 玩家昵称 |
+| 18 | u32 | `avatar` | — |
+| 19 | u64 | `player_id` | 玩家 ID |
+| 20 | u32 | `ranking` | 名次 |
+| 21 | u64 | `fame` | 声望值 |
+| 22 | u8 | `city_count` | 城池数量 |
+| 23 | u64 | `apply_time` | 时间戳（毫秒） |
+| 24 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 25 | u32 | `page_count` | 总页数 |
+| 26 | u64 | `alliance_gift_id` | 军团 |
+| 27 | u32 | `rc_type` | 类型枚举 |
+| 28 | string | `from` | — |
+| 29 | string | `rc_image` | — |
+| 30 | string | `description` | 描述文案 |
+| 31 | u8 | `status` | 结果状态 |
+| 32 | u64 | `remain_time` | 剩余毫秒数 |
+| 33 | u32 | `rc_type` | 类型枚举 |
+| 34 | string | `rc_image` | — |
+| 35 | string | `rc_name` | 名称 |
+| 36 | u32 | `rc_amount` | 数量 |
+| 37 | u32 | `channel_type` | 渠道名 |
+| 38 | u8 | `earlier_load_mode` | — |
+| 39 | u8 | `chat_type` | 消息类型 |
+| 40 | u32 | `chat_channel` | 渠道名 |
+| 41 | u64 | `chat_id` | 聊天消息 ID |
+| 42 | u32 | `sender_player_type` | 类型枚举 |
+| 43 | u64 | `player_id` | 玩家 ID |
+| 44 | string | `nickname` | 玩家昵称 |
+| 45 | u64 | `fame` | 声望值 |
+| 46 | u8 | `rank` | 军衔等级 |
+| 47 | u8 | `position` | 格位编号 |
+| 48 | string | `player_title` | — |
+| 49 | string | `alliance_title` | 军团 |
+| 50 | u64 | `receiver_player_id` | 玩家 ID |
+| 51 | string | `receiver_nickname` | 玩家昵称 |
+| 52 | u32 | `avatar` | — |
+| 53 | string | `alliance_name` | 军团名称 |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
+| 55 | u32 | `chat_channel` | 渠道名 |
+| 56 | u64 | `chat_id` | 聊天消息 ID |
+| 57 | u32 | `sender_player_type` | 类型枚举 |
+| 58 | u64 | `player_id` | 玩家 ID |
+| 59 | string | `nickname` | 玩家昵称 |
+| 60 | u64 | `fame` | 声望值 |
+| 61 | u8 | `rank` | 军衔等级 |
+| 62 | u8 | `position` | 格位编号 |
+| 63 | string | `player_title` | — |
+| 64 | string | `alliance_title` | 军团 |
+| 65 | u64 | `receiver_player_id` | 玩家 ID |
+| 66 | string | `receiver_nickname` | 玩家昵称 |
+| 67 | u32 | `avatar` | — |
+| 68 | string | `alliance_name` | 军团名称 |
+| 69 | string | `voice_file_path` | — |
+| 70 | u64 | `chat_time` | 聊天时间戳 |
+| 71 | u32 | `chat_channel` | 渠道名 |
+| 72 | u64 | `chat_id` | 聊天消息 ID |
+| 73 | u32 | `sender_player_type` | 类型枚举 |
+| 74 | u64 | `player_id` | 玩家 ID |
+| 75 | string | `nickname` | 玩家昵称 |
+| 76 | u64 | `fame` | 声望值 |
+| 77 | u8 | `rank` | 军衔等级 |
+| 78 | u8 | `position` | 格位编号 |
+| 79 | string | `player_title` | — |
+| 80 | string | `alliance_title` | 军团 |
+| 81 | u64 | `receiver_player_id` | 玩家 ID |
+| 82 | string | `receiver_nickname` | 玩家昵称 |
+| 83 | u32 | `avatar` | — |
+| 84 | string | `alliance_name` | 军团名称 |
+| 85 | u64 | `flaund_id` | — |
+| 86 | u64 | `chat_time` | 聊天时间戳 |
+| 87 | u64 | `chat_id` | 聊天消息 ID |
+| 88 | string | `chat_color` | — |
+| 89 | u8 | `bold_font` | — |
+| 90 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5011` — alliance send application 5011
+### `cmd=5011` — 发送入团申请
 
-- 常量: `Constant.PROT_ALLIANCE_SEND_APPLICATION_5011`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5012` — alliance revoke application 5012
+### `cmd=5012` — 撤回入团申请
 
-- 常量: `Constant.PROT_ALLIANCE_REVOKE_APPLICATION_5012`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `resultCode` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | byte | `eventType` |
-| 5 | string | `eventMessage` |
-| 6 | long | `eventTime` |
-| 7 | string | `nickname` |
-| 8 | int | `avata` |
-| 9 | long | `playerId` |
-| 10 | int | `ranking` |
-| 11 | long | `fame` |
-| 12 | byte | `cityCount` |
-| 13 | long | `applyTime` |
-| 14 | int | `pageNum` |
-| 15 | int | `pageCount` |
-| 16 | long | `allianceGiftId` |
-| 17 | int | `rcType` |
-| 18 | string | `from` |
-| 19 | string | `rcImage` |
-| 20 | string | `description` |
-| 21 | byte | `status` |
-| 22 | long | `remainTime` |
-| 23 | int | `rcType` |
-| 24 | string | `rcImage` |
-| 25 | string | `rcName` |
-| 26 | int | `rcAmount` |
-| 27 | int | `channelType` |
-| 28 | byte | `earlierLoadMode` |
-| 29 | byte | `chatType` |
-| 30 | int | `chatChannel` |
-| 31 | long | `chatId` |
-| 32 | int | `senderPlayerType` |
-| 33 | long | `playerId` |
-| 34 | string | `nickname` |
-| 35 | long | `fame` |
-| 36 | byte | `rank` |
-| 37 | byte | `position` |
-| 38 | string | `playerTitle` |
-| 39 | string | `allianceTitle` |
-| 40 | long | `receiverPlayerId` |
-| 41 | string | `receiverNickname` |
-| 42 | int | `avata` |
-| 43 | string | `allianceName` |
-| 44 | long | `chatTime` |
-| 45 | int | `chatChannel` |
-| 46 | long | `chatId` |
-| 47 | int | `senderPlayerType` |
-| 48 | long | `playerId` |
-| 49 | string | `nickname` |
-| 50 | long | `fame` |
-| 51 | byte | `rank` |
-| 52 | byte | `position` |
-| 53 | string | `playerTitle` |
-| 54 | string | `allianceTitle` |
-| 55 | long | `receiverPlayerId` |
-| 56 | string | `receiverNickname` |
-| 57 | int | `avata` |
-| 58 | string | `allianceName` |
-| 59 | string | `voiceFilePath` |
-| 60 | long | `chatTime` |
-| 61 | int | `chatChannel` |
-| 62 | long | `chatId` |
-| 63 | int | `senderPlayerType` |
-| 64 | long | `playerId` |
-| 65 | string | `nickname` |
-| 66 | long | `fame` |
-| 67 | byte | `rank` |
-| 68 | byte | `position` |
-| 69 | string | `playerTitle` |
-| 70 | string | `allianceTitle` |
-| 71 | long | `receiverPlayerId` |
-| 72 | string | `receiverNickname` |
-| 73 | int | `avata` |
-| 74 | string | `allianceName` |
-| 75 | long | `flaundId` |
-| 76 | long | `chatTime` |
-| 77 | long | `chatId` |
-| 78 | string | `chatColor` |
-| 79 | byte | `boldFont` |
-| 80 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `result_code` | — |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u8 | `event_type` | 类型枚举 |
+| 5 | string | `event_message` | — |
+| 6 | u64 | `event_time` | 时间戳（毫秒） |
+| 7 | string | `nickname` | 玩家昵称 |
+| 8 | u32 | `avatar` | — |
+| 9 | u64 | `player_id` | 玩家 ID |
+| 10 | u32 | `ranking` | 名次 |
+| 11 | u64 | `fame` | 声望值 |
+| 12 | u8 | `city_count` | 城池数量 |
+| 13 | u64 | `apply_time` | 时间戳（毫秒） |
+| 14 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 15 | u32 | `page_count` | 总页数 |
+| 16 | u64 | `alliance_gift_id` | 军团 |
+| 17 | u32 | `rc_type` | 类型枚举 |
+| 18 | string | `from` | — |
+| 19 | string | `rc_image` | — |
+| 20 | string | `description` | 描述文案 |
+| 21 | u8 | `status` | 结果状态 |
+| 22 | u64 | `remain_time` | 剩余毫秒数 |
+| 23 | u32 | `rc_type` | 类型枚举 |
+| 24 | string | `rc_image` | — |
+| 25 | string | `rc_name` | 名称 |
+| 26 | u32 | `rc_amount` | 数量 |
+| 27 | u32 | `channel_type` | 渠道名 |
+| 28 | u8 | `earlier_load_mode` | — |
+| 29 | u8 | `chat_type` | 消息类型 |
+| 30 | u32 | `chat_channel` | 渠道名 |
+| 31 | u64 | `chat_id` | 聊天消息 ID |
+| 32 | u32 | `sender_player_type` | 类型枚举 |
+| 33 | u64 | `player_id` | 玩家 ID |
+| 34 | string | `nickname` | 玩家昵称 |
+| 35 | u64 | `fame` | 声望值 |
+| 36 | u8 | `rank` | 军衔等级 |
+| 37 | u8 | `position` | 格位编号 |
+| 38 | string | `player_title` | — |
+| 39 | string | `alliance_title` | 军团 |
+| 40 | u64 | `receiver_player_id` | 玩家 ID |
+| 41 | string | `receiver_nickname` | 玩家昵称 |
+| 42 | u32 | `avatar` | — |
+| 43 | string | `alliance_name` | 军团名称 |
+| 44 | u64 | `chat_time` | 聊天时间戳 |
+| 45 | u32 | `chat_channel` | 渠道名 |
+| 46 | u64 | `chat_id` | 聊天消息 ID |
+| 47 | u32 | `sender_player_type` | 类型枚举 |
+| 48 | u64 | `player_id` | 玩家 ID |
+| 49 | string | `nickname` | 玩家昵称 |
+| 50 | u64 | `fame` | 声望值 |
+| 51 | u8 | `rank` | 军衔等级 |
+| 52 | u8 | `position` | 格位编号 |
+| 53 | string | `player_title` | — |
+| 54 | string | `alliance_title` | 军团 |
+| 55 | u64 | `receiver_player_id` | 玩家 ID |
+| 56 | string | `receiver_nickname` | 玩家昵称 |
+| 57 | u32 | `avatar` | — |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `voice_file_path` | — |
+| 60 | u64 | `chat_time` | 聊天时间戳 |
+| 61 | u32 | `chat_channel` | 渠道名 |
+| 62 | u64 | `chat_id` | 聊天消息 ID |
+| 63 | u32 | `sender_player_type` | 类型枚举 |
+| 64 | u64 | `player_id` | 玩家 ID |
+| 65 | string | `nickname` | 玩家昵称 |
+| 66 | u64 | `fame` | 声望值 |
+| 67 | u8 | `rank` | 军衔等级 |
+| 68 | u8 | `position` | 格位编号 |
+| 69 | string | `player_title` | — |
+| 70 | string | `alliance_title` | 军团 |
+| 71 | u64 | `receiver_player_id` | 玩家 ID |
+| 72 | string | `receiver_nickname` | 玩家昵称 |
+| 73 | u32 | `avatar` | — |
+| 74 | string | `alliance_name` | 军团名称 |
+| 75 | u64 | `flaund_id` | — |
+| 76 | u64 | `chat_time` | 聊天时间戳 |
+| 77 | u64 | `chat_id` | 聊天消息 ID |
+| 78 | string | `chat_color` | — |
+| 79 | u8 | `bold_font` | — |
+| 80 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5013` — alliance event list 5013
+### `cmd=5013` — 查询军团事件
 
-- 常量: `Constant.PROT_ALLIANCE_EVENT_LIST_5013`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_size` | 每页条数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageSize` |
-| 2 | int | `this.pageNum` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | byte | `eventType` |
-| 4 | string | `eventMessage` |
-| 5 | long | `eventTime` |
-| 6 | string | `nickname` |
-| 7 | int | `avata` |
-| 8 | long | `playerId` |
-| 9 | int | `ranking` |
-| 10 | long | `fame` |
-| 11 | byte | `cityCount` |
-| 12 | long | `applyTime` |
-| 13 | int | `pageNum` |
-| 14 | int | `pageCount` |
-| 15 | long | `allianceGiftId` |
-| 16 | int | `rcType` |
-| 17 | string | `from` |
-| 18 | string | `rcImage` |
-| 19 | string | `description` |
-| 20 | byte | `status` |
-| 21 | long | `remainTime` |
-| 22 | int | `rcType` |
-| 23 | string | `rcImage` |
-| 24 | string | `rcName` |
-| 25 | int | `rcAmount` |
-| 26 | int | `channelType` |
-| 27 | byte | `earlierLoadMode` |
-| 28 | byte | `chatType` |
-| 29 | int | `chatChannel` |
-| 30 | long | `chatId` |
-| 31 | int | `senderPlayerType` |
-| 32 | long | `playerId` |
-| 33 | string | `nickname` |
-| 34 | long | `fame` |
-| 35 | byte | `rank` |
-| 36 | byte | `position` |
-| 37 | string | `playerTitle` |
-| 38 | string | `allianceTitle` |
-| 39 | long | `receiverPlayerId` |
-| 40 | string | `receiverNickname` |
-| 41 | int | `avata` |
-| 42 | string | `allianceName` |
-| 43 | long | `chatTime` |
-| 44 | int | `chatChannel` |
-| 45 | long | `chatId` |
-| 46 | int | `senderPlayerType` |
-| 47 | long | `playerId` |
-| 48 | string | `nickname` |
-| 49 | long | `fame` |
-| 50 | byte | `rank` |
-| 51 | byte | `position` |
-| 52 | string | `playerTitle` |
-| 53 | string | `allianceTitle` |
-| 54 | long | `receiverPlayerId` |
-| 55 | string | `receiverNickname` |
-| 56 | int | `avata` |
-| 57 | string | `allianceName` |
-| 58 | string | `voiceFilePath` |
-| 59 | long | `chatTime` |
-| 60 | int | `chatChannel` |
-| 61 | long | `chatId` |
-| 62 | int | `senderPlayerType` |
-| 63 | long | `playerId` |
-| 64 | string | `nickname` |
-| 65 | long | `fame` |
-| 66 | byte | `rank` |
-| 67 | byte | `position` |
-| 68 | string | `playerTitle` |
-| 69 | string | `allianceTitle` |
-| 70 | long | `receiverPlayerId` |
-| 71 | string | `receiverNickname` |
-| 72 | int | `avata` |
-| 73 | string | `allianceName` |
-| 74 | long | `flaundId` |
-| 75 | long | `chatTime` |
-| 76 | long | `chatId` |
-| 77 | string | `chatColor` |
-| 78 | byte | `boldFont` |
-| 79 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u8 | `event_type` | 类型枚举 |
+| 4 | string | `event_message` | — |
+| 5 | u64 | `event_time` | 时间戳（毫秒） |
+| 6 | string | `nickname` | 玩家昵称 |
+| 7 | u32 | `avatar` | — |
+| 8 | u64 | `player_id` | 玩家 ID |
+| 9 | u32 | `ranking` | 名次 |
+| 10 | u64 | `fame` | 声望值 |
+| 11 | u8 | `city_count` | 城池数量 |
+| 12 | u64 | `apply_time` | 时间戳（毫秒） |
+| 13 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 14 | u32 | `page_count` | 总页数 |
+| 15 | u64 | `alliance_gift_id` | 军团 |
+| 16 | u32 | `rc_type` | 类型枚举 |
+| 17 | string | `from` | — |
+| 18 | string | `rc_image` | — |
+| 19 | string | `description` | 描述文案 |
+| 20 | u8 | `status` | 结果状态 |
+| 21 | u64 | `remain_time` | 剩余毫秒数 |
+| 22 | u32 | `rc_type` | 类型枚举 |
+| 23 | string | `rc_image` | — |
+| 24 | string | `rc_name` | 名称 |
+| 25 | u32 | `rc_amount` | 数量 |
+| 26 | u32 | `channel_type` | 渠道名 |
+| 27 | u8 | `earlier_load_mode` | — |
+| 28 | u8 | `chat_type` | 消息类型 |
+| 29 | u32 | `chat_channel` | 渠道名 |
+| 30 | u64 | `chat_id` | 聊天消息 ID |
+| 31 | u32 | `sender_player_type` | 类型枚举 |
+| 32 | u64 | `player_id` | 玩家 ID |
+| 33 | string | `nickname` | 玩家昵称 |
+| 34 | u64 | `fame` | 声望值 |
+| 35 | u8 | `rank` | 军衔等级 |
+| 36 | u8 | `position` | 格位编号 |
+| 37 | string | `player_title` | — |
+| 38 | string | `alliance_title` | 军团 |
+| 39 | u64 | `receiver_player_id` | 玩家 ID |
+| 40 | string | `receiver_nickname` | 玩家昵称 |
+| 41 | u32 | `avatar` | — |
+| 42 | string | `alliance_name` | 军团名称 |
+| 43 | u64 | `chat_time` | 聊天时间戳 |
+| 44 | u32 | `chat_channel` | 渠道名 |
+| 45 | u64 | `chat_id` | 聊天消息 ID |
+| 46 | u32 | `sender_player_type` | 类型枚举 |
+| 47 | u64 | `player_id` | 玩家 ID |
+| 48 | string | `nickname` | 玩家昵称 |
+| 49 | u64 | `fame` | 声望值 |
+| 50 | u8 | `rank` | 军衔等级 |
+| 51 | u8 | `position` | 格位编号 |
+| 52 | string | `player_title` | — |
+| 53 | string | `alliance_title` | 军团 |
+| 54 | u64 | `receiver_player_id` | 玩家 ID |
+| 55 | string | `receiver_nickname` | 玩家昵称 |
+| 56 | u32 | `avatar` | — |
+| 57 | string | `alliance_name` | 军团名称 |
+| 58 | string | `voice_file_path` | — |
+| 59 | u64 | `chat_time` | 聊天时间戳 |
+| 60 | u32 | `chat_channel` | 渠道名 |
+| 61 | u64 | `chat_id` | 聊天消息 ID |
+| 62 | u32 | `sender_player_type` | 类型枚举 |
+| 63 | u64 | `player_id` | 玩家 ID |
+| 64 | string | `nickname` | 玩家昵称 |
+| 65 | u64 | `fame` | 声望值 |
+| 66 | u8 | `rank` | 军衔等级 |
+| 67 | u8 | `position` | 格位编号 |
+| 68 | string | `player_title` | — |
+| 69 | string | `alliance_title` | 军团 |
+| 70 | u64 | `receiver_player_id` | 玩家 ID |
+| 71 | string | `receiver_nickname` | 玩家昵称 |
+| 72 | u32 | `avatar` | — |
+| 73 | string | `alliance_name` | 军团名称 |
+| 74 | u64 | `flaund_id` | — |
+| 75 | u64 | `chat_time` | 聊天时间戳 |
+| 76 | u64 | `chat_id` | 聊天消息 ID |
+| 77 | string | `chat_color` | — |
+| 78 | u8 | `bold_font` | — |
+| 79 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5014` — alliance battle log list 5014
+### `cmd=5014` — 查询军团战日志
 
-- 常量: `Constant.PROT_ALLIANCE_BATTLE_LOG_LIST_5014`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_size` | 每页条数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageSize` |
-| 2 | int | `this.pageNum` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceBattleLogId` |
-| 4 | byte | `type` |
-| 5 | string | `detail` |
-| 6 | string | `targetAllianceName` |
-| 7 | long | `battleTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_battle_log_id` | 军团 |
+| 4 | u8 | `type` | 类型枚举 |
+| 5 | string | `detail` | — |
+| 6 | string | `target_alliance_name` | 军团名称 |
+| 7 | u64 | `battle_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=5015` — alliance member kick out 5015
+### `cmd=5015` — 踢出成员
 
-- 常量: `Constant.PROT_ALLIANCE_MEMBER_KICK_OUT_5015`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `nickname` | 玩家昵称 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.nickname` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `nickname` |
-| 2 | int | `avata` |
-| 3 | long | `playerId` |
-| 4 | int | `ranking` |
-| 5 | long | `fame` |
-| 6 | byte | `cityCount` |
-| 7 | long | `applyTime` |
-| 8 | int | `pageNum` |
-| 9 | int | `pageCount` |
-| 10 | long | `allianceGiftId` |
-| 11 | int | `rcType` |
-| 12 | string | `from` |
-| 13 | string | `rcImage` |
-| 14 | string | `description` |
-| 15 | byte | `status` |
-| 16 | long | `remainTime` |
-| 17 | int | `rcType` |
-| 18 | string | `rcImage` |
-| 19 | string | `rcName` |
-| 20 | int | `rcAmount` |
-| 21 | int | `channelType` |
-| 22 | byte | `earlierLoadMode` |
-| 23 | byte | `chatType` |
-| 24 | int | `chatChannel` |
-| 25 | long | `chatId` |
-| 26 | int | `senderPlayerType` |
-| 27 | long | `playerId` |
-| 28 | string | `nickname` |
-| 29 | long | `fame` |
-| 30 | byte | `rank` |
-| 31 | byte | `position` |
-| 32 | string | `playerTitle` |
-| 33 | string | `allianceTitle` |
-| 34 | long | `receiverPlayerId` |
-| 35 | string | `receiverNickname` |
-| 36 | int | `avata` |
-| 37 | string | `allianceName` |
-| 38 | long | `chatTime` |
-| 39 | int | `chatChannel` |
-| 40 | long | `chatId` |
-| 41 | int | `senderPlayerType` |
-| 42 | long | `playerId` |
-| 43 | string | `nickname` |
-| 44 | long | `fame` |
-| 45 | byte | `rank` |
-| 46 | byte | `position` |
-| 47 | string | `playerTitle` |
-| 48 | string | `allianceTitle` |
-| 49 | long | `receiverPlayerId` |
-| 50 | string | `receiverNickname` |
-| 51 | int | `avata` |
-| 52 | string | `allianceName` |
-| 53 | string | `voiceFilePath` |
-| 54 | long | `chatTime` |
-| 55 | int | `chatChannel` |
-| 56 | long | `chatId` |
-| 57 | int | `senderPlayerType` |
-| 58 | long | `playerId` |
-| 59 | string | `nickname` |
-| 60 | long | `fame` |
-| 61 | byte | `rank` |
-| 62 | byte | `position` |
-| 63 | string | `playerTitle` |
-| 64 | string | `allianceTitle` |
-| 65 | long | `receiverPlayerId` |
-| 66 | string | `receiverNickname` |
-| 67 | int | `avata` |
-| 68 | string | `allianceName` |
-| 69 | long | `flaundId` |
-| 70 | long | `chatTime` |
-| 71 | long | `chatId` |
-| 72 | string | `chatColor` |
-| 73 | byte | `boldFont` |
-| 74 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `nickname` | 玩家昵称 |
+| 2 | u32 | `avatar` | — |
+| 3 | u64 | `player_id` | 玩家 ID |
+| 4 | u32 | `ranking` | 名次 |
+| 5 | u64 | `fame` | 声望值 |
+| 6 | u8 | `city_count` | 城池数量 |
+| 7 | u64 | `apply_time` | 时间戳（毫秒） |
+| 8 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 9 | u32 | `page_count` | 总页数 |
+| 10 | u64 | `alliance_gift_id` | 军团 |
+| 11 | u32 | `rc_type` | 类型枚举 |
+| 12 | string | `from` | — |
+| 13 | string | `rc_image` | — |
+| 14 | string | `description` | 描述文案 |
+| 15 | u8 | `status` | 结果状态 |
+| 16 | u64 | `remain_time` | 剩余毫秒数 |
+| 17 | u32 | `rc_type` | 类型枚举 |
+| 18 | string | `rc_image` | — |
+| 19 | string | `rc_name` | 名称 |
+| 20 | u32 | `rc_amount` | 数量 |
+| 21 | u32 | `channel_type` | 渠道名 |
+| 22 | u8 | `earlier_load_mode` | — |
+| 23 | u8 | `chat_type` | 消息类型 |
+| 24 | u32 | `chat_channel` | 渠道名 |
+| 25 | u64 | `chat_id` | 聊天消息 ID |
+| 26 | u32 | `sender_player_type` | 类型枚举 |
+| 27 | u64 | `player_id` | 玩家 ID |
+| 28 | string | `nickname` | 玩家昵称 |
+| 29 | u64 | `fame` | 声望值 |
+| 30 | u8 | `rank` | 军衔等级 |
+| 31 | u8 | `position` | 格位编号 |
+| 32 | string | `player_title` | — |
+| 33 | string | `alliance_title` | 军团 |
+| 34 | u64 | `receiver_player_id` | 玩家 ID |
+| 35 | string | `receiver_nickname` | 玩家昵称 |
+| 36 | u32 | `avatar` | — |
+| 37 | string | `alliance_name` | 军团名称 |
+| 38 | u64 | `chat_time` | 聊天时间戳 |
+| 39 | u32 | `chat_channel` | 渠道名 |
+| 40 | u64 | `chat_id` | 聊天消息 ID |
+| 41 | u32 | `sender_player_type` | 类型枚举 |
+| 42 | u64 | `player_id` | 玩家 ID |
+| 43 | string | `nickname` | 玩家昵称 |
+| 44 | u64 | `fame` | 声望值 |
+| 45 | u8 | `rank` | 军衔等级 |
+| 46 | u8 | `position` | 格位编号 |
+| 47 | string | `player_title` | — |
+| 48 | string | `alliance_title` | 军团 |
+| 49 | u64 | `receiver_player_id` | 玩家 ID |
+| 50 | string | `receiver_nickname` | 玩家昵称 |
+| 51 | u32 | `avatar` | — |
+| 52 | string | `alliance_name` | 军团名称 |
+| 53 | string | `voice_file_path` | — |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
+| 55 | u32 | `chat_channel` | 渠道名 |
+| 56 | u64 | `chat_id` | 聊天消息 ID |
+| 57 | u32 | `sender_player_type` | 类型枚举 |
+| 58 | u64 | `player_id` | 玩家 ID |
+| 59 | string | `nickname` | 玩家昵称 |
+| 60 | u64 | `fame` | 声望值 |
+| 61 | u8 | `rank` | 军衔等级 |
+| 62 | u8 | `position` | 格位编号 |
+| 63 | string | `player_title` | — |
+| 64 | string | `alliance_title` | 军团 |
+| 65 | u64 | `receiver_player_id` | 玩家 ID |
+| 66 | string | `receiver_nickname` | 玩家昵称 |
+| 67 | u32 | `avatar` | — |
+| 68 | string | `alliance_name` | 军团名称 |
+| 69 | u64 | `flaund_id` | — |
+| 70 | u64 | `chat_time` | 聊天时间戳 |
+| 71 | u64 | `chat_id` | 聊天消息 ID |
+| 72 | string | `chat_color` | — |
+| 73 | u8 | `bold_font` | — |
+| 74 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5016` — alliance application list 5016
+### `cmd=5016` — 查询入团申请列表
 
-- 常量: `Constant.PROT_ALLIANCE_APPLICATION_LIST_5016`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `nickname` |
-| 2 | int | `avata` |
-| 3 | long | `playerId` |
-| 4 | int | `ranking` |
-| 5 | long | `fame` |
-| 6 | byte | `cityCount` |
-| 7 | long | `applyTime` |
-| 8 | int | `pageNum` |
-| 9 | int | `pageCount` |
-| 10 | long | `allianceGiftId` |
-| 11 | int | `rcType` |
-| 12 | string | `from` |
-| 13 | string | `rcImage` |
-| 14 | string | `description` |
-| 15 | byte | `status` |
-| 16 | long | `remainTime` |
-| 17 | int | `rcType` |
-| 18 | string | `rcImage` |
-| 19 | string | `rcName` |
-| 20 | int | `rcAmount` |
-| 21 | int | `channelType` |
-| 22 | byte | `earlierLoadMode` |
-| 23 | byte | `chatType` |
-| 24 | int | `chatChannel` |
-| 25 | long | `chatId` |
-| 26 | int | `senderPlayerType` |
-| 27 | long | `playerId` |
-| 28 | string | `nickname` |
-| 29 | long | `fame` |
-| 30 | byte | `rank` |
-| 31 | byte | `position` |
-| 32 | string | `playerTitle` |
-| 33 | string | `allianceTitle` |
-| 34 | long | `receiverPlayerId` |
-| 35 | string | `receiverNickname` |
-| 36 | int | `avata` |
-| 37 | string | `allianceName` |
-| 38 | long | `chatTime` |
-| 39 | int | `chatChannel` |
-| 40 | long | `chatId` |
-| 41 | int | `senderPlayerType` |
-| 42 | long | `playerId` |
-| 43 | string | `nickname` |
-| 44 | long | `fame` |
-| 45 | byte | `rank` |
-| 46 | byte | `position` |
-| 47 | string | `playerTitle` |
-| 48 | string | `allianceTitle` |
-| 49 | long | `receiverPlayerId` |
-| 50 | string | `receiverNickname` |
-| 51 | int | `avata` |
-| 52 | string | `allianceName` |
-| 53 | string | `voiceFilePath` |
-| 54 | long | `chatTime` |
-| 55 | int | `chatChannel` |
-| 56 | long | `chatId` |
-| 57 | int | `senderPlayerType` |
-| 58 | long | `playerId` |
-| 59 | string | `nickname` |
-| 60 | long | `fame` |
-| 61 | byte | `rank` |
-| 62 | byte | `position` |
-| 63 | string | `playerTitle` |
-| 64 | string | `allianceTitle` |
-| 65 | long | `receiverPlayerId` |
-| 66 | string | `receiverNickname` |
-| 67 | int | `avata` |
-| 68 | string | `allianceName` |
-| 69 | long | `flaundId` |
-| 70 | long | `chatTime` |
-| 71 | long | `chatId` |
-| 72 | string | `chatColor` |
-| 73 | byte | `boldFont` |
-| 74 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `nickname` | 玩家昵称 |
+| 2 | u32 | `avatar` | — |
+| 3 | u64 | `player_id` | 玩家 ID |
+| 4 | u32 | `ranking` | 名次 |
+| 5 | u64 | `fame` | 声望值 |
+| 6 | u8 | `city_count` | 城池数量 |
+| 7 | u64 | `apply_time` | 时间戳（毫秒） |
+| 8 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 9 | u32 | `page_count` | 总页数 |
+| 10 | u64 | `alliance_gift_id` | 军团 |
+| 11 | u32 | `rc_type` | 类型枚举 |
+| 12 | string | `from` | — |
+| 13 | string | `rc_image` | — |
+| 14 | string | `description` | 描述文案 |
+| 15 | u8 | `status` | 结果状态 |
+| 16 | u64 | `remain_time` | 剩余毫秒数 |
+| 17 | u32 | `rc_type` | 类型枚举 |
+| 18 | string | `rc_image` | — |
+| 19 | string | `rc_name` | 名称 |
+| 20 | u32 | `rc_amount` | 数量 |
+| 21 | u32 | `channel_type` | 渠道名 |
+| 22 | u8 | `earlier_load_mode` | — |
+| 23 | u8 | `chat_type` | 消息类型 |
+| 24 | u32 | `chat_channel` | 渠道名 |
+| 25 | u64 | `chat_id` | 聊天消息 ID |
+| 26 | u32 | `sender_player_type` | 类型枚举 |
+| 27 | u64 | `player_id` | 玩家 ID |
+| 28 | string | `nickname` | 玩家昵称 |
+| 29 | u64 | `fame` | 声望值 |
+| 30 | u8 | `rank` | 军衔等级 |
+| 31 | u8 | `position` | 格位编号 |
+| 32 | string | `player_title` | — |
+| 33 | string | `alliance_title` | 军团 |
+| 34 | u64 | `receiver_player_id` | 玩家 ID |
+| 35 | string | `receiver_nickname` | 玩家昵称 |
+| 36 | u32 | `avatar` | — |
+| 37 | string | `alliance_name` | 军团名称 |
+| 38 | u64 | `chat_time` | 聊天时间戳 |
+| 39 | u32 | `chat_channel` | 渠道名 |
+| 40 | u64 | `chat_id` | 聊天消息 ID |
+| 41 | u32 | `sender_player_type` | 类型枚举 |
+| 42 | u64 | `player_id` | 玩家 ID |
+| 43 | string | `nickname` | 玩家昵称 |
+| 44 | u64 | `fame` | 声望值 |
+| 45 | u8 | `rank` | 军衔等级 |
+| 46 | u8 | `position` | 格位编号 |
+| 47 | string | `player_title` | — |
+| 48 | string | `alliance_title` | 军团 |
+| 49 | u64 | `receiver_player_id` | 玩家 ID |
+| 50 | string | `receiver_nickname` | 玩家昵称 |
+| 51 | u32 | `avatar` | — |
+| 52 | string | `alliance_name` | 军团名称 |
+| 53 | string | `voice_file_path` | — |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
+| 55 | u32 | `chat_channel` | 渠道名 |
+| 56 | u64 | `chat_id` | 聊天消息 ID |
+| 57 | u32 | `sender_player_type` | 类型枚举 |
+| 58 | u64 | `player_id` | 玩家 ID |
+| 59 | string | `nickname` | 玩家昵称 |
+| 60 | u64 | `fame` | 声望值 |
+| 61 | u8 | `rank` | 军衔等级 |
+| 62 | u8 | `position` | 格位编号 |
+| 63 | string | `player_title` | — |
+| 64 | string | `alliance_title` | 军团 |
+| 65 | u64 | `receiver_player_id` | 玩家 ID |
+| 66 | string | `receiver_nickname` | 玩家昵称 |
+| 67 | u32 | `avatar` | — |
+| 68 | string | `alliance_name` | 军团名称 |
+| 69 | u64 | `flaund_id` | — |
+| 70 | u64 | `chat_time` | 聊天时间戳 |
+| 71 | u64 | `chat_id` | 聊天消息 ID |
+| 72 | string | `chat_color` | — |
+| 73 | u8 | `bold_font` | — |
+| 74 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5017` — alliance application approve 5017
+### `cmd=5017` — 批准入团申请
 
-- 常量: `Constant.PROT_ALLIANCE_APPLICATION_APPROVE_5017`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5018` — alliance application reject 5018
+### `cmd=5018` — 拒绝入团申请
 
-- 常量: `Constant.PROT_ALLIANCE_APPLICATION_REJECT_5018`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5019` — alliance diplomacy add 5019
+### `cmd=5019` — 添加外交关系
 
-- 常量: `Constant.PROT_ALLIANCE_DIPLOMACY_ADD_5019`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `alliance_name` | 军团名称 |
+| 2 | u8 | `relation` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.allianceName` |
-| 2 | byte | `this.relation` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5020` — alliance diplomacy remove 5020
+### `cmd=5020` — 删除外交关系
 
-- 常量: `Constant.PROT_ALLIANCE_DIPLOMACY_REMOVE_5020`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
+| 2 | u8 | `relation` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
-| 2 | byte | `this.relation` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5021` — alliance transfer 5021
+### `cmd=5021` — 转让团长
 
-- 常量: `Constant.PROT_ALLIANCE_TRANSFER_5021`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `nickname` | 玩家昵称 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.nickname` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5022` — alliance resign 5022
+### `cmd=5022` — 军团辞职
 
-- 常量: `Constant.PROT_ALLIANCE_RESIGN_5022`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5023` — alliance quit 5023
+### `cmd=5023` — 退出军团
 
-- 常量: `Constant.PROT_ALLIANCE_QUIT_5023`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5024` — alliance stationed troop list 5024
+### `cmd=5024` — 查询驻防部队
 
-- 常量: `Constant.PROT_ALLIANCE_STATIONED_TROOP_LIST_5024`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `stationSwitch` |
-| 2 | long | `stationId` |
-| 3 | string | `nickname` |
-| 4 | int | `avata` |
-| 5 | string | `fromCity` |
-| 6 | int | `fromX` |
-| 7 | int | `fromY` |
-| 8 | long | `arriveTime` |
-| 9 | long | `stayTime` |
-| 10 | long | `returnRemainTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `station_switch` | — |
+| 2 | u64 | `station_id` | — |
+| 3 | string | `nickname` | 玩家昵称 |
+| 4 | u32 | `avatar` | — |
+| 5 | string | `from_city` | — |
+| 6 | u32 | `from_x` | 地图 X 坐标 |
+| 7 | u32 | `from_y` | 地图 Y 坐标 |
+| 8 | u64 | `arrive_time` | 时间戳（毫秒） |
+| 9 | u64 | `stay_time` | 时间戳（毫秒） |
+| 10 | u64 | `return_remain_time` | 剩余毫秒数 |
 
 ---
 
-#### `cmd=5025` — alliance stationed troop send back 5025
+### `cmd=5025` — 驻防部队调回
 
-- 常量: `Constant.PROT_ALLIANCE_STATIONED_TROOP_SEND_BACK_5025`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `station_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.stationId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5026` — alliance stationed troop switch 5026
+### `cmd=5026` — 驻防部队开关
 
-- 常量: `Constant.PROT_ALLIANCE_STATIONED_TROOP_SWITCH_5026`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `station_switch` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.stationSwitch` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `stationSwitch` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `station_switch` | — |
 
 ---
 
-#### `cmd=5027` — alliance change position 5027
+### `cmd=5027` — 更改军团职位
 
-- 常量: `Constant.PROT_ALLIANCE_CHANGE_POSITION_5027`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
+| 2 | u8 | `alliance_position` | 格位编号 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
-| 2 | byte | `this.alliancePosition` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5030` — alliance badge info 5030
+### `cmd=5030` — 查询军团徽章
 
-- 常量: `Constant.PROT_ALLIANCE_BADGE_INFO_5030`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `badgeChangeTimes` |
-| 2 | int | `priceForChange` |
-| 3 | byte | `type` |
-| 4 | int | `badgeId` |
-| 5 | string | `badgeURI` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `badge_change_times` | — |
+| 2 | u32 | `price_for_change` | 单价 |
+| 3 | u8 | `type` | 类型枚举 |
+| 4 | u32 | `badge_id` | — |
+| 5 | string | `badge_uri` | — |
 
 ---
 
-#### `cmd=5031` — alliance badge update 5031
+### `cmd=5031` — 更新军团徽章
 
-- 常量: `Constant.PROT_ALLIANCE_BADGE_UPDATE_5031`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `type` | 类型枚举 |
+| 2 | u32 | `badge_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.type` |
-| 2 | int | `this.badgeId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5032` — alliance member list 5032
+### `cmd=5032` — 查询军团成员
 
-- 常量: `Constant.PROT_ALLIANCE_MEMBER_LIST_5032`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `isJoinLeagueWar` |
-| 2 | byte | `allowKickMember` |
-| 3 | long | `playerId` |
-| 4 | string | `nickname` |
-| 5 | int | `avata` |
-| 6 | byte | `alliancePosition` |
-| 7 | string | `alliancePositionName` |
-| 8 | int | `ranking` |
-| 9 | byte | `rank` |
-| 10 | long | `fame` |
-| 11 | long | `influence` |
-| 12 | byte | `cityCount` |
-| 13 | long | `lastOnlineTime` |
-| 14 | int | `personalScore` |
-| 15 | int | `allianceDonationNulearCount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `is_join_league_war` | 布尔标记（0/1） |
+| 2 | u8 | `allow_kick_member` | — |
+| 3 | u64 | `player_id` | 玩家 ID |
+| 4 | string | `nickname` | 玩家昵称 |
+| 5 | u32 | `avatar` | — |
+| 6 | u8 | `alliance_position` | 格位编号 |
+| 7 | string | `alliance_position_name` | 格位编号 |
+| 8 | u32 | `ranking` | 名次 |
+| 9 | u8 | `rank` | 军衔等级 |
+| 10 | u64 | `fame` | 声望值 |
+| 11 | u64 | `influence` | 影响力 |
+| 12 | u8 | `city_count` | 城池数量 |
+| 13 | u64 | `last_online_time` | 时间戳（毫秒） |
+| 14 | u32 | `personal_score` | 积分 |
+| 15 | u32 | `alliance_donation_nulear_count` | 军团 |
 
 ---
 
-#### `cmd=5033` — alliance base info 5033
+### `cmd=5033` — 查询军团基础信息
 
-- 常量: `Constant.PROT_ALLIANCE_BASE_INFO_5033`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `allianceName` |
-| 2 | string | `leaderName` |
-| 3 | string | `founderName` |
-| 4 | int | `memberCount` |
-| 5 | int | `memberCountMax` |
-| 6 | int | `ranking` |
-| 7 | long | `fame` |
-| 8 | string | `allianceDescription` |
-| 9 | int | `badgeId` |
-| 10 | int | `hasCapital` |
-| 11 | int | `capitalLevel` |
-| 12 | byte | `joinAllianceDirectly` |
-| 13 | long | `allianceScore` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `alliance_name` | 军团名称 |
+| 2 | string | `leader_name` | 名称 |
+| 3 | string | `founder_name` | 名称 |
+| 4 | u32 | `member_count` | 数量/计数 |
+| 5 | u32 | `member_count_max` | 数量/计数 |
+| 6 | u32 | `ranking` | 名次 |
+| 7 | u64 | `fame` | 声望值 |
+| 8 | string | `alliance_description` | 描述文案 |
+| 9 | u32 | `badge_id` | — |
+| 10 | u32 | `has_capital` | 布尔标记（0/1） |
+| 11 | u32 | `capital_level` | 等级 |
+| 12 | u8 | `join_alliance_directly` | 军团 |
+| 13 | u64 | `alliance_score` | 军团 |
 
 ---
 
-#### `cmd=5042` — alliance join directly option update 5042
+### `cmd=5042` — 设置直接入团开关
 
-- 常量: `Constant.PROT_ALLIANCE_JOIN_DIRECTLY_OPTION_UPDATE_5042`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `can_join_directly?1:0` | 布尔标记（0/1） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.canJoinDirectly?1:0` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5043` — alliance join directly 5043
+### `cmd=5043` — 直接入团
 
-- 常量: `Constant.PROT_ALLIANCE_JOIN_DIRECTLY_5043`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `alliance_id` | 军团 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.allianceId` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5044` — alliance help list 5044
+### `cmd=5044` — 查询互助列表
 
-- 常量: `Constant.PROT_ALLIANCE_HELP_LIST_5044`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `avata` |
-| 2 | string | `nickname` |
-| 3 | byte | `helpType` |
-| 4 | string | `helpMessage` |
-| 5 | int | `helpLevel` |
-| 6 | int | `helpedCount` |
-| 7 | int | `helpedCountMax` |
-| 8 | long | `helpId` |
-| 9 | long | `playerId` |
-| 10 | int | `avata` |
-| 11 | string | `nickname` |
-| 12 | byte | `helpType` |
-| 13 | string | `helpMessage` |
-| 14 | int | `helpLevel` |
-| 15 | int | `helpedCount` |
-| 16 | int | `helpedCountMax` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `avatar` | — |
+| 2 | string | `nickname` | 玩家昵称 |
+| 3 | u8 | `help_type` | 类型枚举 |
+| 4 | string | `help_message` | — |
+| 5 | u32 | `help_level` | 等级 |
+| 6 | u32 | `helped_count` | 数量/计数 |
+| 7 | u32 | `helped_count_max` | 数量/计数 |
+| 8 | u64 | `help_id` | — |
+| 9 | u64 | `player_id` | 玩家 ID |
+| 10 | u32 | `avatar` | — |
+| 11 | string | `nickname` | 玩家昵称 |
+| 12 | u8 | `help_type` | 类型枚举 |
+| 13 | string | `help_message` | — |
+| 14 | u32 | `help_level` | 等级 |
+| 15 | u32 | `helped_count` | 数量/计数 |
+| 16 | u32 | `helped_count_max` | 数量/计数 |
 
 ---
 
-#### `cmd=5045` — alliance help 5045
+### `cmd=5045` — 请求互助
 
-- 常量: `Constant.PROT_ALLIANCE_HELP_5045`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `help_id` | — |
+| 2 | u64 | `player_id` | 玩家 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.helpId` |
-| 2 | long | `this.playerId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5046` — alliance help all 5046
+### `cmd=5046` — 一键求助
 
-- 常量: `Constant.PROT_ALLIANCE_HELP_ALL_5046`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5047` — alliance help request build 5047
+### `cmd=5047` — 建造互助请求
 
-- 常量: `Constant.PROT_ALLIANCE_HELP_REQUEST_BUILD_5047`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `building_id` | 建筑实例 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.buildingId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5048` — alliance help request research 5048
+### `cmd=5048` — 研究互助请求
 
-- 常量: `Constant.PROT_ALLIANCE_HELP_REQUEST_RESEARCH_5048`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `city_id` | 城池 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.cityId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5050` — alliance war join switch 5050
+### `cmd=5050` — 军团战参战开关
 
-- 常量: `Constant.PROT_ALLIANCE_WAR_JOIN_SWITCH_5050`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `allianceWarJoinState` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `alliance_war_join_state` | 军团 |
 
 ---
 
-#### `cmd=5051` — alliance gift list 5051
+### `cmd=5051` — 查询军团礼包
 
-- 常量: `Constant.PROT_ALLIANCE_GIFT_LIST_5051`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_size` | 每页条数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageSize` |
-| 2 | int | `this.pageNum` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `allianceGiftId` |
-| 4 | int | `rcType` |
-| 5 | string | `from` |
-| 6 | string | `rcImage` |
-| 7 | string | `description` |
-| 8 | byte | `status` |
-| 9 | long | `remainTime` |
-| 10 | int | `rcType` |
-| 11 | string | `rcImage` |
-| 12 | string | `rcName` |
-| 13 | int | `rcAmount` |
-| 14 | int | `channelType` |
-| 15 | byte | `earlierLoadMode` |
-| 16 | byte | `chatType` |
-| 17 | int | `chatChannel` |
-| 18 | long | `chatId` |
-| 19 | int | `senderPlayerType` |
-| 20 | long | `playerId` |
-| 21 | string | `nickname` |
-| 22 | long | `fame` |
-| 23 | byte | `rank` |
-| 24 | byte | `position` |
-| 25 | string | `playerTitle` |
-| 26 | string | `allianceTitle` |
-| 27 | long | `receiverPlayerId` |
-| 28 | string | `receiverNickname` |
-| 29 | int | `avata` |
-| 30 | string | `allianceName` |
-| 31 | long | `chatTime` |
-| 32 | int | `chatChannel` |
-| 33 | long | `chatId` |
-| 34 | int | `senderPlayerType` |
-| 35 | long | `playerId` |
-| 36 | string | `nickname` |
-| 37 | long | `fame` |
-| 38 | byte | `rank` |
-| 39 | byte | `position` |
-| 40 | string | `playerTitle` |
-| 41 | string | `allianceTitle` |
-| 42 | long | `receiverPlayerId` |
-| 43 | string | `receiverNickname` |
-| 44 | int | `avata` |
-| 45 | string | `allianceName` |
-| 46 | string | `voiceFilePath` |
-| 47 | long | `chatTime` |
-| 48 | int | `chatChannel` |
-| 49 | long | `chatId` |
-| 50 | int | `senderPlayerType` |
-| 51 | long | `playerId` |
-| 52 | string | `nickname` |
-| 53 | long | `fame` |
-| 54 | byte | `rank` |
-| 55 | byte | `position` |
-| 56 | string | `playerTitle` |
-| 57 | string | `allianceTitle` |
-| 58 | long | `receiverPlayerId` |
-| 59 | string | `receiverNickname` |
-| 60 | int | `avata` |
-| 61 | string | `allianceName` |
-| 62 | long | `flaundId` |
-| 63 | long | `chatTime` |
-| 64 | long | `chatId` |
-| 65 | string | `chatColor` |
-| 66 | byte | `boldFont` |
-| 67 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `alliance_gift_id` | 军团 |
+| 4 | u32 | `rc_type` | 类型枚举 |
+| 5 | string | `from` | — |
+| 6 | string | `rc_image` | — |
+| 7 | string | `description` | 描述文案 |
+| 8 | u8 | `status` | 结果状态 |
+| 9 | u64 | `remain_time` | 剩余毫秒数 |
+| 10 | u32 | `rc_type` | 类型枚举 |
+| 11 | string | `rc_image` | — |
+| 12 | string | `rc_name` | 名称 |
+| 13 | u32 | `rc_amount` | 数量 |
+| 14 | u32 | `channel_type` | 渠道名 |
+| 15 | u8 | `earlier_load_mode` | — |
+| 16 | u8 | `chat_type` | 消息类型 |
+| 17 | u32 | `chat_channel` | 渠道名 |
+| 18 | u64 | `chat_id` | 聊天消息 ID |
+| 19 | u32 | `sender_player_type` | 类型枚举 |
+| 20 | u64 | `player_id` | 玩家 ID |
+| 21 | string | `nickname` | 玩家昵称 |
+| 22 | u64 | `fame` | 声望值 |
+| 23 | u8 | `rank` | 军衔等级 |
+| 24 | u8 | `position` | 格位编号 |
+| 25 | string | `player_title` | — |
+| 26 | string | `alliance_title` | 军团 |
+| 27 | u64 | `receiver_player_id` | 玩家 ID |
+| 28 | string | `receiver_nickname` | 玩家昵称 |
+| 29 | u32 | `avatar` | — |
+| 30 | string | `alliance_name` | 军团名称 |
+| 31 | u64 | `chat_time` | 聊天时间戳 |
+| 32 | u32 | `chat_channel` | 渠道名 |
+| 33 | u64 | `chat_id` | 聊天消息 ID |
+| 34 | u32 | `sender_player_type` | 类型枚举 |
+| 35 | u64 | `player_id` | 玩家 ID |
+| 36 | string | `nickname` | 玩家昵称 |
+| 37 | u64 | `fame` | 声望值 |
+| 38 | u8 | `rank` | 军衔等级 |
+| 39 | u8 | `position` | 格位编号 |
+| 40 | string | `player_title` | — |
+| 41 | string | `alliance_title` | 军团 |
+| 42 | u64 | `receiver_player_id` | 玩家 ID |
+| 43 | string | `receiver_nickname` | 玩家昵称 |
+| 44 | u32 | `avatar` | — |
+| 45 | string | `alliance_name` | 军团名称 |
+| 46 | string | `voice_file_path` | — |
+| 47 | u64 | `chat_time` | 聊天时间戳 |
+| 48 | u32 | `chat_channel` | 渠道名 |
+| 49 | u64 | `chat_id` | 聊天消息 ID |
+| 50 | u32 | `sender_player_type` | 类型枚举 |
+| 51 | u64 | `player_id` | 玩家 ID |
+| 52 | string | `nickname` | 玩家昵称 |
+| 53 | u64 | `fame` | 声望值 |
+| 54 | u8 | `rank` | 军衔等级 |
+| 55 | u8 | `position` | 格位编号 |
+| 56 | string | `player_title` | — |
+| 57 | string | `alliance_title` | 军团 |
+| 58 | u64 | `receiver_player_id` | 玩家 ID |
+| 59 | string | `receiver_nickname` | 玩家昵称 |
+| 60 | u32 | `avatar` | — |
+| 61 | string | `alliance_name` | 军团名称 |
+| 62 | u64 | `flaund_id` | — |
+| 63 | u64 | `chat_time` | 聊天时间戳 |
+| 64 | u64 | `chat_id` | 聊天消息 ID |
+| 65 | string | `chat_color` | — |
+| 66 | u8 | `bold_font` | — |
+| 67 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5052` — alliance gift collect reward 5052
+### `cmd=5052` — 领取军团礼包
 
-- 常量: `Constant.PROT_ALLIANCE_GIFT_COLLECT_REWARD_5052`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_gift_id` | 军团 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceGiftId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `rcType` |
-| 2 | string | `rcImage` |
-| 3 | string | `rcName` |
-| 4 | int | `rcAmount` |
-| 5 | int | `channelType` |
-| 6 | byte | `earlierLoadMode` |
-| 7 | byte | `chatType` |
-| 8 | int | `chatChannel` |
-| 9 | long | `chatId` |
-| 10 | int | `senderPlayerType` |
-| 11 | long | `playerId` |
-| 12 | string | `nickname` |
-| 13 | long | `fame` |
-| 14 | byte | `rank` |
-| 15 | byte | `position` |
-| 16 | string | `playerTitle` |
-| 17 | string | `allianceTitle` |
-| 18 | long | `receiverPlayerId` |
-| 19 | string | `receiverNickname` |
-| 20 | int | `avata` |
-| 21 | string | `allianceName` |
-| 22 | long | `chatTime` |
-| 23 | int | `chatChannel` |
-| 24 | long | `chatId` |
-| 25 | int | `senderPlayerType` |
-| 26 | long | `playerId` |
-| 27 | string | `nickname` |
-| 28 | long | `fame` |
-| 29 | byte | `rank` |
-| 30 | byte | `position` |
-| 31 | string | `playerTitle` |
-| 32 | string | `allianceTitle` |
-| 33 | long | `receiverPlayerId` |
-| 34 | string | `receiverNickname` |
-| 35 | int | `avata` |
-| 36 | string | `allianceName` |
-| 37 | string | `voiceFilePath` |
-| 38 | long | `chatTime` |
-| 39 | int | `chatChannel` |
-| 40 | long | `chatId` |
-| 41 | int | `senderPlayerType` |
-| 42 | long | `playerId` |
-| 43 | string | `nickname` |
-| 44 | long | `fame` |
-| 45 | byte | `rank` |
-| 46 | byte | `position` |
-| 47 | string | `playerTitle` |
-| 48 | string | `allianceTitle` |
-| 49 | long | `receiverPlayerId` |
-| 50 | string | `receiverNickname` |
-| 51 | int | `avata` |
-| 52 | string | `allianceName` |
-| 53 | long | `flaundId` |
-| 54 | long | `chatTime` |
-| 55 | long | `chatId` |
-| 56 | string | `chatColor` |
-| 57 | byte | `boldFont` |
-| 58 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `rc_type` | 类型枚举 |
+| 2 | string | `rc_image` | — |
+| 3 | string | `rc_name` | 名称 |
+| 4 | u32 | `rc_amount` | 数量 |
+| 5 | u32 | `channel_type` | 渠道名 |
+| 6 | u8 | `earlier_load_mode` | — |
+| 7 | u8 | `chat_type` | 消息类型 |
+| 8 | u32 | `chat_channel` | 渠道名 |
+| 9 | u64 | `chat_id` | 聊天消息 ID |
+| 10 | u32 | `sender_player_type` | 类型枚举 |
+| 11 | u64 | `player_id` | 玩家 ID |
+| 12 | string | `nickname` | 玩家昵称 |
+| 13 | u64 | `fame` | 声望值 |
+| 14 | u8 | `rank` | 军衔等级 |
+| 15 | u8 | `position` | 格位编号 |
+| 16 | string | `player_title` | — |
+| 17 | string | `alliance_title` | 军团 |
+| 18 | u64 | `receiver_player_id` | 玩家 ID |
+| 19 | string | `receiver_nickname` | 玩家昵称 |
+| 20 | u32 | `avatar` | — |
+| 21 | string | `alliance_name` | 军团名称 |
+| 22 | u64 | `chat_time` | 聊天时间戳 |
+| 23 | u32 | `chat_channel` | 渠道名 |
+| 24 | u64 | `chat_id` | 聊天消息 ID |
+| 25 | u32 | `sender_player_type` | 类型枚举 |
+| 26 | u64 | `player_id` | 玩家 ID |
+| 27 | string | `nickname` | 玩家昵称 |
+| 28 | u64 | `fame` | 声望值 |
+| 29 | u8 | `rank` | 军衔等级 |
+| 30 | u8 | `position` | 格位编号 |
+| 31 | string | `player_title` | — |
+| 32 | string | `alliance_title` | 军团 |
+| 33 | u64 | `receiver_player_id` | 玩家 ID |
+| 34 | string | `receiver_nickname` | 玩家昵称 |
+| 35 | u32 | `avatar` | — |
+| 36 | string | `alliance_name` | 军团名称 |
+| 37 | string | `voice_file_path` | — |
+| 38 | u64 | `chat_time` | 聊天时间戳 |
+| 39 | u32 | `chat_channel` | 渠道名 |
+| 40 | u64 | `chat_id` | 聊天消息 ID |
+| 41 | u32 | `sender_player_type` | 类型枚举 |
+| 42 | u64 | `player_id` | 玩家 ID |
+| 43 | string | `nickname` | 玩家昵称 |
+| 44 | u64 | `fame` | 声望值 |
+| 45 | u8 | `rank` | 军衔等级 |
+| 46 | u8 | `position` | 格位编号 |
+| 47 | string | `player_title` | — |
+| 48 | string | `alliance_title` | 军团 |
+| 49 | u64 | `receiver_player_id` | 玩家 ID |
+| 50 | string | `receiver_nickname` | 玩家昵称 |
+| 51 | u32 | `avatar` | — |
+| 52 | string | `alliance_name` | 军团名称 |
+| 53 | u64 | `flaund_id` | — |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
+| 55 | u64 | `chat_id` | 聊天消息 ID |
+| 56 | string | `chat_color` | — |
+| 57 | u8 | `bold_font` | — |
+| 58 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5053` — alliance gift remove 5053
+### `cmd=5053` — 删除军团礼包
 
-- 常量: `Constant.PROT_ALLIANCE_GIFT_REMOVE_5053`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `alliance_gift_id` | 军团 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.allianceGiftId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `channelType` |
-| 2 | byte | `earlierLoadMode` |
-| 3 | byte | `chatType` |
-| 4 | int | `chatChannel` |
-| 5 | long | `chatId` |
-| 6 | int | `senderPlayerType` |
-| 7 | long | `playerId` |
-| 8 | string | `nickname` |
-| 9 | long | `fame` |
-| 10 | byte | `rank` |
-| 11 | byte | `position` |
-| 12 | string | `playerTitle` |
-| 13 | string | `allianceTitle` |
-| 14 | long | `receiverPlayerId` |
-| 15 | string | `receiverNickname` |
-| 16 | int | `avata` |
-| 17 | string | `allianceName` |
-| 18 | long | `chatTime` |
-| 19 | int | `chatChannel` |
-| 20 | long | `chatId` |
-| 21 | int | `senderPlayerType` |
-| 22 | long | `playerId` |
-| 23 | string | `nickname` |
-| 24 | long | `fame` |
-| 25 | byte | `rank` |
-| 26 | byte | `position` |
-| 27 | string | `playerTitle` |
-| 28 | string | `allianceTitle` |
-| 29 | long | `receiverPlayerId` |
-| 30 | string | `receiverNickname` |
-| 31 | int | `avata` |
-| 32 | string | `allianceName` |
-| 33 | string | `voiceFilePath` |
-| 34 | long | `chatTime` |
-| 35 | int | `chatChannel` |
-| 36 | long | `chatId` |
-| 37 | int | `senderPlayerType` |
-| 38 | long | `playerId` |
-| 39 | string | `nickname` |
-| 40 | long | `fame` |
-| 41 | byte | `rank` |
-| 42 | byte | `position` |
-| 43 | string | `playerTitle` |
-| 44 | string | `allianceTitle` |
-| 45 | long | `receiverPlayerId` |
-| 46 | string | `receiverNickname` |
-| 47 | int | `avata` |
-| 48 | string | `allianceName` |
-| 49 | long | `flaundId` |
-| 50 | long | `chatTime` |
-| 51 | long | `chatId` |
-| 52 | string | `chatColor` |
-| 53 | byte | `boldFont` |
-| 54 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `channel_type` | 渠道名 |
+| 2 | u8 | `earlier_load_mode` | — |
+| 3 | u8 | `chat_type` | 消息类型 |
+| 4 | u32 | `chat_channel` | 渠道名 |
+| 5 | u64 | `chat_id` | 聊天消息 ID |
+| 6 | u32 | `sender_player_type` | 类型枚举 |
+| 7 | u64 | `player_id` | 玩家 ID |
+| 8 | string | `nickname` | 玩家昵称 |
+| 9 | u64 | `fame` | 声望值 |
+| 10 | u8 | `rank` | 军衔等级 |
+| 11 | u8 | `position` | 格位编号 |
+| 12 | string | `player_title` | — |
+| 13 | string | `alliance_title` | 军团 |
+| 14 | u64 | `receiver_player_id` | 玩家 ID |
+| 15 | string | `receiver_nickname` | 玩家昵称 |
+| 16 | u32 | `avatar` | — |
+| 17 | string | `alliance_name` | 军团名称 |
+| 18 | u64 | `chat_time` | 聊天时间戳 |
+| 19 | u32 | `chat_channel` | 渠道名 |
+| 20 | u64 | `chat_id` | 聊天消息 ID |
+| 21 | u32 | `sender_player_type` | 类型枚举 |
+| 22 | u64 | `player_id` | 玩家 ID |
+| 23 | string | `nickname` | 玩家昵称 |
+| 24 | u64 | `fame` | 声望值 |
+| 25 | u8 | `rank` | 军衔等级 |
+| 26 | u8 | `position` | 格位编号 |
+| 27 | string | `player_title` | — |
+| 28 | string | `alliance_title` | 军团 |
+| 29 | u64 | `receiver_player_id` | 玩家 ID |
+| 30 | string | `receiver_nickname` | 玩家昵称 |
+| 31 | u32 | `avatar` | — |
+| 32 | string | `alliance_name` | 军团名称 |
+| 33 | string | `voice_file_path` | — |
+| 34 | u64 | `chat_time` | 聊天时间戳 |
+| 35 | u32 | `chat_channel` | 渠道名 |
+| 36 | u64 | `chat_id` | 聊天消息 ID |
+| 37 | u32 | `sender_player_type` | 类型枚举 |
+| 38 | u64 | `player_id` | 玩家 ID |
+| 39 | string | `nickname` | 玩家昵称 |
+| 40 | u64 | `fame` | 声望值 |
+| 41 | u8 | `rank` | 军衔等级 |
+| 42 | u8 | `position` | 格位编号 |
+| 43 | string | `player_title` | — |
+| 44 | string | `alliance_title` | 军团 |
+| 45 | u64 | `receiver_player_id` | 玩家 ID |
+| 46 | string | `receiver_nickname` | 玩家昵称 |
+| 47 | u32 | `avatar` | — |
+| 48 | string | `alliance_name` | 军团名称 |
+| 49 | u64 | `flaund_id` | — |
+| 50 | u64 | `chat_time` | 聊天时间戳 |
+| 51 | u64 | `chat_id` | 聊天消息 ID |
+| 52 | string | `chat_color` | — |
+| 53 | u8 | `bold_font` | — |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5054` — alliance gift clear 5054
+### `cmd=5054` — 清空军团礼包
 
-- 常量: `Constant.PROT_ALLIANCE_GIFT_CLEAR_5054`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `channelType` |
-| 2 | byte | `earlierLoadMode` |
-| 3 | byte | `chatType` |
-| 4 | int | `chatChannel` |
-| 5 | long | `chatId` |
-| 6 | int | `senderPlayerType` |
-| 7 | long | `playerId` |
-| 8 | string | `nickname` |
-| 9 | long | `fame` |
-| 10 | byte | `rank` |
-| 11 | byte | `position` |
-| 12 | string | `playerTitle` |
-| 13 | string | `allianceTitle` |
-| 14 | long | `receiverPlayerId` |
-| 15 | string | `receiverNickname` |
-| 16 | int | `avata` |
-| 17 | string | `allianceName` |
-| 18 | long | `chatTime` |
-| 19 | int | `chatChannel` |
-| 20 | long | `chatId` |
-| 21 | int | `senderPlayerType` |
-| 22 | long | `playerId` |
-| 23 | string | `nickname` |
-| 24 | long | `fame` |
-| 25 | byte | `rank` |
-| 26 | byte | `position` |
-| 27 | string | `playerTitle` |
-| 28 | string | `allianceTitle` |
-| 29 | long | `receiverPlayerId` |
-| 30 | string | `receiverNickname` |
-| 31 | int | `avata` |
-| 32 | string | `allianceName` |
-| 33 | string | `voiceFilePath` |
-| 34 | long | `chatTime` |
-| 35 | int | `chatChannel` |
-| 36 | long | `chatId` |
-| 37 | int | `senderPlayerType` |
-| 38 | long | `playerId` |
-| 39 | string | `nickname` |
-| 40 | long | `fame` |
-| 41 | byte | `rank` |
-| 42 | byte | `position` |
-| 43 | string | `playerTitle` |
-| 44 | string | `allianceTitle` |
-| 45 | long | `receiverPlayerId` |
-| 46 | string | `receiverNickname` |
-| 47 | int | `avata` |
-| 48 | string | `allianceName` |
-| 49 | long | `flaundId` |
-| 50 | long | `chatTime` |
-| 51 | long | `chatId` |
-| 52 | string | `chatColor` |
-| 53 | byte | `boldFont` |
-| 54 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `channel_type` | 渠道名 |
+| 2 | u8 | `earlier_load_mode` | — |
+| 3 | u8 | `chat_type` | 消息类型 |
+| 4 | u32 | `chat_channel` | 渠道名 |
+| 5 | u64 | `chat_id` | 聊天消息 ID |
+| 6 | u32 | `sender_player_type` | 类型枚举 |
+| 7 | u64 | `player_id` | 玩家 ID |
+| 8 | string | `nickname` | 玩家昵称 |
+| 9 | u64 | `fame` | 声望值 |
+| 10 | u8 | `rank` | 军衔等级 |
+| 11 | u8 | `position` | 格位编号 |
+| 12 | string | `player_title` | — |
+| 13 | string | `alliance_title` | 军团 |
+| 14 | u64 | `receiver_player_id` | 玩家 ID |
+| 15 | string | `receiver_nickname` | 玩家昵称 |
+| 16 | u32 | `avatar` | — |
+| 17 | string | `alliance_name` | 军团名称 |
+| 18 | u64 | `chat_time` | 聊天时间戳 |
+| 19 | u32 | `chat_channel` | 渠道名 |
+| 20 | u64 | `chat_id` | 聊天消息 ID |
+| 21 | u32 | `sender_player_type` | 类型枚举 |
+| 22 | u64 | `player_id` | 玩家 ID |
+| 23 | string | `nickname` | 玩家昵称 |
+| 24 | u64 | `fame` | 声望值 |
+| 25 | u8 | `rank` | 军衔等级 |
+| 26 | u8 | `position` | 格位编号 |
+| 27 | string | `player_title` | — |
+| 28 | string | `alliance_title` | 军团 |
+| 29 | u64 | `receiver_player_id` | 玩家 ID |
+| 30 | string | `receiver_nickname` | 玩家昵称 |
+| 31 | u32 | `avatar` | — |
+| 32 | string | `alliance_name` | 军团名称 |
+| 33 | string | `voice_file_path` | — |
+| 34 | u64 | `chat_time` | 聊天时间戳 |
+| 35 | u32 | `chat_channel` | 渠道名 |
+| 36 | u64 | `chat_id` | 聊天消息 ID |
+| 37 | u32 | `sender_player_type` | 类型枚举 |
+| 38 | u64 | `player_id` | 玩家 ID |
+| 39 | string | `nickname` | 玩家昵称 |
+| 40 | u64 | `fame` | 声望值 |
+| 41 | u8 | `rank` | 军衔等级 |
+| 42 | u8 | `position` | 格位编号 |
+| 43 | string | `player_title` | — |
+| 44 | string | `alliance_title` | 军团 |
+| 45 | u64 | `receiver_player_id` | 玩家 ID |
+| 46 | string | `receiver_nickname` | 玩家昵称 |
+| 47 | u32 | `avatar` | — |
+| 48 | string | `alliance_name` | 军团名称 |
+| 49 | u64 | `flaund_id` | — |
+| 50 | u64 | `chat_time` | 聊天时间戳 |
+| 51 | u64 | `chat_id` | 聊天消息 ID |
+| 52 | string | `chat_color` | — |
+| 53 | u8 | `bold_font` | — |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5055` — alliance war config 5055
+### `cmd=5055` — 军团战配置
 
-- 常量: `Constant.PROT_ALLIANCE_WAR_CONFIG_5055`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.type` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `toRanking` |
-| 2 | string | `name` |
-| 3 | string | `description` |
-| 4 | int | `icon` |
-| 5 | int | `amount` |
-| 6 | byte | `leaderSpecial` |
-| 7 | string | `name` |
-| 8 | string | `description` |
-| 9 | int | `icon` |
-| 10 | int | `amount` |
-| 11 | byte | `toRanking` |
-| 12 | string | `name` |
-| 13 | string | `description` |
-| 14 | int | `icon` |
-| 15 | int | `amount` |
-| 16 | int | `sectionId` |
-| 17 | string | `sectionName` |
-| 18 | string | `name` |
-| 19 | string | `description` |
-| 20 | int | `icon` |
-| 21 | int | `amount` |
-| 22 | int | `progressValue` |
-| 23 | int | `progressTarget` |
-| 24 | byte | `collectStatus` |
-| 25 | string | `ruleDescription` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `to_ranking` | 名次 |
+| 2 | string | `name` | 名称 |
+| 3 | string | `description` | 描述文案 |
+| 4 | u32 | `icon` | 图标编号 |
+| 5 | u32 | `amount` | 数量 |
+| 6 | u8 | `leader_special` | — |
+| 7 | string | `name` | 名称 |
+| 8 | string | `description` | 描述文案 |
+| 9 | u32 | `icon` | 图标编号 |
+| 10 | u32 | `amount` | 数量 |
+| 11 | u8 | `to_ranking` | 名次 |
+| 12 | string | `name` | 名称 |
+| 13 | string | `description` | 描述文案 |
+| 14 | u32 | `icon` | 图标编号 |
+| 15 | u32 | `amount` | 数量 |
+| 16 | u32 | `section_id` | — |
+| 17 | string | `section_name` | 名称 |
+| 18 | string | `name` | 名称 |
+| 19 | string | `description` | 描述文案 |
+| 20 | u32 | `icon` | 图标编号 |
+| 21 | u32 | `amount` | 数量 |
+| 22 | u32 | `progress_value` | — |
+| 23 | u32 | `progress_target` | — |
+| 24 | u8 | `collect_status` | 结果状态 |
+| 25 | string | `rule_description` | 描述文案 |
 
 ---
 
-#### `cmd=5056` — alliance war personal score reward collect 5056
+### `cmd=5056` — 领取军团战个人积分奖励
 
-- 常量: `Constant.PROT_ALLIANCE_WAR_PERSONAL_SCORE_REWARD_COLLECT_5056`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `section_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.sectionId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `channelType` |
-| 2 | byte | `earlierLoadMode` |
-| 3 | byte | `chatType` |
-| 4 | int | `chatChannel` |
-| 5 | long | `chatId` |
-| 6 | int | `senderPlayerType` |
-| 7 | long | `playerId` |
-| 8 | string | `nickname` |
-| 9 | long | `fame` |
-| 10 | byte | `rank` |
-| 11 | byte | `position` |
-| 12 | string | `playerTitle` |
-| 13 | string | `allianceTitle` |
-| 14 | long | `receiverPlayerId` |
-| 15 | string | `receiverNickname` |
-| 16 | int | `avata` |
-| 17 | string | `allianceName` |
-| 18 | long | `chatTime` |
-| 19 | int | `chatChannel` |
-| 20 | long | `chatId` |
-| 21 | int | `senderPlayerType` |
-| 22 | long | `playerId` |
-| 23 | string | `nickname` |
-| 24 | long | `fame` |
-| 25 | byte | `rank` |
-| 26 | byte | `position` |
-| 27 | string | `playerTitle` |
-| 28 | string | `allianceTitle` |
-| 29 | long | `receiverPlayerId` |
-| 30 | string | `receiverNickname` |
-| 31 | int | `avata` |
-| 32 | string | `allianceName` |
-| 33 | string | `voiceFilePath` |
-| 34 | long | `chatTime` |
-| 35 | int | `chatChannel` |
-| 36 | long | `chatId` |
-| 37 | int | `senderPlayerType` |
-| 38 | long | `playerId` |
-| 39 | string | `nickname` |
-| 40 | long | `fame` |
-| 41 | byte | `rank` |
-| 42 | byte | `position` |
-| 43 | string | `playerTitle` |
-| 44 | string | `allianceTitle` |
-| 45 | long | `receiverPlayerId` |
-| 46 | string | `receiverNickname` |
-| 47 | int | `avata` |
-| 48 | string | `allianceName` |
-| 49 | long | `flaundId` |
-| 50 | long | `chatTime` |
-| 51 | long | `chatId` |
-| 52 | string | `chatColor` |
-| 53 | byte | `boldFont` |
-| 54 | long | `chatTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `channel_type` | 渠道名 |
+| 2 | u8 | `earlier_load_mode` | — |
+| 3 | u8 | `chat_type` | 消息类型 |
+| 4 | u32 | `chat_channel` | 渠道名 |
+| 5 | u64 | `chat_id` | 聊天消息 ID |
+| 6 | u32 | `sender_player_type` | 类型枚举 |
+| 7 | u64 | `player_id` | 玩家 ID |
+| 8 | string | `nickname` | 玩家昵称 |
+| 9 | u64 | `fame` | 声望值 |
+| 10 | u8 | `rank` | 军衔等级 |
+| 11 | u8 | `position` | 格位编号 |
+| 12 | string | `player_title` | — |
+| 13 | string | `alliance_title` | 军团 |
+| 14 | u64 | `receiver_player_id` | 玩家 ID |
+| 15 | string | `receiver_nickname` | 玩家昵称 |
+| 16 | u32 | `avatar` | — |
+| 17 | string | `alliance_name` | 军团名称 |
+| 18 | u64 | `chat_time` | 聊天时间戳 |
+| 19 | u32 | `chat_channel` | 渠道名 |
+| 20 | u64 | `chat_id` | 聊天消息 ID |
+| 21 | u32 | `sender_player_type` | 类型枚举 |
+| 22 | u64 | `player_id` | 玩家 ID |
+| 23 | string | `nickname` | 玩家昵称 |
+| 24 | u64 | `fame` | 声望值 |
+| 25 | u8 | `rank` | 军衔等级 |
+| 26 | u8 | `position` | 格位编号 |
+| 27 | string | `player_title` | — |
+| 28 | string | `alliance_title` | 军团 |
+| 29 | u64 | `receiver_player_id` | 玩家 ID |
+| 30 | string | `receiver_nickname` | 玩家昵称 |
+| 31 | u32 | `avatar` | — |
+| 32 | string | `alliance_name` | 军团名称 |
+| 33 | string | `voice_file_path` | — |
+| 34 | u64 | `chat_time` | 聊天时间戳 |
+| 35 | u32 | `chat_channel` | 渠道名 |
+| 36 | u64 | `chat_id` | 聊天消息 ID |
+| 37 | u32 | `sender_player_type` | 类型枚举 |
+| 38 | u64 | `player_id` | 玩家 ID |
+| 39 | string | `nickname` | 玩家昵称 |
+| 40 | u64 | `fame` | 声望值 |
+| 41 | u8 | `rank` | 军衔等级 |
+| 42 | u8 | `position` | 格位编号 |
+| 43 | string | `player_title` | — |
+| 44 | string | `alliance_title` | 军团 |
+| 45 | u64 | `receiver_player_id` | 玩家 ID |
+| 46 | string | `receiver_nickname` | 玩家昵称 |
+| 47 | u32 | `avatar` | — |
+| 48 | string | `alliance_name` | 军团名称 |
+| 49 | u64 | `flaund_id` | — |
+| 50 | u64 | `chat_time` | 聊天时间戳 |
+| 51 | u64 | `chat_id` | 聊天消息 ID |
+| 52 | string | `chat_color` | — |
+| 53 | u8 | `bold_font` | — |
+| 54 | u64 | `chat_time` | 聊天时间戳 |
 
 ---
 
-#### `cmd=5057` — alliance cimelia list 5057
+### `cmd=5057` — 查询军团道具
 
-- 常量: `Constant.PROT_ALLIANCE_CIMELIA_LIST_5057`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `showType` |
-| 2 | int | `itemID` |
-| 3 | string | `name` |
-| 4 | string | `description` |
-| 5 | int | `icon` |
-| 6 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `show_type` | 类型枚举 |
+| 2 | u32 | `item_id` | 道具 ID |
+| 3 | string | `name` | 名称 |
+| 4 | string | `description` | 描述文案 |
+| 5 | u32 | `icon` | 图标编号 |
+| 6 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=5058` — alliance cimelia distribute 5058
+### `cmd=5058` — 分配道具
 
-- 常量: `Constant.PROT_ALLIANCE_CIMELIA_DISTRIBUTE_5058`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
+| 2 | u32 | `items.length` | — |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 4 | u32 | `i.item_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
-| 2 | int | `this.items.length` |
-| … | 循环 | `for(var e` |
-| 3 | int | `i.itemID` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=5059` — alliance random name 5059
+### `cmd=5059` — 军团随机起名
 
-- 常量: `Constant.PROT_ALLIANCE_RANDOM_NAME_5059`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `randomId` |
-| 2 | string | `randomName` |
-| 3 | long | `expireTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `random_id` | — |
+| 2 | string | `random_name` | 名称 |
+| 3 | u64 | `expire_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=5060` — alliance mark 5060
+### `cmd=5060` — 添加军团标记
 
-- 常量: `Constant.PROT_ALLIANCE_MARK_5060`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `tile_x` | 地图 X 坐标 |
+| 2 | u32 | `tile_y` | 地图 Y 坐标 |
+| 3 | string | `title` | — |
+| 4 | string | `icon` | 图标编号 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.tileX` |
-| 2 | int | `this.tileY` |
-| 3 | string | `this.title` |
-| 4 | string | `this.icon` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `armyId` |
-| 2 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `army_id` | 兵种 ID |
+| 2 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=5061` — alliance mark delete 5061
+### `cmd=5061` — 删除军团标记
 
-- 常量: `Constant.PROT_ALLIANCE_MARK_DELETE_5061`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `tile_x` | 地图 X 坐标 |
+| 2 | u32 | `tile_y` | 地图 Y 坐标 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.tileX` |
-| 2 | int | `this.tileY` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `armyId` |
-| 2 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `army_id` | 兵种 ID |
+| 2 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=5062` — alliance map mark list 5062
+### `cmd=5062` — 查询军团地图标记
 
-- 常量: `Constant.PROT_ALLIANCE_MAP_MARK_LIST_5062`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `count` |
-| 2 | int | `x` |
-| 3 | int | `y` |
-| 4 | string | `text` |
-| 5 | string | `icon` |
-| 6 | long | `time` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `count` | 数量/计数 |
+| 2 | u32 | `x` | 地图 X 坐标 |
+| 3 | u32 | `y` | 地图 Y 坐标 |
+| 4 | string | `text` | — |
+| 5 | string | `icon` | 图标编号 |
+| 6 | u64 | `time` | 时间戳（毫秒） |

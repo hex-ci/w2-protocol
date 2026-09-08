@@ -1,373 +1,304 @@
 # 服务端推送（Broadcast）
 
-> 23 个命令（cmd 26001 ~ 26027）
+> 23 个命令（cmd 26001 ~ 26027）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=26001` — broadcast flashlight 26001 ｜ 推送
+### `cmd=26001` — 推送：闪光提示（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_FLASHLIGHT_26001`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | int | `type` |
-| 3 | byte | `level` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u32 | `type` | 类型枚举 |
+| 3 | u8 | `level` | 等级 |
 
 ---
 
-#### `cmd=26002` — broadcast force switch city 26002 ｜ 推送
+### `cmd=26002` — 推送：强制切城（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_FORCE_SWITCH_CITY_26002`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `cityId` |
-| 3 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `city_id` | 城池 ID |
+| 3 | string | `message` | — |
 
 ---
 
-#### `cmd=26003` — broadcast track action 26003 ｜ 推送
+### `cmd=26003` — 推送：动作追踪/活动提示（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_TRACK_ACTION_26003`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=26004` — broadcast alliance help requested by someone 26004 ｜ 推送
+### `cmd=26004` — 推送：军团求助请求（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_HELP_REQUESTED_BY_SOMEONE_26004`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `flashState` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `flash_state` | — |
 
 ---
 
-#### `cmd=26005` — broadcast alliance help received 26005 ｜ 推送
+### `cmd=26005` — 推送：求助已被响应（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_HELP_RECEIVED_26005`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
 
 ---
 
-#### `cmd=26006` — broadcast alliance leave 26006 ｜ 推送
+### `cmd=26006` — 推送：成员退团（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_LEAVE_26006`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
 
 ---
 
-#### `cmd=26007` — broadcast battle occurs 26007 ｜ 推送
+### `cmd=26007` — 推送：战斗发生（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_BATTLE_OCCURS_26007`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `expeditionId` |
-| 3 | int | `expeditionType` |
-| 4 | int | `tileId` |
-| 5 | int | `tileX` |
-| 6 | int | `tileY` |
-| 7 | byte | `quickBattle` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `expedition_id` | — |
+| 3 | u32 | `expedition_type` | 类型枚举 |
+| 4 | u32 | `tile_id` | — |
+| 5 | u32 | `tile_x` | 地图 X 坐标 |
+| 6 | u32 | `tile_y` | 地图 Y 坐标 |
+| 7 | u8 | `quick_battle` | — |
 
 ---
 
-#### `cmd=26008` — broadcast battle result 26008 ｜ 推送
+### `cmd=26008` — 推送：战斗结果（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_BATTLE_RESULT_26008`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | int | `battleResult` |
-| 3 | long | `expeditionId` |
-| 4 | int | `expeditionType` |
-| 5 | int | `tileId` |
-| 6 | int | `tileX` |
-| 7 | int | `tileY` |
-| 8 | byte | `tileKind` |
-| 9 | byte | `targetType` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u32 | `battle_result` | — |
+| 3 | u64 | `expedition_id` | — |
+| 4 | u32 | `expedition_type` | 类型枚举 |
+| 5 | u32 | `tile_id` | — |
+| 6 | u32 | `tile_x` | 地图 X 坐标 |
+| 7 | u32 | `tile_y` | 地图 Y 坐标 |
+| 8 | u8 | `tile_kind` | — |
+| 9 | u8 | `target_type` | 类型枚举 |
 
 ---
 
-#### `cmd=26009` — broadcast alliance war preparing 26009 ｜ 推送
+### `cmd=26009` — 推送：军团战准备（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_WAR_PREPARING_26009`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `allianceWarStartTime` |
-| 3 | long | `allianceWarEndTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `alliance_war_start_time` | 开始时间戳 |
+| 3 | u64 | `alliance_war_end_time` | 军团 |
 
 ---
 
-#### `cmd=26010` — broadcast battle message 26010 ｜ 推送
+### `cmd=26010` — 推送：战斗消息一（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_BATTLE_MESSAGE_26010`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | string | `message` | — |
 
 ---
 
-#### `cmd=26011` — broadcast battle message 26011 ｜ 推送
+### `cmd=26011` — 推送：战斗消息二（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_BATTLE_MESSAGE_26011`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | string | `message` | — |
 
 ---
 
-#### `cmd=26012` — broadcast alliance mark update 26012 ｜ 推送
+### `cmd=26012` — 推送：军团标记更新（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_MARK_UPDATE_26012`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | int | `tileX` |
-| 3 | int | `tileY` |
-| 4 | string | `title` |
-| 5 | string | `icon` |
-| 6 | long | `time` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u32 | `tile_x` | 地图 X 坐标 |
+| 3 | u32 | `tile_y` | 地图 Y 坐标 |
+| 4 | string | `title` | — |
+| 5 | string | `icon` | 图标编号 |
+| 6 | u64 | `time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=26013` — broadcast alliance mark delete 26013 ｜ 推送
+### `cmd=26013` — 推送：军团标记删除（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_MARK_DELETE_26013`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | int | `tileX` |
-| 3 | int | `tileY` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u32 | `tile_x` | 地图 X 坐标 |
+| 3 | u32 | `tile_y` | 地图 Y 坐标 |
 
 ---
 
-#### `cmd=26014` — broadcast alliance join 26014 ｜ 推送
+### `cmd=26014` — 推送：成员入团（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ALLIANCE_JOIN_26014`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | int | `allianceId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u32 | `alliance_id` | 军团 ID |
 
 ---
 
-#### `cmd=26015` — broadcast online check 26015 ｜ 推送
+### `cmd=26015` — 推送：在线校验（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ONLINE_CHECK_26015`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `currentTime` |
-| 3 | long | `showTime` |
-| 4 | string | `sign` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `current_time` | 时间戳（毫秒） |
+| 3 | u64 | `show_time` | 时间戳（毫秒） |
+| 4 | string | `sign` | — |
 
 ---
 
-#### `cmd=26016` — broadcast trigger payment update 26016 ｜ 推送
+### `cmd=26016` — 推送：触发支付更新（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_TRIGGER_PAYMENT_UPDATE_26016`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=26019` — broadcast activity update 26019 ｜ 推送
+### `cmd=26019` — 推送：活动更新（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ACTIVITY_UPDATE_26019`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
 
 ---
 
-#### `cmd=26022` — broadcast key for dispatch 26022 ｜ 推送
+### `cmd=26022` — 推送：调度功能 key（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_KEY_FOR_DISPATCH_26022`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `key` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `key` | — |
 
 ---
 
-#### `cmd=26023` — broadcast key for strategem 26023 ｜ 推送
+### `cmd=26023` — 推送：计谋功能 key（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_KEY_FOR_STRATEGEM_26023`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `key` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `key` | — |
 
 ---
 
-#### `cmd=26024` — broadcast wounded update 26024 ｜ 推送
+### `cmd=26024` — 推送：伤兵更新（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_WOUNDED_UPDATE_26024`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=26025` — broadcast escaped update 26025 ｜ 推送
+### `cmd=26025` — 推送：逃跑更新（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_ESCAPED_UPDATE_26025`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=26026` — broadcast simulation battle created 26026 ｜ 推送
+### `cmd=26026` — 推送：演习战创建（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_SIMULATION_BATTLE_CREATED_26026`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `simulationBattleId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `simulation_battle_id` | — |
 
 ---
 
-#### `cmd=26027` — broadcast simulation battle field destroied 26027 ｜ 推送
+### `cmd=26027` — 推送：演习战场摧毁（服务端推送）
 
-- 常量: `Constant.PROT_BROADCAST_SIMULATION_BATTLE_FIELD_DESTROIED_26027`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**推送数据**（按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | int | `battleResult` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u32 | `battle_result` | — |

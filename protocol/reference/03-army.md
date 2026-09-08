@@ -1,315 +1,285 @@
 # 军队与训练
 
-> 14 个命令（cmd 3001 ~ 3015）
+> 14 个命令（cmd 3001 ~ 3015）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=3001` — army train 3001
+### `cmd=3001` — 训练军队
 
-- 常量: `Constant.PROT_ARMY_TRAIN_3001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `building_id` | 建筑实例 ID |
+| 2 | u32 | `army_id` | 兵种 ID |
+| 3 | u32 | `amount` | 数量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.buildingId` |
-| 2 | int | `this.armyId` |
-| 3 | int | `this.amount` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=3002` — army dismiss 3002
+### `cmd=3002` — 解散军队
 
-- 常量: `Constant.PROT_ARMY_DISMISS_3002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `army_id` | 兵种 ID |
+| 2 | u32 | `amount` | 数量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.armyId` |
-| 2 | int | `this.amount` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `armyId` |
-| 2 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `army_id` | 兵种 ID |
+| 2 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=3003` — army train abort 3003
+### `cmd=3003` — 取消训练
 
-- 常量: `Constant.PROT_ARMY_TRAIN_ABORT_3003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `building_id` | 建筑实例 ID |
+| 2 | u64 | `training_id` | 训练队列 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.buildingID` |
-| 2 | long | `this.trainingId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=3004` — army train auto split 3004
+### `cmd=3004` — 训练并自动分城
 
-- 常量: `Constant.PROT_ARMY_TRAIN_AUTO_SPLIT_3004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `building_id` | 建筑实例 ID |
+| 2 | u32 | `army_id` | 兵种 ID |
+| 3 | u32 | `amount` | 数量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.buildingId` |
-| 2 | int | `this.armyId` |
-| 3 | int | `this.amount` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=3005` — army training info 3005
+### `cmd=3005` — 查询训练队列
 
-- 常量: `Constant.PROT_ARMY_TRAINING_INFO_3005`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `buildingID` |
-| 2 | int | `buildingPosition` |
-| 3 | long | `trainingId` |
-| 4 | int | `armyId` |
-| 5 | long | `remainTime` |
-| 6 | long | `totalTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `building_id` | 建筑实例 ID |
+| 2 | u32 | `building_position` | 格位编号 |
+| 3 | u64 | `training_id` | 训练队列 ID |
+| 4 | u32 | `army_id` | 兵种 ID |
+| 5 | u64 | `remain_time` | 剩余毫秒数 |
+| 6 | u64 | `total_time` | 总耗时毫秒 |
 
 ---
 
-#### `cmd=3006` — army plant info 3006
+### `cmd=3006` — 查询兵营信息
 
-- 常量: `Constant.PROT_ARMY_PLANT_INFO_3006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `building_id` | 建筑实例 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.buildingId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `trainingId` |
-| 2 | int | `armyId` |
-| 3 | int | `amount` |
-| 4 | long | `remainTime` |
-| 5 | long | `totalTime` |
-| 6 | byte | `allowSpeedup` |
-| 7 | int | `armyId` |
-| 8 | int | `curAmount` |
-| 9 | int | `foodRequired` |
-| 10 | int | `mineralRequired` |
-| 11 | int | `oilRequired` |
-| 12 | int | `steelRequired` |
-| 13 | int | `nuclearRequired` |
-| 14 | int | `prototypeId` |
-| 15 | int | `level` |
-| 16 | int | `curLevel` |
-| 17 | int | `techniqueId` |
-| 18 | int | `level` |
-| 19 | int | `curLevel` |
-| 20 | int | `itemId` |
-| 21 | string | `name` |
-| 22 | int | `amount` |
-| 23 | int | `curAmount` |
-| 24 | long | `time` |
-| 25 | int | `speedupItemPrice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `training_id` | 训练队列 ID |
+| 2 | u32 | `army_id` | 兵种 ID |
+| 3 | u32 | `amount` | 数量 |
+| 4 | u64 | `remain_time` | 剩余毫秒数 |
+| 5 | u64 | `total_time` | 总耗时毫秒 |
+| 6 | u8 | `allow_speedup` | — |
+| 7 | u32 | `army_id` | 兵种 ID |
+| 8 | u32 | `cur_amount` | 当前数量 |
+| 9 | u32 | `food_required` | — |
+| 10 | u32 | `mineral_required` | — |
+| 11 | u32 | `oil_required` | — |
+| 12 | u32 | `steel_required` | — |
+| 13 | u32 | `nuclear_required` | — |
+| 14 | u32 | `prototype_id` | 建筑原型 ID |
+| 15 | u32 | `level` | 等级 |
+| 16 | u32 | `cur_level` | 等级 |
+| 17 | u32 | `technique_id` | 科技 ID |
+| 18 | u32 | `level` | 等级 |
+| 19 | u32 | `cur_level` | 等级 |
+| 20 | u32 | `item_id` | 道具 ID |
+| 21 | string | `name` | 名称 |
+| 22 | u32 | `amount` | 数量 |
+| 23 | u32 | `cur_amount` | 当前数量 |
+| 24 | u64 | `time` | 时间戳（毫秒） |
+| 25 | u32 | `speedup_item_price` | 单价 |
 
 ---
 
-#### `cmd=3007` — army prototype list 3007
+### `cmd=3007` — 查询兵种原型表
 
-- 常量: `Constant.PROT_ARMY_PROTOTYPE_LIST_3007`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `racial` |
-| 2 | int | `armyId` |
-| 3 | int | `armyType` |
-| 4 | string | `armyName` |
-| 5 | string | `generalName` |
-| 6 | int | `hp` |
-| 7 | int | `landAttack` |
-| 8 | int | `airAttack` |
-| 9 | int | `seaAttack` |
-| 10 | int | `fortAttack` |
-| 11 | int | `defence` |
-| 12 | int | `moveSpeed` |
-| 13 | int | `attackSpeed` |
-| 14 | int | `attackRange` |
-| 15 | int | `loadWeight` |
-| 16 | int | `population` |
-| 17 | int | `foodCost` |
-| 18 | int | `oilCost` |
-| 19 | int | `powerScore` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `racial` | — |
+| 2 | u32 | `army_id` | 兵种 ID |
+| 3 | u32 | `army_type` | 类型枚举 |
+| 4 | string | `army_name` | 名称 |
+| 5 | string | `general_name` | 名称 |
+| 6 | u32 | `hp` | — |
+| 7 | u32 | `land_attack` | — |
+| 8 | u32 | `air_attack` | — |
+| 9 | u32 | `sea_attack` | — |
+| 10 | u32 | `fort_attack` | — |
+| 11 | u32 | `defence` | — |
+| 12 | u32 | `move_speed` | — |
+| 13 | u32 | `attack_speed` | — |
+| 14 | u32 | `attack_range` | — |
+| 15 | u32 | `load_weight` | — |
+| 16 | u32 | `population` | 人口数 |
+| 17 | u32 | `food_cost` | — |
+| 18 | u32 | `oil_cost` | — |
+| 19 | u32 | `power_score` | 积分 |
 
 ---
 
-#### `cmd=3008` — army wounded list 3008
+### `cmd=3008` — 查询伤兵列表
 
-- 常量: `Constant.PROT_ARMY_WOUNDED_LIST_3008`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | readDouble | `argForGoldHeal` |
-| 2 | long | `dieRemaining` |
-| 3 | int | `armyId` |
-| 4 | int | `amount` |
-| 5 | int | `healPriceGold` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | readDouble | `arg_for_gold_heal` | — |
+| 2 | u64 | `die_remaining` | — |
+| 3 | u32 | `army_id` | 兵种 ID |
+| 4 | u32 | `amount` | 数量 |
+| 5 | u32 | `heal_price_gold` | 单价 |
 
 ---
 
-#### `cmd=3010` — army escaped list 3010
+### `cmd=3010` — 查询逃跑军队
 
-- 常量: `Constant.PROT_ARMY_ESCAPED_LIST_3010`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_size` | 每页条数 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageNum` |
-| 2 | int | `this.pageSize` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `maxKeepHours` |
-| 2 | int | `escapedListItemCount` |
-| 3 | int | `pageCount` |
-| 4 | int | `pageNum` |
-| 5 | long | `remainTimeInSecond` |
-| 6 | long | `escapedId` |
-| 7 | int | `armyId` |
-| 8 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `max_keep_hours` | 上限 |
+| 2 | u32 | `escaped_list_item_count` | 数量/计数 |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 5 | u64 | `remain_time_in_second` | 剩余毫秒数 |
+| 6 | u64 | `escaped_id` | — |
+| 7 | u32 | `army_id` | 兵种 ID |
+| 8 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=3011` — army escaped detail 3011
+### `cmd=3011` — 查询逃跑军队详情
 
-- 常量: `Constant.PROT_ARMY_ESCAPED_DETAIL_3011`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `escaped_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.escapedId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `escapedId` |
-| 2 | int | `armyId` |
-| 3 | long | `amount` |
-| 4 | string | `price` |
-| 5 | int | `diamondOwned` |
-| 6 | int | `goldAmount` |
-| 7 | int | `queuedCount` |
-| 8 | int | `maxQueueCount` |
-| 9 | int | `goldArg` |
-| 10 | int | `diamondArg` |
-| 11 | int | `mulArg` |
-| 12 | int | `timeByGold` |
-| 13 | int | `timeByDiamond` |
-| 14 | byte | `hideDiamondRecallButton` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `escaped_id` | — |
+| 2 | u32 | `army_id` | 兵种 ID |
+| 3 | u64 | `amount` | 数量 |
+| 4 | string | `price` | 单价 |
+| 5 | u32 | `diamond_owned` | 当前钻石数 |
+| 6 | u32 | `gold_amount` | 黄金储量 |
+| 7 | u32 | `queued_count` | 数量/计数 |
+| 8 | u32 | `max_queue_count` | 数量/计数 |
+| 9 | u32 | `gold_arg` | — |
+| 10 | u32 | `diamond_arg` | — |
+| 11 | u32 | `mul_arg` | — |
+| 12 | u32 | `time_by_gold` | 时间戳（毫秒） |
+| 13 | u32 | `time_by_diamond` | 时间戳（毫秒） |
+| 14 | u8 | `hide_diamond_recall_button` | — |
 
 ---
 
-#### `cmd=3012` — army escaped recall queue 3012
+### `cmd=3012` — 查询逃跑召回队列
 
-- 常量: `Constant.PROT_ARMY_ESCAPED_RECALL_QUEUE_3012`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `maxQueueCount` |
-| 2 | int | `queuedCount` |
-| 3 | int | `armyId` |
-| 4 | int | `amount` |
-| 5 | long | `remainTimeInSecond` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `max_queue_count` | 数量/计数 |
+| 2 | u32 | `queued_count` | 数量/计数 |
+| 3 | u32 | `army_id` | 兵种 ID |
+| 4 | u32 | `amount` | 数量 |
+| 5 | u64 | `remain_time_in_second` | 剩余毫秒数 |
 
 ---
 
-#### `cmd=3013` — army recall escaped 3013
+### `cmd=3013` — 召回逃跑军队
 
-- 常量: `Constant.PROT_ARMY_RECALL_ESCAPED_3013`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `escaped_id` | — |
+| 2 | u8 | `recall_mode` | — |
+| 3 | u32 | `price` | 单价 |
+| 4 | u32 | `amount` | 数量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.escapedId` |
-| 2 | byte | `this.recallMode` |
-| 3 | int | `this.price` |
-| 4 | int | `this.amount` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=3014` — army heal wounded 3014
+### `cmd=3014` — 治疗伤兵
 
-- 常量: `Constant.PROT_ARMY_HEAL_WOUNDED_3014`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `heal_mode` | — |
+| 2 | u32 | `total_price` | 单价 |
+| 3 | u32 | `armies.length` | — |
+| 4 | 循环 | — | 按前导计数字段循环写入后续字段 |
+| 5 | u32 | `i.army_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.healMode` |
-| 2 | int | `this.totalPrice` |
-| 3 | int | `this.armies.length` |
-| … | 循环 | `for(var e` |
-| 4 | int | `i.armyId` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=3015` — army train speedup 3015
+### `cmd=3015` — 训练加速
 
-- 常量: `Constant.PROT_ARMY_TRAIN_SPEEDUP_3015`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `training_id` | 训练队列 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.trainingId` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
-
----
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。

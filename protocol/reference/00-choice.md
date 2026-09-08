@@ -1,450 +1,415 @@
 # 选服与渠道登录（Choice 通道）
 
-> 14 个命令（cmd 1 ~ 30）
+> 14 个命令（cmd 1 ~ 30）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=1` — choice prot login 1
+### `cmd=1` — 获取服务器时间
 
-- 常量: `Constant.CHOICE_PROT_LOGIN_1`
-- 成功判定: `status1=this.status()||2=this.status()||3=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `username` | 账号名 |
+| 2 | string | `platform` | — |
+| 3 | string | `channel` | 渠道名 |
+| 4 | string | `language` | 语言代码 |
+| 5 | u8 | `is_self` | 布尔标记（0/1） |
+| 6 | u32 | `server_id` | 服务器编号 |
+| 7 | string | `device_info` | — |
+| 8 | u32 | `client_tag` | — |
+| 9 | string | `client_version` | 客户端版本号 |
+| 10 | u8 | `confirm_to_abort_abandon` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this._username` |
-| 2 | string | `this._platform` |
-| 3 | string | `this._channel` |
-| 4 | string | `this._language` |
-| 5 | byte | `this._is_self` |
-| 6 | int | `this._server_id` |
-| 7 | string | `this._device_info` |
-| 8 | int | `this._client_tag` |
-| 9 | string | `this._client_version` |
-| 10 | byte | `this._confirm_to_abort_abandon` |
+**响应**（status 为 **1** 或 **2** 或 **3** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `_userid` |
-| 2 | int | `_server_id` |
-| 3 | string | `_server_name` |
-| 4 | string | `_server_host` |
-| 5 | int | `_server_sort` |
-| 6 | string | `_game_entry` |
-| 7 | string | `_init_channel` |
-| 8 | long | `_timevalue` |
-| 9 | long | `_timeoffset` |
-| 10 | string | `_confirm_message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `userid` | — |
+| 2 | u32 | `server_id` | 服务器编号 |
+| 3 | string | `server_name` | 服务器名称 |
+| 4 | string | `server_host` | 服务器地址 |
+| 5 | u32 | `server_sort` | — |
+| 6 | string | `game_entry` | — |
+| 7 | string | `init_channel` | 渠道名 |
+| 8 | u64 | `timevalue` | — |
+| 9 | u64 | `timeoffset` | — |
+| 10 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=2` — choice prot server list 2
+### `cmd=2` — 获取服务器列表
 
-- 常量: `Constant.CHOICE_PROT_SERVER_LIST_2`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `username` | 账号名 |
+| 2 | string | `platform` | — |
+| 3 | string | `channel` | 渠道名 |
+| 4 | string | `language` | 语言代码 |
+| 5 | string | `device_info` | — |
+| 6 | u32 | `constant.client_tag` | — |
+| 7 | string | `client_version` | 客户端版本号 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this._username` |
-| 2 | string | `this._platform` |
-| 3 | string | `this._channel` |
-| 4 | string | `this._language` |
-| 5 | string | `this._device_info` |
-| 6 | int | `Constant.CLIENT_TAG` |
-| 7 | string | `this._client_version` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `serverId` |
-| 2 | string | `serverName` |
-| 3 | string | `serverHost` |
-| 4 | int | `pri` |
-| 5 | string | `gameEntry` |
-| 6 | byte | `_update_mode` |
-| 7 | string | `_latest_version` |
-| 8 | string | `_update_description` |
-| 9 | string | `_update_url` |
-| 10 | long | `serverTime` |
-| 11 | long | `timeZoneOffsetToUTC` |
-| 12 | int | `taskId` |
-| 13 | string | `taskName` |
-| 14 | byte | `completed` |
-| 15 | byte | `identity` |
-| 16 | long | `pushThreshold` |
-| 17 | byte | `age` |
-| 18 | long | `onlineTime` |
-| 19 | string | `realName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `server_id` | 服务器编号 |
+| 2 | string | `server_name` | 服务器名称 |
+| 3 | string | `server_host` | 服务器地址 |
+| 4 | u32 | `pri` | — |
+| 5 | string | `game_entry` | — |
+| 6 | u8 | `update_mode` | — |
+| 7 | string | `latest_version` | — |
+| 8 | string | `update_description` | 描述文案 |
+| 9 | string | `update_url` | — |
+| 10 | u64 | `server_time` | 时间戳（毫秒） |
+| 11 | u64 | `time_zone_offset_to_utc` | 时间戳（毫秒） |
+| 12 | u32 | `task_id` | 任务 ID |
+| 13 | string | `task_name` | 任务名称 |
+| 14 | u8 | `completed` | 是否已完成 |
+| 15 | u8 | `identity` | — |
+| 16 | u64 | `push_threshold` | — |
+| 17 | u8 | `age` | — |
+| 18 | u64 | `online_time` | 时间戳（毫秒） |
+| 19 | string | `real_name` | 名称 |
 
 ---
 
-#### `cmd=5` — choice prot check need update client 5
+### `cmd=5` — 检查客户端更新
 
-- 常量: `Constant.CHOICE_PROT_CHECK_NEED_UPDATE_CLIENT_5`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `username` | 账号名 |
+| 2 | string | `platform` | — |
+| 3 | string | `channel` | 渠道名 |
+| 4 | string | `language` | 语言代码 |
+| 5 | string | `client_version` | 客户端版本号 |
+| 6 | string | `device_info` | — |
+| 7 | string | `shield_version_string` | — |
+| 8 | u32 | `shield_version_code` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this._username` |
-| 2 | string | `this._platform` |
-| 3 | string | `this._channel` |
-| 4 | string | `this._language` |
-| 5 | string | `this._client_version` |
-| 6 | string | `this._device_info` |
-| 7 | string | `this._shieldVersionString` |
-| 8 | int | `this._shieldVersionCode` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_update_mode` |
-| 2 | string | `_latest_version` |
-| 3 | string | `_update_description` |
-| 4 | string | `_update_url` |
-| 5 | long | `serverTime` |
-| 6 | long | `timeZoneOffsetToUTC` |
-| 7 | int | `taskId` |
-| 8 | string | `taskName` |
-| 9 | byte | `completed` |
-| 10 | byte | `identity` |
-| 11 | long | `pushThreshold` |
-| 12 | byte | `age` |
-| 13 | long | `onlineTime` |
-| 14 | string | `realName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `update_mode` | — |
+| 2 | string | `latest_version` | — |
+| 3 | string | `update_description` | 描述文案 |
+| 4 | string | `update_url` | — |
+| 5 | u64 | `server_time` | 时间戳（毫秒） |
+| 6 | u64 | `time_zone_offset_to_utc` | 时间戳（毫秒） |
+| 7 | u32 | `task_id` | 任务 ID |
+| 8 | string | `task_name` | 任务名称 |
+| 9 | u8 | `completed` | 是否已完成 |
+| 10 | u8 | `identity` | — |
+| 11 | u64 | `push_threshold` | — |
+| 12 | u8 | `age` | — |
+| 13 | u64 | `online_time` | 时间戳（毫秒） |
+| 14 | string | `real_name` | 名称 |
 
 ---
 
-#### `cmd=6` — server config 6
+### `cmd=6` — 获取服务器配置
 
-- 常量: `Constant.PROT_SERVER_CONFIG_6`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `resourceHost` |
-| 2 | int | `tradeDownPrice` |
-| 3 | int | `tradeUpPrice` |
-| 4 | int | `campaignSwitch` |
-| 5 | int | `vipSwitch` |
-| 6 | int | `redeemSwitch` |
-| 7 | int | `restrictShopSwitch` |
-| 8 | int | `activitySwitch` |
-| 9 | int | `hide3DiamondSpendSwitch` |
-| 10 | int | `officerTroopSwitch` |
-| 11 | string | `errorReportHost` |
-| 12 | string | `serverVersion` |
-| 13 | int | `mapType` |
-| 14 | string | `errorReportHostIOS` |
-| 15 | string | `serverKey` |
-| 16 | int | `gmButtonSwitch` |
-| 17 | int | `contactButtonSwitch` |
-| 18 | byte | `allianceWarSwitch` |
-| 19 | byte | `reportInsuranceSwitch` |
-| 20 | byte | `lowFameAttackCostalSwitch` |
-| 21 | byte | `minimizedDispatchInPercent` |
-| 22 | byte | `userInputLimitFullSwitch` |
-| 23 | byte | `userInputLimitLevel1Switch` |
-| 24 | byte | `userInputLimitLevel2Switch` |
-| 25 | byte | `userInputLimitLevel3Switch` |
-| 26 | byte | `userInputLimitLevel4Switch` |
-| 27 | byte | `sandboxServerSwitch` |
-| 28 | int | `itemID` |
-| 29 | string | `name` |
-| 30 | string | `description` |
-| 31 | int | `icon` |
-| 32 | int | `amount` |
-| 33 | long | `fameToUnlockMettleLevel1` |
-| 34 | long | `fameToUnlockMettleLevel2` |
-| 35 | long | `fameToUnlockMettleLevel3` |
-| 36 | byte | `medalTransformType1` |
-| 37 | int | `medalTransformItemId1` |
-| 38 | string | `medalTransformItemName1` |
-| 39 | byte | `medalTransformType2` |
-| 40 | int | `medalTransformItemId2` |
-| 41 | string | `medalTransformItemName2` |
-| 42 | byte | `medalTransformType3` |
-| 43 | int | `medalTransformItemId3` |
-| 44 | string | `medalTransformItemName3` |
-| 45 | byte | `userInputLimitLevel5Switch` |
-| 46 | long | `chargeBonusFlashStartTime` |
-| 47 | long | `chargeBonusFlashEndTime` |
-| 48 | int | `accountAbandonReservedInDays` |
-| 49 | int | `itemID` |
-| 50 | int | `icon` |
-| 51 | int | `maxTalentAddByCimelia` |
-| 52 | byte | `disableAutoTrain` |
-| 53 | string | `autoTrainInstruction` |
-| 54 | int | `itemID` |
-| 55 | int | `icon` |
-| 56 | string | `name` |
-| 57 | string | `description` |
-| 58 | int | `amount` |
-| 59 | int | `itemID` |
-| 60 | int | `icon` |
-| 61 | string | `name` |
-| 62 | string | `description` |
-| 63 | int | `amount` |
-| 64 | int | `protocolVersion` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `resource_host` | — |
+| 2 | u32 | `trade_down_price` | 单价 |
+| 3 | u32 | `trade_up_price` | 单价 |
+| 4 | u32 | `campaign_switch` | — |
+| 5 | u32 | `vip_switch` | — |
+| 6 | u32 | `redeem_switch` | — |
+| 7 | u32 | `restrict_shop_switch` | — |
+| 8 | u32 | `activity_switch` | — |
+| 9 | u32 | `hide_3_diamond_spend_switch` | — |
+| 10 | u32 | `officer_troop_switch` | — |
+| 11 | string | `error_report_host` | — |
+| 12 | string | `server_version` | — |
+| 13 | u32 | `map_type` | 类型枚举 |
+| 14 | string | `error_report_host_ios` | — |
+| 15 | string | `server_key` | — |
+| 16 | u32 | `gm_button_switch` | — |
+| 17 | u32 | `contact_button_switch` | — |
+| 18 | u8 | `alliance_war_switch` | 军团 |
+| 19 | u8 | `report_insurance_switch` | — |
+| 20 | u8 | `low_fame_attack_costal_switch` | 声望值 |
+| 21 | u8 | `minimized_dispatch_in_percent` | — |
+| 22 | u8 | `user_input_limit_full_switch` | — |
+| 23 | u8 | `user_input_limit_level_1_switch` | 等级 |
+| 24 | u8 | `user_input_limit_level_2_switch` | 等级 |
+| 25 | u8 | `user_input_limit_level_3_switch` | 等级 |
+| 26 | u8 | `user_input_limit_level_4_switch` | 等级 |
+| 27 | u8 | `sandbox_server_switch` | — |
+| 28 | u32 | `item_id` | 道具 ID |
+| 29 | string | `name` | 名称 |
+| 30 | string | `description` | 描述文案 |
+| 31 | u32 | `icon` | 图标编号 |
+| 32 | u32 | `amount` | 数量 |
+| 33 | u64 | `fame_to_unlock_mettle_level_1` | 等级 |
+| 34 | u64 | `fame_to_unlock_mettle_level_2` | 等级 |
+| 35 | u64 | `fame_to_unlock_mettle_level_3` | 等级 |
+| 36 | u8 | `medal_transform_type_1` | 类型枚举 |
+| 37 | u32 | `medal_transform_item_id_1` | 道具 ID |
+| 38 | string | `medal_transform_item_name_1` | 道具名称 |
+| 39 | u8 | `medal_transform_type_2` | 类型枚举 |
+| 40 | u32 | `medal_transform_item_id_2` | 道具 ID |
+| 41 | string | `medal_transform_item_name_2` | 道具名称 |
+| 42 | u8 | `medal_transform_type_3` | 类型枚举 |
+| 43 | u32 | `medal_transform_item_id_3` | 道具 ID |
+| 44 | string | `medal_transform_item_name_3` | 道具名称 |
+| 45 | u8 | `user_input_limit_level_5_switch` | 等级 |
+| 46 | u64 | `charge_bonus_flash_start_time` | 开始时间戳 |
+| 47 | u64 | `charge_bonus_flash_end_time` | 结束时间戳 |
+| 48 | u32 | `account_abandon_reserved_in_days` | — |
+| 49 | u32 | `item_id` | 道具 ID |
+| 50 | u32 | `icon` | 图标编号 |
+| 51 | u32 | `max_talent_add_by_cimelia` | 上限 |
+| 52 | u8 | `disable_auto_train` | — |
+| 53 | string | `auto_train_instruction` | — |
+| 54 | u32 | `item_id` | 道具 ID |
+| 55 | u32 | `icon` | 图标编号 |
+| 56 | string | `name` | 名称 |
+| 57 | string | `description` | 描述文案 |
+| 58 | u32 | `amount` | 数量 |
+| 59 | u32 | `item_id` | 道具 ID |
+| 60 | u32 | `icon` | 图标编号 |
+| 61 | string | `name` | 名称 |
+| 62 | string | `description` | 描述文案 |
+| 63 | u32 | `amount` | 数量 |
+| 64 | u32 | `protocol_version` | — |
 
 ---
 
-#### `cmd=7` — server charge items 7
+### `cmd=7` — 获取充值商品（旧）
 
-- 常量: `Constant.PROT_SERVER_CHARGE_ITEMS_7`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `pay_channel_ids.length` | 渠道名 |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.payChannelIds.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `announcement` |
-| 2 | int | `chargeId` |
-| 3 | string | `skuid` |
-| 4 | string | `functionId` |
-| 5 | int | `outputDiamonds` |
-| 6 | string | `name` |
-| 7 | string | `price` |
-| 8 | int | `icon` |
-| 9 | string | `description` |
-| 10 | string | `name` |
-| 11 | int | `amount` |
-| 12 | int | `icon` |
-| 13 | long | `extraItemFinishTime` |
-| 14 | byte | `hasAllianceGift` |
-| 15 | string | `giftName` |
-| 16 | int | `giftIcon` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `announcement` | — |
+| 2 | u32 | `charge_id` | — |
+| 3 | string | `skuid` | — |
+| 4 | string | `function_id` | — |
+| 5 | u32 | `output_diamonds` | 产量 |
+| 6 | string | `name` | 名称 |
+| 7 | string | `price` | 单价 |
+| 8 | u32 | `icon` | 图标编号 |
+| 9 | string | `description` | 描述文案 |
+| 10 | string | `name` | 名称 |
+| 11 | u32 | `amount` | 数量 |
+| 12 | u32 | `icon` | 图标编号 |
+| 13 | u64 | `extra_item_finish_time` | 完成时间戳 |
+| 14 | u8 | `has_alliance_gift` | 军团 |
+| 15 | string | `gift_name` | 名称 |
+| 16 | u32 | `gift_icon` | 图标编号 |
 
 ---
 
-#### `cmd=11` — server charge items 11
+### `cmd=11` — 获取充值商品
 
-- 常量: `Constant.PROT_SERVER_CHARGE_ITEMS_11`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `pay_channel_ids.length` | 渠道名 |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.payChannelIds.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `announcement` |
-| 2 | int | `chargeId` |
-| 3 | string | `skuid` |
-| 4 | string | `functionId` |
-| 5 | int | `outputDiamonds` |
-| 6 | string | `name` |
-| 7 | string | `price` |
-| 8 | int | `icon` |
-| 9 | string | `description` |
-| 10 | string | `name` |
-| 11 | int | `amount` |
-| 12 | int | `icon` |
-| 13 | long | `extraItemFinishTime` |
-| 14 | byte | `hasAllianceGift` |
-| 15 | string | `giftName` |
-| 16 | int | `giftIcon` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `announcement` | — |
+| 2 | u32 | `charge_id` | — |
+| 3 | string | `skuid` | — |
+| 4 | string | `function_id` | — |
+| 5 | u32 | `output_diamonds` | 产量 |
+| 6 | string | `name` | 名称 |
+| 7 | string | `price` | 单价 |
+| 8 | u32 | `icon` | 图标编号 |
+| 9 | string | `description` | 描述文案 |
+| 10 | string | `name` | 名称 |
+| 11 | u32 | `amount` | 数量 |
+| 12 | u32 | `icon` | 图标编号 |
+| 13 | u64 | `extra_item_finish_time` | 完成时间戳 |
+| 14 | u8 | `has_alliance_gift` | 军团 |
+| 15 | string | `gift_name` | 名称 |
+| 16 | u32 | `gift_icon` | 图标编号 |
 
 ---
 
-#### `cmd=12` — push notifycation token 12
+### `cmd=12` — 注册推送 Token
 
-- 常量: `Constant.PROT_PUSH_NOTIFYCATION_TOKEN_12`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `token` | 推送/会话凭据 |
+| 2 | u8 | `device_type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.token` |
-| 2 | byte | `this.deviceType` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=13` — push notifycation threshold 13
+### `cmd=13` — 设置推送阈值
 
-- 常量: `Constant.PROT_PUSH_NOTIFYCATION_THRESHOLD_13`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `army_count` | 数量/计数 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.armyCount` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=20` — prepared message config 20
+### `cmd=20` — 获取快捷用语
 
-- 常量: `Constant.PROT_PREPARED_MESSAGE_CONFIG_20`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `preparedMessageGroupId` |
-| 2 | string | `title` |
-| 3 | int | `priorityChatPublic` |
-| 4 | int | `priorityChatAlliance` |
-| 5 | int | `priorityChatPrivate` |
-| 6 | int | `priorityAllianceMessage` |
-| 7 | int | `priorityBattle` |
-| 8 | long | `preparedMessageId` |
-| 9 | int | `preparedMessageGroupId` |
-| 10 | string | `message` |
-| 11 | int | `priority` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `prepared_message_group_id` | — |
+| 2 | string | `title` | — |
+| 3 | u32 | `priority_chat_public` | — |
+| 4 | u32 | `priority_chat_alliance` | 军团 |
+| 5 | u32 | `priority_chat_private` | — |
+| 6 | u32 | `priority_alliance_message` | 军团 |
+| 7 | u32 | `priority_battle` | — |
+| 8 | u64 | `prepared_message_id` | — |
+| 9 | u32 | `prepared_message_group_id` | — |
+| 10 | string | `message` | — |
+| 11 | u32 | `priority` | — |
 
 ---
 
-#### `cmd=21` — cimelia info config 21
+### `cmd=21` — 获取道具配置
 
-- 常量: `Constant.PROT_CIMELIA_INFO_CONFIG_21`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_ids.length` | 道具 |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemIds.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `itemID` |
-| 2 | string | `name` |
-| 3 | string | `description` |
-| 4 | int | `icon` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | string | `name` | 名称 |
+| 3 | string | `description` | 描述文案 |
+| 4 | u32 | `icon` | 图标编号 |
 
 ---
 
-#### `cmd=25` — choice prot uc getuid 25
+### `cmd=25` — 获取渠道 UID
 
-- 常量: `Constant.CHOICE_PROT_UC_GETUID_25`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `sid` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.sid` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `uid` |
-| 2 | string | `creator` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `uid` | — |
+| 2 | string | `creator` | — |
 
 ---
 
-#### `cmd=26` — choice prot en huawei login sign verify 26
+### `cmd=26` — 华为海外登录验证
 
-- 常量: `Constant.CHOICE_PROT_EN_HUAWEI_LOGIN_SIGN_VERIFY_26`
-- 成功判定: `status1=this.status()||2=this.status()||3=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `player_id` | 玩家 ID |
+| 2 | u32 | `level` | 等级 |
+| 3 | string | `sign` | — |
+| 4 | string | `ts` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this._playerId` |
-| 2 | int | `this._level` |
-| 3 | string | `this._sign` |
-| 4 | string | `this._ts` |
+**响应**（status 为 **1** 或 **2** 或 **3** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `_userid` |
-| 2 | int | `_server_id` |
-| 3 | string | `_server_name` |
-| 4 | string | `_server_host` |
-| 5 | int | `_server_sort` |
-| 6 | string | `_game_entry` |
-| 7 | string | `_init_channel` |
-| 8 | long | `_timevalue` |
-| 9 | long | `_timeoffset` |
-| 10 | string | `_confirm_message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `userid` | — |
+| 2 | u32 | `server_id` | 服务器编号 |
+| 3 | string | `server_name` | 服务器名称 |
+| 4 | string | `server_host` | 服务器地址 |
+| 5 | u32 | `server_sort` | — |
+| 6 | string | `game_entry` | — |
+| 7 | string | `init_channel` | 渠道名 |
+| 8 | u64 | `timevalue` | — |
+| 9 | u64 | `timeoffset` | — |
+| 10 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=27` — choice prot zh huawei login sign verify 27
+### `cmd=27` — 华为国内登录验证
 
-- 常量: `Constant.CHOICE_PROT_ZH_HUAWEI_LOGIN_SIGN_VERIFY_27`
-- 成功判定: `status1=this.status()||2=this.status()||3=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `player_id` | 玩家 ID |
+| 2 | u32 | `level` | 等级 |
+| 3 | string | `sign` | — |
+| 4 | string | `ts` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this._playerId` |
-| 2 | int | `this._level` |
-| 3 | string | `this._sign` |
-| 4 | string | `this._ts` |
+**响应**（status 为 **1** 或 **2** 或 **3** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `_userid` |
-| 2 | int | `_server_id` |
-| 3 | string | `_server_name` |
-| 4 | string | `_server_host` |
-| 5 | int | `_server_sort` |
-| 6 | string | `_game_entry` |
-| 7 | string | `_init_channel` |
-| 8 | long | `_timevalue` |
-| 9 | long | `_timeoffset` |
-| 10 | string | `_confirm_message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `userid` | — |
+| 2 | u32 | `server_id` | 服务器编号 |
+| 3 | string | `server_name` | 服务器名称 |
+| 4 | string | `server_host` | 服务器地址 |
+| 5 | u32 | `server_sort` | — |
+| 6 | string | `game_entry` | — |
+| 7 | string | `init_channel` | 渠道名 |
+| 8 | u64 | `timevalue` | — |
+| 9 | u64 | `timeoffset` | — |
+| 10 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=30` — choice prot guopan verify login token 30
+### `cmd=30` — 果盘登录验证
 
-- 常量: `Constant.CHOICE_PROT_GUOPAN_VERIFY_LOGIN_TOKEN_30`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `game_uin` | — |
+| 2 | string | `token` | 推送/会话凭据 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.game_uin` |
-| 2 | string | `this.token` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
-
----
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。

@@ -1,871 +1,785 @@
 # 名将
 
-> 42 个命令（cmd 11001 ~ 11059）
+> 42 个命令（cmd 11001 ~ 11059）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=11001` — officers recruitable list 11001
+### `cmd=11001` — 查询可招募名将
 
-- 常量: `Constant.PROT_OFFICERS_RECRUITABLE_LIST_11001`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `remainSlots` |
-| 2 | string | `freeRefreshName` |
-| 3 | int | `freeRefreshIcon` |
-| 4 | string | `freeRefreshDescription` |
-| 5 | int | `freeRefreshCount` |
-| 6 | int | `freeRefreshCountMax` |
-| 7 | long | `officerId` |
-| 8 | string | `officerName` |
-| 9 | int | `icon` |
-| 10 | int | `level` |
-| 11 | int | `star` |
-| 12 | int | `logisticsBase` |
-| 13 | int | `militaryBase` |
-| 14 | int | `knowledgeBase` |
-| 15 | int | `faithful` |
-| 16 | int | `salary` |
-| 17 | int | `goldRequired` |
-| 18 | int | `isSpecialOfficer` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `remain_slots` | — |
+| 2 | string | `free_refresh_name` | 名称 |
+| 3 | u32 | `free_refresh_icon` | 图标编号 |
+| 4 | string | `free_refresh_description` | 描述文案 |
+| 5 | u32 | `free_refresh_count` | 数量/计数 |
+| 6 | u32 | `free_refresh_count_max` | 数量/计数 |
+| 7 | u64 | `officer_id` | — |
+| 8 | string | `officer_name` | 名称 |
+| 9 | u32 | `icon` | 图标编号 |
+| 10 | u32 | `level` | 等级 |
+| 11 | u32 | `star` | — |
+| 12 | u32 | `logistics_base` | — |
+| 13 | u32 | `military_base` | — |
+| 14 | u32 | `knowledge_base` | — |
+| 15 | u32 | `faithful` | — |
+| 16 | u32 | `salary` | — |
+| 17 | u32 | `gold_required` | — |
+| 18 | u32 | `is_special_officer` | 布尔标记（0/1） |
 
 ---
 
-#### `cmd=11002` — officers info 11002
+### `cmd=11002` — 查询名将详情
 
-- 常量: `Constant.PROT_OFFICERS_INFO_11002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | int | `prototypeId` |
-| 3 | string | `officerName` |
-| 4 | int | `icon` |
-| 5 | int | `level` |
-| 6 | int | `star` |
-| 7 | int | `experience` |
-| 8 | int | `experienceNextLevel` |
-| 9 | int | `logisticsBase` |
-| 10 | int | `militaryBase` |
-| 11 | int | `knowledgeBase` |
-| 12 | int | `faithful` |
-| 13 | int | `salary` |
-| 14 | int | `potential` |
-| 15 | int | `attack` |
-| 16 | int | `defence` |
-| 17 | int | `leaderShip` |
-| 18 | int | `skillId` |
-| 19 | string | `icon` |
-| 20 | string | `skillName` |
-| 21 | int | `skillLevel` |
-| 22 | string | `skillDescription` |
-| 23 | long | `equipmentId` |
-| 24 | string | `name` |
-| 25 | int | `icon` |
-| 26 | int | `position` |
-| 27 | byte | `level` |
-| 28 | int | `levelRequiredOnWear` |
-| 29 | int | `military` |
-| 30 | int | `knowledge` |
-| 31 | int | `logistics` |
-| 32 | int | `attack` |
-| 33 | int | `defence` |
-| 34 | int | `isBind` |
-| 35 | string | `description` |
-| 36 | byte | `curEndure` |
-| 37 | byte | `maxEndure` |
-| 38 | int | `goldRequiredOnRepair` |
-| 39 | int | `promotionItemCount` |
-| 40 | short | `logisticsAdd` |
-| 41 | short | `militaryAdd` |
-| 42 | short | `knowledgeAdd` |
-| 43 | short | `attackAdd` |
-| 44 | short | `defenceAdd` |
-| 45 | short | `leaderShipAdd` |
-| 46 | byte | `isOfficerTroop` |
-| 47 | byte | `isSackable` |
-| 48 | int | `itemId` |
-| 49 | string | `itemName` |
-| 50 | byte | `talentValue` |
-| 51 | int | `talentAddByCimelia` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `prototype_id` | 建筑原型 ID |
+| 3 | string | `officer_name` | 名称 |
+| 4 | u32 | `icon` | 图标编号 |
+| 5 | u32 | `level` | 等级 |
+| 6 | u32 | `star` | — |
+| 7 | u32 | `experience` | — |
+| 8 | u32 | `experience_next_level` | 等级 |
+| 9 | u32 | `logistics_base` | — |
+| 10 | u32 | `military_base` | — |
+| 11 | u32 | `knowledge_base` | — |
+| 12 | u32 | `faithful` | — |
+| 13 | u32 | `salary` | — |
+| 14 | u32 | `potential` | — |
+| 15 | u32 | `attack` | — |
+| 16 | u32 | `defence` | — |
+| 17 | u32 | `leader_ship` | — |
+| 18 | u32 | `skill_id` | — |
+| 19 | string | `icon` | 图标编号 |
+| 20 | string | `skill_name` | 名称 |
+| 21 | u32 | `skill_level` | 等级 |
+| 22 | string | `skill_description` | 描述文案 |
+| 23 | u64 | `equipment_id` | — |
+| 24 | string | `name` | 名称 |
+| 25 | u32 | `icon` | 图标编号 |
+| 26 | u32 | `position` | 格位编号 |
+| 27 | u8 | `level` | 等级 |
+| 28 | u32 | `level_required_on_wear` | 等级 |
+| 29 | u32 | `military` | — |
+| 30 | u32 | `knowledge` | — |
+| 31 | u32 | `logistics` | — |
+| 32 | u32 | `attack` | — |
+| 33 | u32 | `defence` | — |
+| 34 | u32 | `is_bind` | 布尔标记（0/1） |
+| 35 | string | `description` | 描述文案 |
+| 36 | u8 | `cur_endure` | 当前值 |
+| 37 | u8 | `max_endure` | 上限 |
+| 38 | u32 | `gold_required_on_repair` | — |
+| 39 | u32 | `promotion_item_count` | 数量/计数 |
+| 40 | u16 | `logistics_add` | — |
+| 41 | u16 | `military_add` | — |
+| 42 | u16 | `knowledge_add` | — |
+| 43 | u16 | `attack_add` | — |
+| 44 | u16 | `defence_add` | — |
+| 45 | u16 | `leader_ship_add` | — |
+| 46 | u8 | `is_officer_troop` | 布尔标记（0/1） |
+| 47 | u8 | `is_sackable` | 布尔标记（0/1） |
+| 48 | u32 | `item_id` | 道具 ID |
+| 49 | string | `item_name` | 道具名称 |
+| 50 | u8 | `talent_value` | — |
+| 51 | u32 | `talent_add_by_cimelia` | — |
 
 ---
 
-#### `cmd=11003` — officers recruitable refresh free 11003
+### `cmd=11003` — 免费刷新名将招募
 
-- 常量: `Constant.PROT_OFFICERS_RECRUITABLE_REFRESH_FREE_11003`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11004` — officers recruit 11004
+### `cmd=11004` — 招募名将
 
-- 常量: `Constant.PROT_OFFICERS_RECRUIT_11004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | string | `officerName` |
-| 3 | int | `icon` |
-| 4 | int | `level` |
-| 5 | int | `status` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | string | `officer_name` | 名称 |
+| 3 | u32 | `icon` | 图标编号 |
+| 4 | u32 | `level` | 等级 |
+| 5 | u32 | `status` | 结果状态 |
 
 ---
 
-#### `cmd=11007` — officers upgrade 11007
+### `cmd=11007` — 名将升级
 
-- 常量: `Constant.PROT_OFFICERS_UPGRADE_11007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u8 | `auto_upgrade` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | byte | `this.autoUpgrade` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | int | `level` |
-| 3 | int | `experience` |
-| 4 | int | `experienceNextLevel` |
-| 5 | int | `potential` |
-| 6 | int | `salary` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `level` | 等级 |
+| 3 | u32 | `experience` | — |
+| 4 | u32 | `experience_next_level` | 等级 |
+| 5 | u32 | `potential` | — |
+| 6 | u32 | `salary` | — |
 
 ---
 
-#### `cmd=11008` — officers retrain 11008
+### `cmd=11008` — 名将洗练
 
-- 常量: `Constant.PROT_OFFICERS_RETRAIN_11008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u8 | `confirm_using_diamond` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | byte | `this.confirmUsingDiamond` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=11009` — officers apply potential 11009
+### `cmd=11009` — 名将潜力分配
 
-- 常量: `Constant.PROT_OFFICERS_APPLY_POTENTIAL_11009`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `knowledge_add` | — |
+| 3 | u32 | `military_add` | — |
+| 4 | u32 | `logistics_add` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | int | `this.knowledgeAdd` |
-| 3 | int | `this.militaryAdd` |
-| 4 | int | `this.logisticsAdd` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11010` — officers appoint mayor 11010
+### `cmd=11010` — 任命市长
 
-- 常量: `Constant.PROT_OFFICERS_APPOINT_MAYOR_11010`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11011` — officers dismissal 11011
+### `cmd=11011` — 名将罢免
 
-- 常量: `Constant.PROT_OFFICERS_DISMISSAL_11011`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11012` — officers fire 11012
+### `cmd=11012` — 名将解雇
 
-- 常量: `Constant.PROT_OFFICERS_FIRE_11012`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11013` — officers captured release 11013
+### `cmd=11013` — 释放被俘名将
 
-- 常量: `Constant.PROT_OFFICERS_CAPTURED_RELEASE_11013`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
 ---
 
-#### `cmd=11014` — officers captured convince 11014
+### `cmd=11014` — 劝降被俘名将
 
-- 常量: `Constant.PROT_OFFICERS_CAPTURED_CONVINCE_11014`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | byte | `officerStatus` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u8 | `officer_status` | 结果状态 |
 
 ---
 
-#### `cmd=11015` — officers captured kill 11015
+### `cmd=11015` — 处决被俘名将
 
-- 常量: `Constant.PROT_OFFICERS_CAPTURED_KILL_11015`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | string | `officerSaid` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | string | `officer_said` | — |
 
 ---
 
-#### `cmd=11018` — officers promotion 11018
+### `cmd=11018` — 名将晋升
 
-- 常量: `Constant.PROT_OFFICERS_PROMOTION_11018`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u8 | `confirm_using_diamond` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | byte | `this.confirmUsingDiamond` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
-| 2 | long | `officerId` |
-| 3 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
+| 2 | u64 | `officer_id` | — |
+| 3 | string | `message` | — |
 
 ---
 
-#### `cmd=11019` — officers eliminate skill 11019
+### `cmd=11019` — 遗忘名将技能
 
-- 常量: `Constant.PROT_OFFICERS_ELIMINATE_SKILL_11019`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `skill_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | int | `this.skillId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11020` — officers awardable items 11020
+### `cmd=11020` — 查询可授予道具
 
-- 常量: `Constant.PROT_OFFICERS_AWARDABLE_ITEMS_11020`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `goldAward` |
-| 2 | int | `itemID` |
-| 3 | int | `icon` |
-| 4 | string | `name` |
-| 5 | string | `description` |
-| 6 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `gold_award` | — |
+| 2 | u32 | `item_id` | 道具 ID |
+| 3 | u32 | `icon` | 图标编号 |
+| 4 | string | `name` | 名称 |
+| 5 | string | `description` | 描述文案 |
+| 6 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=11021` — officers award gold 11021
+### `cmd=11021` — 授予名将黄金
 
-- 常量: `Constant.PROT_OFFICERS_AWARD_GOLD_11021`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11022` — officers wear equipment 11022
+### `cmd=11022` — 穿戴装备
 
-- 常量: `Constant.PROT_OFFICERS_WEAR_EQUIPMENT_11022`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u64 | `equipment_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | long | `this.equipmentId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11023` — officers takeoff equipment 11023
+### `cmd=11023` — 卸下装备
 
-- 常量: `Constant.PROT_OFFICERS_TAKEOFF_EQUIPMENT_11023`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u64 | `equipment_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | long | `this.equipmentId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11024` — officers takeoff all equipments 11024
+### `cmd=11024` — 卸下全部装备
 
-- 常量: `Constant.PROT_OFFICERS_TAKEOFF_ALL_EQUIPMENTS_11024`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11027` — officers list in city 11027
+### `cmd=11027` — 查询城内名将
 
-- 常量: `Constant.PROT_OFFICERS_LIST_IN_CITY_11027`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | string | `officerName` |
-| 3 | int | `icon` |
-| 4 | int | `level` |
-| 5 | int | `star` |
-| 6 | int | `logisticsBase` |
-| 7 | int | `militaryBase` |
-| 8 | int | `knowledgeBase` |
-| 9 | int | `faithful` |
-| 10 | int | `salary` |
-| 11 | int | `status` |
-| 12 | int | `attack` |
-| 13 | int | `defence` |
-| 14 | int | `prototypeId` |
-| 15 | int | `leaderShip` |
-| 16 | short | `logisticsAdd` |
-| 17 | short | `militaryAdd` |
-| 18 | short | `knowledgeAdd` |
-| 19 | int | `skillOilAdd` |
-| 20 | int | `logisticsItemAdd` |
-| 21 | int | `militaryItemAdd` |
-| 22 | int | `knowledgeItemAdd` |
-| 23 | int | `logisticsWithoutItemAndTroop` |
-| 24 | int | `militaryWithoutItemAndTroop` |
-| 25 | int | `knowledgeWithoutItemAndTroop` |
-| 26 | byte | `isOfficerTroop` |
-| 27 | int | `officerTroopId` |
-| 28 | byte | `isMainOfficer` |
-| 29 | long | `mainOfficerId` |
-| 30 | int | `leaderShipAdditionPercent` |
-| 31 | int | `talentAddByCimelia` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | string | `officer_name` | 名称 |
+| 3 | u32 | `icon` | 图标编号 |
+| 4 | u32 | `level` | 等级 |
+| 5 | u32 | `star` | — |
+| 6 | u32 | `logistics_base` | — |
+| 7 | u32 | `military_base` | — |
+| 8 | u32 | `knowledge_base` | — |
+| 9 | u32 | `faithful` | — |
+| 10 | u32 | `salary` | — |
+| 11 | u32 | `status` | 结果状态 |
+| 12 | u32 | `attack` | — |
+| 13 | u32 | `defence` | — |
+| 14 | u32 | `prototype_id` | 建筑原型 ID |
+| 15 | u32 | `leader_ship` | — |
+| 16 | u16 | `logistics_add` | — |
+| 17 | u16 | `military_add` | — |
+| 18 | u16 | `knowledge_add` | — |
+| 19 | u32 | `skill_oil_add` | — |
+| 20 | u32 | `logistics_item_add` | 道具 |
+| 21 | u32 | `military_item_add` | 道具 |
+| 22 | u32 | `knowledge_item_add` | 道具 |
+| 23 | u32 | `logistics_without_item_and_troop` | 道具 |
+| 24 | u32 | `military_without_item_and_troop` | 道具 |
+| 25 | u32 | `knowledge_without_item_and_troop` | 道具 |
+| 26 | u8 | `is_officer_troop` | 布尔标记（0/1） |
+| 27 | u32 | `officer_troop_id` | — |
+| 28 | u8 | `is_main_officer` | 布尔标记（0/1） |
+| 29 | u64 | `main_officer_id` | — |
+| 30 | u32 | `leader_ship_addition_percent` | — |
+| 31 | u32 | `talent_add_by_cimelia` | — |
 
 ---
 
-#### `cmd=11031` — officers recruit famous 11031
+### `cmd=11031` — 招募名将（高级）
 
-- 常量: `Constant.PROT_OFFICERS_RECRUIT_FAMOUS_11031`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11032` — officers recruit normal 11032
+### `cmd=11032` — 招募名将（普通）
 
-- 常量: `Constant.PROT_OFFICERS_RECRUIT_NORMAL_11032`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=11034` — officers study skill 11034
+### `cmd=11034` — 学习技能
 
-- 常量: `Constant.PROT_OFFICERS_STUDY_SKILL_11034`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `item_id` | 道具 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | int | `this.itemId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=11035` — officers add experience 11035
+### `cmd=11035` — 增加名将经验
 
-- 常量: `Constant.PROT_OFFICERS_ADD_EXPERIENCE_11035`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `amount` | 数量 |
+| 3 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | int | `this.amount` |
-| 3 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11036` — officers award item 11036
+### `cmd=11036` — 授予名将道具
 
-- 常量: `Constant.PROT_OFFICERS_AWARD_ITEM_11036`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11038` — officers troop create 11038
+### `cmd=11038` — 创建名将部队
 
-- 常量: `Constant.PROT_OFFICERS_TROOP_CREATE_11038`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `leader` | — |
+| 2 | u32 | `aides.length` | — |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.leader` |
-| 2 | int | `this.aides.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11039` — officers arguments for officer troop calculate 11039
+### `cmd=11039` — 统帅计算参数
 
-- 常量: `Constant.PROT_OFFICERS_ARGUMENTS_FOR_OFFICER_TROOP_CALCULATE_11039`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `militaryPercent` |
-| 2 | int | `knowledgePercent` |
-| 3 | int | `logisticsPercent` |
-| 4 | int | `firstPercent` |
-| 5 | int | `secondPercent` |
-| 6 | int | `thirdPercent` |
-| 7 | int | `militaryState` |
-| 8 | int | `knowledgeState` |
-| 9 | int | `logisticsState` |
-| 10 | int | `militaryPri` |
-| 11 | int | `knowledgePri` |
-| 12 | int | `logisticsPri` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `military_percent` | — |
+| 2 | u32 | `knowledge_percent` | — |
+| 3 | u32 | `logistics_percent` | — |
+| 4 | u32 | `first_percent` | — |
+| 5 | u32 | `second_percent` | — |
+| 6 | u32 | `third_percent` | — |
+| 7 | u32 | `military_state` | — |
+| 8 | u32 | `knowledge_state` | — |
+| 9 | u32 | `logistics_state` | — |
+| 10 | u32 | `military_pri` | — |
+| 11 | u32 | `knowledge_pri` | — |
+| 12 | u32 | `logistics_pri` | — |
 
 ---
 
-#### `cmd=11040` — officers troop update 11040
+### `cmd=11040` — 更新名将部队
 
-- 常量: `Constant.PROT_OFFICERS_TROOP_UPDATE_11040`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `troop_id` | — |
+| 2 | u64 | `leader` | — |
+| 3 | u32 | `aides.length` | — |
+| 4 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.troopId` |
-| 2 | long | `this.leader` |
-| 3 | int | `this.aides.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11041` — officers troop dismiss 11041
+### `cmd=11041` — 解散名将部队
 
-- 常量: `Constant.PROT_OFFICERS_TROOP_DISMISS_11041`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `troop_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.troopId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11042` — officers status 11042
+### `cmd=11042` — 查询名将状态
 
-- 常量: `Constant.PROT_OFFICERS_STATUS_11042`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `attrType` |
-| 2 | int | `percentValue` |
-| 3 | string | `itemName` |
-| 4 | long | `remainTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `attr_type` | 类型枚举 |
+| 2 | u32 | `percent_value` | — |
+| 3 | string | `item_name` | 道具名称 |
+| 4 | u64 | `remain_time` | 剩余毫秒数 |
 
 ---
 
-#### `cmd=11043` — officers enhance 11043
+### `cmd=11043` — 名将强化
 
-- 常量: `Constant.PROT_OFFICERS_ENHANCE_11043`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | long | `this.officerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11044` — officers equipments wearable 11044
+### `cmd=11044` — 查询可穿戴装备
 
-- 常量: `Constant.PROT_OFFICERS_EQUIPMENTS_WEARABLE_11044`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `equipment_position` | 格位编号 |
+| 2 | u64 | `officer_id` | — |
+| 3 | u8 | `page_size` | 每页条数 |
+| 4 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 5 | string | `keyword` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.equipmentPosition` |
-| 2 | long | `this.officerId` |
-| 3 | byte | `this.pageSize` |
-| 4 | int | `this.pageNum` |
-| 5 | string | `this.keyword` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `pageNum` |
-| 2 | int | `pageCount` |
-| 3 | long | `equipmentId` |
-| 4 | string | `name` |
-| 5 | int | `icon` |
-| 6 | byte | `level` |
-| 7 | int | `military` |
-| 8 | int | `knowledge` |
-| 9 | int | `logistics` |
-| 10 | int | `attack` |
-| 11 | int | `defence` |
-| 12 | int | `levelRequiredOnWear` |
-| 13 | byte | `isWeared` |
-| 14 | byte | `isSuitEquipment` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u64 | `equipment_id` | — |
+| 4 | string | `name` | 名称 |
+| 5 | u32 | `icon` | 图标编号 |
+| 6 | u8 | `level` | 等级 |
+| 7 | u32 | `military` | — |
+| 8 | u32 | `knowledge` | — |
+| 9 | u32 | `logistics` | — |
+| 10 | u32 | `attack` | — |
+| 11 | u32 | `defence` | — |
+| 12 | u32 | `level_required_on_wear` | 等级 |
+| 13 | u8 | `is_weared` | 布尔标记（0/1） |
+| 14 | u8 | `is_suit_equipment` | 布尔标记（0/1） |
 
 ---
 
-#### `cmd=11045` — officers troop skill prototype list 11045
+### `cmd=11045` — 查询部队技能原型
 
-- 常量: `Constant.PROT_OFFICERS_TROOP_SKILL_PROTOTYPE_LIST_11045`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `troopSkillId` |
-| 2 | string | `icon` |
-| 3 | string | `skillName` |
-| 4 | int | `skillLevel` |
-| 5 | string | `skillLevelDescription` |
-| 6 | string | `skillLevelBonusDescription` |
-| 7 | int | `logisticsAdd` |
-| 8 | int | `militaryAdd` |
-| 9 | int | `knowledgeAdd` |
-| 10 | long | `prototypeId` |
-| 11 | int | `icon` |
-| 12 | string | `officerName` |
-| 13 | int | `alreadyOwned` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `troop_skill_id` | — |
+| 2 | string | `icon` | 图标编号 |
+| 3 | string | `skill_name` | 名称 |
+| 4 | u32 | `skill_level` | 等级 |
+| 5 | string | `skill_level_description` | 描述文案 |
+| 6 | string | `skill_level_bonus_description` | 描述文案 |
+| 7 | u32 | `logistics_add` | — |
+| 8 | u32 | `military_add` | — |
+| 9 | u32 | `knowledge_add` | — |
+| 10 | u64 | `prototype_id` | 建筑原型 ID |
+| 11 | u32 | `icon` | 图标编号 |
+| 12 | string | `officer_name` | 名称 |
+| 13 | u32 | `already_owned` | — |
 
 ---
 
-#### `cmd=11046` — officers commision defense 11046
+### `cmd=11046` — 名将驻防
 
-- 常量: `Constant.PROT_OFFICERS_COMMISION_DEFENSE_11046`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
 ---
 
-#### `cmd=11047` — officers retire defense 11047
+### `cmd=11047` — 名将撤防
 
-- 常量: `Constant.PROT_OFFICERS_RETIRE_DEFENSE_11047`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11048` — officers recruitable refresh by item 11048
+### `cmd=11048` — 道具刷新招募
 
-- 常量: `Constant.PROT_OFFICERS_RECRUITABLE_REFRESH_BY_ITEM_11048`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemID` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11049` — officers suits wearable 11049
+### `cmd=11049` — 查询可穿戴套装
 
-- 常量: `Constant.PROT_OFFICERS_SUITS_WEARABLE_11049`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `suitId` |
-| 2 | string | `name` |
-| 3 | int | `levelRequiredOnWear` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `suit_id` | — |
+| 2 | string | `name` | 名称 |
+| 3 | u32 | `level_required_on_wear` | 等级 |
 
 ---
 
-#### `cmd=11050` — officers wear suit 11050
+### `cmd=11050` — 穿戴套装
 
-- 常量: `Constant.PROT_OFFICERS_WEAR_SUIT_11050`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `suit_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | int | `this.suitId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=11057` — officers level promotion info 11057
+### `cmd=11057` — 查询晋阶信息
 
-- 常量: `Constant.PROT_OFFICERS_LEVEL_PROMOTION_INFO_11057`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | int | `promoteAvailable` |
-| 3 | int | `levelFrom` |
-| 4 | int | `levelTo` |
-| 5 | int | `extraTalent` |
-| 6 | string | `newName` |
-| 7 | string | `detail` |
-| 8 | int | `itemId` |
-| 9 | string | `itemName` |
-| 10 | int | `needCount` |
-| 11 | int | `haveCount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `promote_available` | — |
+| 3 | u32 | `level_from` | 等级 |
+| 4 | u32 | `level_to` | 等级 |
+| 5 | u32 | `extra_talent` | — |
+| 6 | string | `new_name` | 名称 |
+| 7 | string | `detail` | — |
+| 8 | u32 | `item_id` | 道具 ID |
+| 9 | string | `item_name` | 道具名称 |
+| 10 | u32 | `need_count` | 数量/计数 |
+| 11 | u32 | `have_count` | 数量/计数 |
 
 ---
 
-#### `cmd=11058` — officers level promote 11058
+### `cmd=11058` — 名将晋阶
 
-- 常量: `Constant.PROT_OFFICERS_LEVEL_PROMOTE_11058`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | string | `officerName` |
-| 3 | int | `level` |
-| 4 | int | `talent` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | string | `officer_name` | 名称 |
+| 3 | u32 | `level` | 等级 |
+| 4 | u32 | `talent` | — |
 
 ---
 
-#### `cmd=11059` — officers add potential 11059
+### `cmd=11059` — 增加潜力点
 
-- 常量: `Constant.PROT_OFFICERS_ADD_POTENTIAL_11059`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | long | `this.officerId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `officerId` |
-| 2 | int | `talent` |
-| 3 | int | `talentAddByCimelia` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u32 | `talent` | — |
+| 3 | u32 | `talent_add_by_cimelia` | — |

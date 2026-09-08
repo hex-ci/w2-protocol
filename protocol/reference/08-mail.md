@@ -1,155 +1,139 @@
 # 邮件
 
-> 7 个命令（cmd 9001 ~ 9008）
+> 7 个命令（cmd 9001 ~ 9008）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=9001` — mail list 9001
+### `cmd=9001` — 查询邮件列表
 
-- 常量: `Constant.PROT_MAIL_LIST_9001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `mail_type` | 邮件分类 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u8 | `page_size` | 每页条数 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.mailType` |
-| 2 | int | `this.pageNum` |
-| 3 | byte | `this.pageSize` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `mailType` |
-| 2 | int | `pageCount` |
-| 3 | int | `pageNum` |
-| 4 | long | `mailId` |
-| 5 | string | `mailTitle` |
-| 6 | string | `mailSenderOrReceiver` |
-| 7 | long | `createTime` |
-| 8 | byte | `readed` |
-| 9 | int | `color` |
-| 10 | byte | `attachmentFlag` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `mail_type` | 邮件分类 |
+| 2 | u32 | `page_count` | 总页数 |
+| 3 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 4 | u64 | `mail_id` | 邮件 ID |
+| 5 | string | `mail_title` | 邮件标题 |
+| 6 | string | `mail_sender_or_receiver` | — |
+| 7 | u64 | `create_time` | 创建时间戳 |
+| 8 | u8 | `readed` | 是否已读 |
+| 9 | u32 | `color` | — |
+| 10 | u8 | `attachment_flag` | 是否有附件 |
 
 ---
 
-#### `cmd=9002` — mail detail 9002
+### `cmd=9002` — 查询邮件详情
 
-- 常量: `Constant.PROT_MAIL_DETAIL_9002`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `mail_type` | 邮件分类 |
+| 2 | u64 | `mail_id` | 邮件 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.mailType` |
-| 2 | long | `this.mailId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `mailType` |
-| 2 | string | `mailReceiver` |
-| 3 | long | `senderPlayerId` |
-| 4 | string | `senderNickname` |
-| 5 | long | `createTime` |
-| 6 | string | `mailTitle` |
-| 7 | string | `mailContent` |
-| 8 | byte | `attachmentFlag` |
-| 9 | string | `name` |
-| 10 | string | `description` |
-| 11 | int | `icon` |
-| 12 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `mail_type` | 邮件分类 |
+| 2 | string | `mail_receiver` | — |
+| 3 | u64 | `sender_player_id` | 玩家 ID |
+| 4 | string | `sender_nickname` | 玩家昵称 |
+| 5 | u64 | `create_time` | 创建时间戳 |
+| 6 | string | `mail_title` | 邮件标题 |
+| 7 | string | `mail_content` | — |
+| 8 | u8 | `attachment_flag` | 是否有附件 |
+| 9 | string | `name` | 名称 |
+| 10 | string | `description` | 描述文案 |
+| 11 | u32 | `icon` | 图标编号 |
+| 12 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=9003` — mail delete 9003
+### `cmd=9003` — 删除邮件
 
-- 常量: `Constant.PROT_MAIL_DELETE_9003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `mail_type` | 邮件分类 |
+| 2 | u32 | `mail_ids.length` | — |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.mailType` |
-| 2 | int | `this.mailIds.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=9004` — mail send 9004
+### `cmd=9004` — 发送邮件
 
-- 常量: `Constant.PROT_MAIL_SEND_9004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `receiver` | — |
+| 2 | u8 | `alliance_mail` | 军团 |
+| 3 | string | `subject` | — |
+| 4 | string | `content` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.receiver` |
-| 2 | byte | `this.allianceMail` |
-| 3 | string | `this.subject` |
-| 4 | string | `this.content` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=9006` — mail feedback configuration 9006
+### `cmd=9006` — 获取客服反馈配置
 
-- 常量: `Constant.PROT_MAIL_FEEDBACK_CONFIGURATION_9006`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `receiverName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `receiver_name` | 名称 |
 
 ---
 
-#### `cmd=9007` — mail feedback 9007
+### `cmd=9007` — 提交客服反馈
 
-- 常量: `Constant.PROT_MAIL_FEEDBACK_9007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `receiver_name` | 名称 |
+| 2 | string | `title` | — |
+| 3 | string | `content` | — |
+| 4 | string | `happen_time` | 时间戳（毫秒） |
+| 5 | u32 | `x` | 地图 X 坐标 |
+| 6 | u32 | `y` | 地图 Y 坐标 |
+| 7 | string | `android_id` | — |
+| 8 | string | `model` | — |
+| 9 | string | `sdk_version` | — |
+| 10 | string | `os_version` | — |
+| 11 | string | `resolution` | — |
+| 12 | string | `client_version` | 客户端版本号 |
+| 13 | string | `network_info` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.receiverName` |
-| 2 | string | `this.title` |
-| 3 | string | `this.content` |
-| 4 | string | `this.happenTime` |
-| 5 | int | `this.x` |
-| 6 | int | `this.y` |
-| 7 | string | `this.androidID` |
-| 8 | string | `this.model` |
-| 9 | string | `this.SDKVersion` |
-| 10 | string | `this.OSVersion` |
-| 11 | string | `this.resolution` |
-| 12 | string | `this.clientVersion` |
-| 13 | string | `this.networkInfo` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=9008` — mail save attachment rewards 9008
+### `cmd=9008` — 领取邮件附件
 
-- 常量: `Constant.PROT_MAIL_SAVE_ATTACHMENT_REWARDS_9008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `mail_id` | 邮件 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.mailId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
-
----
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。

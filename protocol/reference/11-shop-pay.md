@@ -1,766 +1,716 @@
 # 商城与支付
 
-> 23 个命令（cmd 7001 ~ 12048）
+> 23 个命令（cmd 7001 ~ 12048）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=7001` — shop buy item 7001
+### `cmd=7001` — 商城购买道具
 
-- 常量: `Constant.PROT_SHOP_BUY_ITEM_7001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `merchandise_id` | — |
+| 2 | u32 | `buy_count` | 数量/计数 |
+| 3 | u32 | `-1` | — |
+| 4 | u8 | `buy_type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.merchandiseId` |
-| 2 | int | `this.buyCount` |
-| 3 | int | `-1` |
-| 4 | byte | `this.buyType` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `diamondOrItemRemainig` |
-| 2 | int | `ticketItemId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `diamond_or_item_remainig` | 道具 |
+| 2 | u32 | `ticket_item_id` | 道具 ID |
 
 ---
 
-#### `cmd=7003` — shop redeem code use 7003
+### `cmd=7003` — 使用兑换码
 
-- 常量: `Constant.PROT_SHOP_REDEEM_CODE_USE_7003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `redeem_code` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.redeemCode` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `rcType` |
-| 2 | string | `rcImage` |
-| 3 | string | `rcName` |
-| 4 | int | `rcAmount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `rc_type` | 类型枚举 |
+| 2 | string | `rc_image` | — |
+| 3 | string | `rc_name` | 名称 |
+| 4 | u32 | `rc_amount` | 数量 |
 
 ---
 
-#### `cmd=7004` — shop items normal 7004
+### `cmd=7004` — 查询普通商城商品
 
-- 常量: `Constant.PROT_SHOP_ITEMS_NORMAL_7004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.type` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `type` |
-| 2 | int | `diamondOwned` |
-| 3 | byte | `specicalTypeFlag` |
-| 4 | byte | `sellTag` |
-| 5 | int | `merchandiseId` |
-| 6 | int | `itemID` |
-| 7 | byte | `endTimeFlag` |
-| 8 | long | `itemEndTime` |
-| 9 | string | `name` |
-| 10 | string | `description` |
-| 11 | int | `icon` |
-| 12 | byte | `level` |
-| 13 | int | `amount` |
-| 14 | int | `ticketItemId` |
-| 15 | int | `price` |
-| 16 | int | `originalPrice` |
-| 17 | int | `pri` |
-| 18 | int | `suitEquipmentId` |
-| 19 | string | `suitEquipmentDescription` |
-| 20 | byte | `limitMode` |
-| 21 | int | `buyRemainCount` |
-| 22 | int | `buyItemsLeft` |
-| 23 | string | `notice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `type` | 类型枚举 |
+| 2 | u32 | `diamond_owned` | 当前钻石数 |
+| 3 | u8 | `specical_type_flag` | 类型枚举 |
+| 4 | u8 | `sell_tag` | — |
+| 5 | u32 | `merchandise_id` | — |
+| 6 | u32 | `item_id` | 道具 ID |
+| 7 | u8 | `end_time_flag` | 结束时间戳 |
+| 8 | u64 | `item_end_time` | 结束时间戳 |
+| 9 | string | `name` | 名称 |
+| 10 | string | `description` | 描述文案 |
+| 11 | u32 | `icon` | 图标编号 |
+| 12 | u8 | `level` | 等级 |
+| 13 | u32 | `amount` | 数量 |
+| 14 | u32 | `ticket_item_id` | 道具 ID |
+| 15 | u32 | `price` | 单价 |
+| 16 | u32 | `original_price` | 单价 |
+| 17 | u32 | `pri` | — |
+| 18 | u32 | `suit_equipment_id` | — |
+| 19 | string | `suit_equipment_description` | 描述文案 |
+| 20 | u8 | `limit_mode` | — |
+| 21 | u32 | `buy_remain_count` | 数量/计数 |
+| 22 | u32 | `buy_items_left` | — |
+| 23 | string | `notice` | 公告文案 |
 
 ---
 
-#### `cmd=7007` — shop restrict detail 7007
+### `cmd=7007` — 查询限购详情
 
-- 常量: `Constant.PROT_SHOP_RESTRICT_DETAIL_7007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `limit_mode` | — |
+| 2 | u32 | `merchandise_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.limitMode` |
-| 2 | int | `this.merchandiseId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `limitMode` |
-| 2 | int | `itemID` |
-| 3 | string | `name` |
-| 4 | string | `description` |
-| 5 | int | `icon` |
-| 6 | int | `price` |
-| 7 | long | `refreshRemainTime` |
-| 8 | int | `buyRemainCount` |
-| 9 | int | `buyItemsLeft` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `limit_mode` | — |
+| 2 | u32 | `item_id` | 道具 ID |
+| 3 | string | `name` | 名称 |
+| 4 | string | `description` | 描述文案 |
+| 5 | u32 | `icon` | 图标编号 |
+| 6 | u32 | `price` | 单价 |
+| 7 | u64 | `refresh_remain_time` | 剩余毫秒数 |
+| 8 | u32 | `buy_remain_count` | 数量/计数 |
+| 9 | u32 | `buy_items_left` | — |
 
 ---
 
-#### `cmd=7008` — shop buy restrict item 7008
+### `cmd=7008` — 购买限购商品
 
-- 常量: `Constant.PROT_SHOP_BUY_RESTRICT_ITEM_7008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `limit_mode` | — |
+| 2 | u32 | `merchandise_id` | — |
+| 3 | u32 | `buy_count` | 数量/计数 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.limitMode` |
-| 2 | int | `this.merchandiseId` |
-| 3 | int | `this.buyCount` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `diamondOrItemRemainig` |
-| 2 | int | `ticketItemId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `diamond_or_item_remainig` | 道具 |
+| 2 | u32 | `ticket_item_id` | 道具 ID |
 
 ---
 
-#### `cmd=7009` — shop type list 7009
+### `cmd=7009` — 查询商城分类
 
-- 常量: `Constant.PROT_SHOP_TYPE_LIST_7009`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `type` |
-| 2 | string | `name` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `type` | 类型枚举 |
+| 2 | string | `name` | 名称 |
 
 ---
 
-#### `cmd=7010` — shop items for simulation battle 7010
+### `cmd=7010` — 演习战商城商品
 
-- 常量: `Constant.PROT_SHOP_ITEMS_FOR_SIMULATION_BATTLE_7010`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.type` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `type` |
-| 2 | int | `diamondOwned` |
-| 3 | int | `itemID` |
-| 4 | int | `amount` |
-| 5 | byte | `specicalTypeFlag` |
-| 6 | byte | `sellTag` |
-| 7 | int | `merchandiseId` |
-| 8 | int | `itemID` |
-| 9 | byte | `endTimeFlag` |
-| 10 | long | `itemEndTime` |
-| 11 | string | `name` |
-| 12 | string | `description` |
-| 13 | int | `icon` |
-| 14 | byte | `level` |
-| 15 | int | `amount` |
-| 16 | int | `ticketItemId` |
-| 17 | int | `price` |
-| 18 | int | `originalPrice` |
-| 19 | int | `pri` |
-| 20 | int | `suitEquipmentId` |
-| 21 | string | `suitEquipmentDescription` |
-| 22 | byte | `limitMode` |
-| 23 | int | `buyRemainCount` |
-| 24 | int | `buyItemsLeft` |
-| 25 | string | `notice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `type` | 类型枚举 |
+| 2 | u32 | `diamond_owned` | 当前钻石数 |
+| 3 | u32 | `item_id` | 道具 ID |
+| 4 | u32 | `amount` | 数量 |
+| 5 | u8 | `specical_type_flag` | 类型枚举 |
+| 6 | u8 | `sell_tag` | — |
+| 7 | u32 | `merchandise_id` | — |
+| 8 | u32 | `item_id` | 道具 ID |
+| 9 | u8 | `end_time_flag` | 结束时间戳 |
+| 10 | u64 | `item_end_time` | 结束时间戳 |
+| 11 | string | `name` | 名称 |
+| 12 | string | `description` | 描述文案 |
+| 13 | u32 | `icon` | 图标编号 |
+| 14 | u8 | `level` | 等级 |
+| 15 | u32 | `amount` | 数量 |
+| 16 | u32 | `ticket_item_id` | 道具 ID |
+| 17 | u32 | `price` | 单价 |
+| 18 | u32 | `original_price` | 单价 |
+| 19 | u32 | `pri` | — |
+| 20 | u32 | `suit_equipment_id` | — |
+| 21 | string | `suit_equipment_description` | 描述文案 |
+| 22 | u8 | `limit_mode` | — |
+| 23 | u32 | `buy_remain_count` | 数量/计数 |
+| 24 | u32 | `buy_items_left` | — |
+| 25 | string | `notice` | 公告文案 |
 
 ---
 
-#### `cmd=12001` — equipment list 12001
+### `cmd=12001` — 支付商品信息
 
-- 常量: `Constant.PROT_EQUIPMENT_LIST_12001`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_size` | 每页条数 |
+| 3 | string | `keyword` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageNum` |
-| 2 | int | `this.pageSize` |
-| 3 | string | `this.keyword` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `diamondOwned` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | int | `totalCount` |
-| 5 | long | `equipmentId` |
-| 6 | int | `curAmount` |
-| 7 | string | `name` |
-| 8 | string | `description` |
-| 9 | string | `useDescription` |
-| 10 | byte | `position` |
-| 11 | byte | `curEndure` |
-| 12 | byte | `maxEndure` |
-| 13 | byte | `isBind` |
-| 14 | string | `bindedOfficer` |
-| 15 | int | `icon` |
-| 16 | byte | `level` |
-| 17 | int | `recycleCount` |
-| 18 | string | `recycleName` |
-| 19 | byte | `isProtected` |
-| 20 | string | `notice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `diamond_owned` | 当前钻石数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u32 | `total_count` | 数量/计数 |
+| 5 | u64 | `equipment_id` | — |
+| 6 | u32 | `cur_amount` | 当前数量 |
+| 7 | string | `name` | 名称 |
+| 8 | string | `description` | 描述文案 |
+| 9 | string | `use_description` | 描述文案 |
+| 10 | u8 | `position` | 格位编号 |
+| 11 | u8 | `cur_endure` | 当前值 |
+| 12 | u8 | `max_endure` | 上限 |
+| 13 | u8 | `is_bind` | 布尔标记（0/1） |
+| 14 | string | `binded_officer` | — |
+| 15 | u32 | `icon` | 图标编号 |
+| 16 | u8 | `level` | 等级 |
+| 17 | u32 | `recycle_count` | 数量/计数 |
+| 18 | string | `recycle_name` | 名称 |
+| 19 | u8 | `is_protected` | 布尔标记（0/1） |
+| 20 | string | `notice` | 公告文案 |
 
 ---
 
-#### `cmd=12002` — medal slots expand 12002
+### `cmd=12002` — 扩展勋章槽位
 
-- 常量: `Constant.PROT_MEDAL_SLOTS_EXPAND_12002`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `diamondOwned` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | int | `totalCount` |
-| 5 | long | `medalId` |
-| 6 | int | `curAmount` |
-| 7 | string | `name` |
-| 8 | string | `description` |
-| 9 | string | `useDescription` |
-| 10 | int | `icon` |
-| 11 | byte | `level` |
-| 12 | int | `recycleCount` |
-| 13 | string | `recycleName` |
-| 14 | string | `disassembleDescription` |
-| 15 | byte | `color` |
-| 16 | byte | `isProtected` |
-| 17 | string | `notice` |
-| 18 | long | `messageId` |
-| 19 | string | `messageTitle` |
-| 20 | string | `author` |
-| 21 | int | `priority` |
-| 22 | long | `messageTime` |
-| 23 | int | `allianceId` |
-| 24 | string | `allianceName` |
-| 25 | int | `capitalX` |
-| 26 | int | `capitalY` |
-| 27 | int | `position` |
-| 28 | int | `id` |
-| 29 | string | `name` |
-| 30 | int | `capitalStatus` |
-| 31 | string | `info1` |
-| 32 | string | `info1` |
-| 33 | string | `info2` |
-| 34 | int | `diamondRequired` |
-| 35 | string | `info1` |
-| 36 | string | `info2` |
-| 37 | int | `diamondRequired` |
-| 38 | long | `remainTime` |
-| 39 | string | `info1` |
-| 40 | int | `position` |
-| 41 | int | `state` |
-| 42 | long | `remainTime` |
-| 43 | int | `mineId` |
-| 44 | int | `prototypeID` |
-| 45 | int | `production` |
-| 46 | int | `totalTime` |
-| 47 | string | `nuclearDescription` |
-| 48 | int | `capitalState` |
-| 49 | string | `stateDescription` |
-| 50 | byte | `type` |
-| 51 | string | `message` |
-| 52 | int | `type` |
-| 53 | int | `fieldType` |
-| 54 | string | `cityIcon` |
-| 55 | string | `cityName` |
-| 56 | string | `nuclearIcon` |
-| 57 | string | `nuclearName` |
-| 58 | string | `allianceName` |
-| 59 | string | `fieldIcon` |
-| 60 | string | `fieldName` |
-| 61 | string | `strongholdIcon` |
-| 62 | string | `strongholdName` |
-| 63 | int | `x` |
-| 64 | int | `y` |
-| 65 | string | `remark` |
-| 66 | int | `linesCount` |
-| 67 | long | `expeditionId` |
-| 68 | int | `startX` |
-| 69 | int | `startY` |
-| 70 | int | `endX` |
-| 71 | int | `endY` |
-| 72 | string | `mark` |
-| 73 | string | `officerName` |
-| 74 | int | `officerIcon` |
-| 75 | int | `officerLevel` |
-| 76 | long | `playerId` |
-| 77 | string | `playerName` |
-| 78 | int | `avata` |
-| 79 | string | `playerName` |
-| 80 | string | `allianceName` |
-| 81 | string | `title` |
-| 82 | string | `titleColor` |
-| 83 | long | `onewayTime` |
-| 84 | long | `remainingTime` |
-| 85 | int | `state` |
-| 86 | int | `armyCount` |
-| 87 | int | `type` |
-| 88 | int | `relationship` |
-| 89 | long | `fromCityId` |
-| 90 | long | `targetExpeditionId` |
-| 91 | int | `x` |
-| 92 | int | `y` |
-| 93 | long | `arrivedTime` |
-| 94 | int | `pageNum` |
-| 95 | int | `pageCount` |
-| 96 | long | `tradeId` |
-| 97 | byte | `tradeResourceType` |
-| 98 | int | `tradeAmount` |
-| 99 | string | `unitPrice` |
-| 100 | int | `totalPrice` |
-| 101 | long | `tradeTime` |
-| 102 | int | `sellerAvata` |
-| 103 | string | `sellerNickname` |
-| 104 | string | `sellerAllianceName` |
-| 105 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `diamond_owned` | 当前钻石数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u32 | `total_count` | 数量/计数 |
+| 5 | u64 | `medal_id` | — |
+| 6 | u32 | `cur_amount` | 当前数量 |
+| 7 | string | `name` | 名称 |
+| 8 | string | `description` | 描述文案 |
+| 9 | string | `use_description` | 描述文案 |
+| 10 | u32 | `icon` | 图标编号 |
+| 11 | u8 | `level` | 等级 |
+| 12 | u32 | `recycle_count` | 数量/计数 |
+| 13 | string | `recycle_name` | 名称 |
+| 14 | string | `disassemble_description` | 描述文案 |
+| 15 | u8 | `color` | — |
+| 16 | u8 | `is_protected` | 布尔标记（0/1） |
+| 17 | string | `notice` | 公告文案 |
+| 18 | u64 | `message_id` | — |
+| 19 | string | `message_title` | — |
+| 20 | string | `author` | — |
+| 21 | u32 | `priority` | — |
+| 22 | u64 | `message_time` | 时间戳（毫秒） |
+| 23 | u32 | `alliance_id` | 军团 ID |
+| 24 | string | `alliance_name` | 军团名称 |
+| 25 | u32 | `capital_x` | 地图 X 坐标 |
+| 26 | u32 | `capital_y` | 地图 Y 坐标 |
+| 27 | u32 | `position` | 格位编号 |
+| 28 | u32 | `id` | — |
+| 29 | string | `name` | 名称 |
+| 30 | u32 | `capital_status` | 结果状态 |
+| 31 | string | `info_1` | — |
+| 32 | string | `info_1` | — |
+| 33 | string | `info_2` | — |
+| 34 | u32 | `diamond_required` | — |
+| 35 | string | `info_1` | — |
+| 36 | string | `info_2` | — |
+| 37 | u32 | `diamond_required` | — |
+| 38 | u64 | `remain_time` | 剩余毫秒数 |
+| 39 | string | `info_1` | — |
+| 40 | u32 | `position` | 格位编号 |
+| 41 | u32 | `state` | — |
+| 42 | u64 | `remain_time` | 剩余毫秒数 |
+| 43 | u32 | `mine_id` | — |
+| 44 | u32 | `prototype_id` | 建筑原型 ID |
+| 45 | u32 | `production` | — |
+| 46 | u32 | `total_time` | 总耗时毫秒 |
+| 47 | string | `nuclear_description` | 描述文案 |
+| 48 | u32 | `capital_state` | — |
+| 49 | string | `state_description` | 描述文案 |
+| 50 | u8 | `type` | 类型枚举 |
+| 51 | string | `message` | — |
+| 52 | u32 | `type` | 类型枚举 |
+| 53 | u32 | `field_type` | 类型枚举 |
+| 54 | string | `city_icon` | 图标编号 |
+| 55 | string | `city_name` | 城池名称 |
+| 56 | string | `nuclear_icon` | 图标编号 |
+| 57 | string | `nuclear_name` | 名称 |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `field_icon` | 图标编号 |
+| 60 | string | `field_name` | 名称 |
+| 61 | string | `stronghold_icon` | 图标编号 |
+| 62 | string | `stronghold_name` | 名称 |
+| 63 | u32 | `x` | 地图 X 坐标 |
+| 64 | u32 | `y` | 地图 Y 坐标 |
+| 65 | string | `remark` | — |
+| 66 | u32 | `lines_count` | 数量/计数 |
+| 67 | u64 | `expedition_id` | — |
+| 68 | u32 | `start_x` | 地图 X 坐标 |
+| 69 | u32 | `start_y` | 地图 Y 坐标 |
+| 70 | u32 | `end_x` | 地图 X 坐标 |
+| 71 | u32 | `end_y` | 地图 Y 坐标 |
+| 72 | string | `mark` | — |
+| 73 | string | `officer_name` | 名称 |
+| 74 | u32 | `officer_icon` | 图标编号 |
+| 75 | u32 | `officer_level` | 等级 |
+| 76 | u64 | `player_id` | 玩家 ID |
+| 77 | string | `player_name` | 玩家名称 |
+| 78 | u32 | `avatar` | — |
+| 79 | string | `player_name` | 玩家名称 |
+| 80 | string | `alliance_name` | 军团名称 |
+| 81 | string | `title` | — |
+| 82 | string | `title_color` | — |
+| 83 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 84 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 85 | u32 | `state` | — |
+| 86 | u32 | `army_count` | 数量/计数 |
+| 87 | u32 | `type` | 类型枚举 |
+| 88 | u32 | `relationship` | — |
+| 89 | u64 | `from_city_id` | 城池 ID |
+| 90 | u64 | `target_expedition_id` | — |
+| 91 | u32 | `x` | 地图 X 坐标 |
+| 92 | u32 | `y` | 地图 Y 坐标 |
+| 93 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 94 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 95 | u32 | `page_count` | 总页数 |
+| 96 | u64 | `trade_id` | — |
+| 97 | u8 | `trade_resource_type` | 类型枚举 |
+| 98 | u32 | `trade_amount` | 数量 |
+| 99 | string | `unit_price` | 单价 |
+| 100 | u32 | `total_price` | 单价 |
+| 101 | u64 | `trade_time` | 时间戳（毫秒） |
+| 102 | u32 | `seller_avatar` | — |
+| 103 | string | `seller_nickname` | 玩家昵称 |
+| 104 | string | `seller_alliance_name` | 军团名称 |
+| 105 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=12003` — medal wear 12003
+### `cmd=12003` — 佩戴勋章
 
-- 常量: `Constant.PROT_MEDAL_WEAR_12003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u64 | `medal_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | long | `this.medalId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=12004` — medal takeoff 12004
+### `cmd=12004` — 卸下勋章
 
-- 常量: `Constant.PROT_MEDAL_TAKEOFF_12004`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `officer_id` | — |
+| 2 | u64 | `medal_id` | — |
+| 3 | u32 | `action_type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.officerId` |
-| 2 | long | `this.medalId` |
-| 3 | int | `this.actionType` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=12005` — medal list 12005
+### `cmd=12005` — 支付商品列表
 
-- 常量: `Constant.PROT_MEDAL_LIST_12005`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 2 | u32 | `page_size` | 每页条数 |
+| 3 | u8 | `enable_filter` | — |
+| 4 | u32 | `filter_army_type` | 类型枚举 |
+| 5 | u32 | `filter_function_type` | 类型枚举 |
+| 6 | u8 | `filter_order_type)` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.pageNum` |
-| 2 | int | `this.pageSize` |
-| 3 | byte | `this.enableFilter` |
-| 4 | int | `this.filterArmyType` |
-| 5 | int | `this.filterFunctionType` |
-| 6 | byte | `this.filterOrderType)` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `diamondOwned` |
-| 2 | int | `pageNum` |
-| 3 | int | `pageCount` |
-| 4 | int | `totalCount` |
-| 5 | long | `medalId` |
-| 6 | int | `curAmount` |
-| 7 | string | `name` |
-| 8 | string | `description` |
-| 9 | string | `useDescription` |
-| 10 | int | `icon` |
-| 11 | byte | `level` |
-| 12 | int | `recycleCount` |
-| 13 | string | `recycleName` |
-| 14 | string | `disassembleDescription` |
-| 15 | byte | `color` |
-| 16 | byte | `isProtected` |
-| 17 | string | `notice` |
-| 18 | long | `messageId` |
-| 19 | string | `messageTitle` |
-| 20 | string | `author` |
-| 21 | int | `priority` |
-| 22 | long | `messageTime` |
-| 23 | int | `allianceId` |
-| 24 | string | `allianceName` |
-| 25 | int | `capitalX` |
-| 26 | int | `capitalY` |
-| 27 | int | `position` |
-| 28 | int | `id` |
-| 29 | string | `name` |
-| 30 | int | `capitalStatus` |
-| 31 | string | `info1` |
-| 32 | string | `info1` |
-| 33 | string | `info2` |
-| 34 | int | `diamondRequired` |
-| 35 | string | `info1` |
-| 36 | string | `info2` |
-| 37 | int | `diamondRequired` |
-| 38 | long | `remainTime` |
-| 39 | string | `info1` |
-| 40 | int | `position` |
-| 41 | int | `state` |
-| 42 | long | `remainTime` |
-| 43 | int | `mineId` |
-| 44 | int | `prototypeID` |
-| 45 | int | `production` |
-| 46 | int | `totalTime` |
-| 47 | string | `nuclearDescription` |
-| 48 | int | `capitalState` |
-| 49 | string | `stateDescription` |
-| 50 | byte | `type` |
-| 51 | string | `message` |
-| 52 | int | `type` |
-| 53 | int | `fieldType` |
-| 54 | string | `cityIcon` |
-| 55 | string | `cityName` |
-| 56 | string | `nuclearIcon` |
-| 57 | string | `nuclearName` |
-| 58 | string | `allianceName` |
-| 59 | string | `fieldIcon` |
-| 60 | string | `fieldName` |
-| 61 | string | `strongholdIcon` |
-| 62 | string | `strongholdName` |
-| 63 | int | `x` |
-| 64 | int | `y` |
-| 65 | string | `remark` |
-| 66 | int | `linesCount` |
-| 67 | long | `expeditionId` |
-| 68 | int | `startX` |
-| 69 | int | `startY` |
-| 70 | int | `endX` |
-| 71 | int | `endY` |
-| 72 | string | `mark` |
-| 73 | string | `officerName` |
-| 74 | int | `officerIcon` |
-| 75 | int | `officerLevel` |
-| 76 | long | `playerId` |
-| 77 | string | `playerName` |
-| 78 | int | `avata` |
-| 79 | string | `playerName` |
-| 80 | string | `allianceName` |
-| 81 | string | `title` |
-| 82 | string | `titleColor` |
-| 83 | long | `onewayTime` |
-| 84 | long | `remainingTime` |
-| 85 | int | `state` |
-| 86 | int | `armyCount` |
-| 87 | int | `type` |
-| 88 | int | `relationship` |
-| 89 | long | `fromCityId` |
-| 90 | long | `targetExpeditionId` |
-| 91 | int | `x` |
-| 92 | int | `y` |
-| 93 | long | `arrivedTime` |
-| 94 | int | `pageNum` |
-| 95 | int | `pageCount` |
-| 96 | long | `tradeId` |
-| 97 | byte | `tradeResourceType` |
-| 98 | int | `tradeAmount` |
-| 99 | string | `unitPrice` |
-| 100 | int | `totalPrice` |
-| 101 | long | `tradeTime` |
-| 102 | int | `sellerAvata` |
-| 103 | string | `sellerNickname` |
-| 104 | string | `sellerAllianceName` |
-| 105 | string | `confirmMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `diamond_owned` | 当前钻石数 |
+| 2 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 3 | u32 | `page_count` | 总页数 |
+| 4 | u32 | `total_count` | 数量/计数 |
+| 5 | u64 | `medal_id` | — |
+| 6 | u32 | `cur_amount` | 当前数量 |
+| 7 | string | `name` | 名称 |
+| 8 | string | `description` | 描述文案 |
+| 9 | string | `use_description` | 描述文案 |
+| 10 | u32 | `icon` | 图标编号 |
+| 11 | u8 | `level` | 等级 |
+| 12 | u32 | `recycle_count` | 数量/计数 |
+| 13 | string | `recycle_name` | 名称 |
+| 14 | string | `disassemble_description` | 描述文案 |
+| 15 | u8 | `color` | — |
+| 16 | u8 | `is_protected` | 布尔标记（0/1） |
+| 17 | string | `notice` | 公告文案 |
+| 18 | u64 | `message_id` | — |
+| 19 | string | `message_title` | — |
+| 20 | string | `author` | — |
+| 21 | u32 | `priority` | — |
+| 22 | u64 | `message_time` | 时间戳（毫秒） |
+| 23 | u32 | `alliance_id` | 军团 ID |
+| 24 | string | `alliance_name` | 军团名称 |
+| 25 | u32 | `capital_x` | 地图 X 坐标 |
+| 26 | u32 | `capital_y` | 地图 Y 坐标 |
+| 27 | u32 | `position` | 格位编号 |
+| 28 | u32 | `id` | — |
+| 29 | string | `name` | 名称 |
+| 30 | u32 | `capital_status` | 结果状态 |
+| 31 | string | `info_1` | — |
+| 32 | string | `info_1` | — |
+| 33 | string | `info_2` | — |
+| 34 | u32 | `diamond_required` | — |
+| 35 | string | `info_1` | — |
+| 36 | string | `info_2` | — |
+| 37 | u32 | `diamond_required` | — |
+| 38 | u64 | `remain_time` | 剩余毫秒数 |
+| 39 | string | `info_1` | — |
+| 40 | u32 | `position` | 格位编号 |
+| 41 | u32 | `state` | — |
+| 42 | u64 | `remain_time` | 剩余毫秒数 |
+| 43 | u32 | `mine_id` | — |
+| 44 | u32 | `prototype_id` | 建筑原型 ID |
+| 45 | u32 | `production` | — |
+| 46 | u32 | `total_time` | 总耗时毫秒 |
+| 47 | string | `nuclear_description` | 描述文案 |
+| 48 | u32 | `capital_state` | — |
+| 49 | string | `state_description` | 描述文案 |
+| 50 | u8 | `type` | 类型枚举 |
+| 51 | string | `message` | — |
+| 52 | u32 | `type` | 类型枚举 |
+| 53 | u32 | `field_type` | 类型枚举 |
+| 54 | string | `city_icon` | 图标编号 |
+| 55 | string | `city_name` | 城池名称 |
+| 56 | string | `nuclear_icon` | 图标编号 |
+| 57 | string | `nuclear_name` | 名称 |
+| 58 | string | `alliance_name` | 军团名称 |
+| 59 | string | `field_icon` | 图标编号 |
+| 60 | string | `field_name` | 名称 |
+| 61 | string | `stronghold_icon` | 图标编号 |
+| 62 | string | `stronghold_name` | 名称 |
+| 63 | u32 | `x` | 地图 X 坐标 |
+| 64 | u32 | `y` | 地图 Y 坐标 |
+| 65 | string | `remark` | — |
+| 66 | u32 | `lines_count` | 数量/计数 |
+| 67 | u64 | `expedition_id` | — |
+| 68 | u32 | `start_x` | 地图 X 坐标 |
+| 69 | u32 | `start_y` | 地图 Y 坐标 |
+| 70 | u32 | `end_x` | 地图 X 坐标 |
+| 71 | u32 | `end_y` | 地图 Y 坐标 |
+| 72 | string | `mark` | — |
+| 73 | string | `officer_name` | 名称 |
+| 74 | u32 | `officer_icon` | 图标编号 |
+| 75 | u32 | `officer_level` | 等级 |
+| 76 | u64 | `player_id` | 玩家 ID |
+| 77 | string | `player_name` | 玩家名称 |
+| 78 | u32 | `avatar` | — |
+| 79 | string | `player_name` | 玩家名称 |
+| 80 | string | `alliance_name` | 军团名称 |
+| 81 | string | `title` | — |
+| 82 | string | `title_color` | — |
+| 83 | u64 | `oneway_time` | 时间戳（毫秒） |
+| 84 | u64 | `remaining_time` | 时间戳（毫秒） |
+| 85 | u32 | `state` | — |
+| 86 | u32 | `army_count` | 数量/计数 |
+| 87 | u32 | `type` | 类型枚举 |
+| 88 | u32 | `relationship` | — |
+| 89 | u64 | `from_city_id` | 城池 ID |
+| 90 | u64 | `target_expedition_id` | — |
+| 91 | u32 | `x` | 地图 X 坐标 |
+| 92 | u32 | `y` | 地图 Y 坐标 |
+| 93 | u64 | `arrived_time` | 时间戳（毫秒） |
+| 94 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 95 | u32 | `page_count` | 总页数 |
+| 96 | u64 | `trade_id` | — |
+| 97 | u8 | `trade_resource_type` | 类型枚举 |
+| 98 | u32 | `trade_amount` | 数量 |
+| 99 | string | `unit_price` | 单价 |
+| 100 | u32 | `total_price` | 单价 |
+| 101 | u64 | `trade_time` | 时间戳（毫秒） |
+| 102 | u32 | `seller_avatar` | — |
+| 103 | string | `seller_nickname` | 玩家昵称 |
+| 104 | string | `seller_alliance_name` | 军团名称 |
+| 105 | string | `confirm_message` | — |
 
 ---
 
-#### `cmd=12006` — medal callback 12006
+### `cmd=12006` — 勋章操作回调
 
-- 常量: `Constant.PROT_MEDAL_CALLBACK_12006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `ids.length` | — |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.ids.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `name` |
-| 2 | int | `icon` |
-| 3 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `name` | 名称 |
+| 2 | u32 | `icon` | 图标编号 |
+| 3 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=12007` — medal upgrade info 12007
+### `cmd=12007` — 查询勋章升级信息
 
-- 常量: `Constant.PROT_MEDAL_UPGRADE_INFO_12007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `medal_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.medalId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `upgradeInfoCurrent` |
-| 2 | string | `upgradeInfoAfter` |
-| 3 | string | `cimeliaCost` |
-| 4 | string | `cimeliaOwned` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `upgrade_info_current` | — |
+| 2 | string | `upgrade_info_after` | — |
+| 3 | string | `cimelia_cost` | — |
+| 4 | string | `cimelia_owned` | — |
 
 ---
 
-#### `cmd=12008` — medal upgrade 12008
+### `cmd=12008` — 升级勋章
 
-- 常量: `Constant.PROT_MEDAL_UPGRADE_12008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `medal_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.medalId` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=12009` — medal disassemble 12009
+### `cmd=12009` — 分解勋章
 
-- 常量: `Constant.PROT_MEDAL_DISASSEMBLE_12009`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `ids.length` | — |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.ids.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `itemID` |
-| 2 | string | `name` |
-| 3 | string | `description` |
-| 4 | int | `icon` |
-| 5 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | string | `name` | 名称 |
+| 3 | string | `description` | 描述文案 |
+| 4 | u32 | `icon` | 图标编号 |
+| 5 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=12010` — medal wash info 12010
+### `cmd=12010` — 查询勋章洗练信息
 
-- 常量: `Constant.PROT_MEDAL_WASH_INFO_12010`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `medal_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.medalId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `name` |
-| 2 | string | `washInfo` |
-| 3 | string | `washDescription` |
-| 4 | int | `toolAmount` |
-| 5 | byte | `color` |
-| 6 | string | `toolName` |
-| 7 | byte | `washValueType` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `name` | 名称 |
+| 2 | string | `wash_info` | — |
+| 3 | string | `wash_description` | 描述文案 |
+| 4 | u32 | `tool_amount` | 数量 |
+| 5 | u8 | `color` | — |
+| 6 | string | `tool_name` | 名称 |
+| 7 | u8 | `wash_value_type` | 类型枚举 |
 
 ---
 
-#### `cmd=12011` — medal wash 12011
+### `cmd=12011` — 洗练勋章
 
-- 常量: `Constant.PROT_MEDAL_WASH_12011`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `medal_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.medalId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `washTypeChange` |
-| 2 | string | `washValueChange` |
-| 3 | string | `washInfoCurrent` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `wash_type_change` | 类型枚举 |
+| 2 | string | `wash_value_change` | — |
+| 3 | string | `wash_info_current` | — |
 
 ---
 
-#### `cmd=12012` — medal list query 12012
+### `cmd=12012` — 查询勋章列表
 
-- 常量: `Constant.PROT_MEDAL_LIST_QUERY_12012`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `query_type` | 类型枚举 |
+| 2 | u64 | `officer_id` | — |
+| 3 | u8 | `page_size` | 每页条数 |
+| 4 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
+| 5 | u32 | `army_type` | 类型枚举 |
+| 6 | u32 | `function_type` | 类型枚举 |
+| 7 | u8 | `order)` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.queryType` |
-| 2 | long | `this.officerId` |
-| 3 | byte | `this.pageSize` |
-| 4 | int | `this.pageNum` |
-| 5 | int | `this.armyType` |
-| 6 | int | `this.functionType` |
-| 7 | byte | `this.order)` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `slotTotal` |
-| 2 | int | `slotUsing` |
-| 3 | long | `medalId` |
-| 4 | string | `name` |
-| 5 | int | `slotRequired` |
-| 6 | string | `effectName` |
-| 7 | string | `effectDescription` |
-| 8 | long | `icon` |
-| 9 | byte | `level` |
-| 10 | byte | `color` |
-| 11 | string | `slotExpandMessage` |
-| 12 | int | `pageCount` |
-| 13 | int | `pageNum` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `slot_total` | — |
+| 2 | u32 | `slot_using` | — |
+| 3 | u64 | `medal_id` | — |
+| 4 | string | `name` | 名称 |
+| 5 | u32 | `slot_required` | — |
+| 6 | string | `effect_name` | 名称 |
+| 7 | string | `effect_description` | 描述文案 |
+| 8 | u64 | `icon` | 图标编号 |
+| 9 | u8 | `level` | 等级 |
+| 10 | u8 | `color` | — |
+| 11 | string | `slot_expand_message` | — |
+| 12 | u32 | `page_count` | 总页数 |
+| 13 | u32 | `page_num` | 页码（从 0 或 1 起，随接口） |
 
 ---
 
-#### `cmd=12045` — equipment callback 12045
+### `cmd=12045` — 装备操作回调
 
-- 常量: `Constant.PROT_EQUIPMENT_CALLBACK_12045`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `ids.length` | — |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.ids.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `name` |
-| 2 | int | `icon` |
-| 3 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `name` | 名称 |
+| 2 | u32 | `icon` | 图标编号 |
+| 3 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=12046` — medal wash type convert 12046
+### `cmd=12046` — 勋章洗练类型转换
 
-- 常量: `Constant.PROT_MEDAL_WASH_TYPE_CONVERT_12046`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `target_type` | 类型枚举 |
+| 2 | u64 | `medal_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.targetType` |
-| 2 | long | `this.medalId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `washTypeChange` |
-| 2 | byte | `washValueType` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `wash_type_change` | 类型枚举 |
+| 2 | u8 | `wash_value_type` | 类型枚举 |
 
 ---
 
-#### `cmd=12047` — medal lock and unlock 12047
+### `cmd=12047` — 勋章锁定/解锁
 
-- 常量: `Constant.PROT_MEDAL_LOCK_AND_UNLOCK_12047`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `action` | — |
+| 2 | u8 | `medal_ids.length` | — |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.action` |
-| 2 | byte | `this.medalIds.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=12048` — equipment lock and unlock 12048
+### `cmd=12048` — 支付回调
 
-- 常量: `Constant.PROT_EQUIPMENT_LOCK_AND_UNLOCK_12048`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `action` | — |
+| 2 | u8 | `equip_ids.length` | — |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.action` |
-| 2 | byte | `this.equipIds.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
-
----
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。

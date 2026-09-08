@@ -1,218 +1,197 @@
 # 道具与背包
 
-> 9 个命令（cmd 8001 ~ 8023）
+> 9 个命令（cmd 8001 ~ 8023）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=8001` — cimelia chest open 8001
+### `cmd=8001` — 开启宝箱
 
-- 常量: `Constant.PROT_CIMELIA_CHEST_OPEN_8001`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `amount` | 数量 |
+| 3 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| ? | 条件 | `if(this._data.writeInt(this.itemID)` |
-| 1 | int | `this.amount` |
-| … | 循环 | `for(var e=0` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `normalAmount` |
-| 2 | int | `additionAmount` |
-| 3 | int | `finalAmount` |
-| 4 | int | `icon` |
-| 5 | string | `name` |
-| 6 | int | `chance` |
-| 7 | string | `_otherIcon` |
-| 8 | string | `name` |
-| 9 | int | `amount` |
-| 10 | int | `merchandiseId` |
-| 11 | string | `name` |
-| 12 | int | `icon` |
-| 13 | int | `amount` |
-| 14 | int | `price` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `normal_amount` | 数量 |
+| 2 | u32 | `addition_amount` | 数量 |
+| 3 | u32 | `final_amount` | 数量 |
+| 4 | u32 | `icon` | 图标编号 |
+| 5 | string | `name` | 名称 |
+| 6 | u32 | `chance` | 概率（万分比） |
+| 7 | string | `other_icon` | 图标编号 |
+| 8 | string | `name` | 名称 |
+| 9 | u32 | `amount` | 数量 |
+| 10 | u32 | `merchandise_id` | — |
+| 11 | string | `name` | 名称 |
+| 12 | u32 | `icon` | 图标编号 |
+| 13 | u32 | `amount` | 数量 |
+| 14 | u32 | `price` | 单价 |
 
 ---
 
-#### `cmd=8003` — cimelia callback 8003
+### `cmd=8003` — 开箱回调
 
-- 常量: `Constant.PROT_CIMELIA_CALLBACK_8003`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `amount` | 数量 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemID` |
-| 2 | int | `this.amount` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `name` |
-| 2 | int | `icon` |
-| 3 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `name` | 名称 |
+| 2 | u32 | `icon` | 图标编号 |
+| 3 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=8005` — cimelia list 8005
+### `cmd=8005` — 查询背包总表
 
-- 常量: `Constant.PROT_CIMELIA_LIST_8005`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `diamondOwned` |
-| 2 | byte | `showType` |
-| 3 | byte | `functionType` |
-| 4 | int | `itemID` |
-| 5 | byte | `boxType` |
-| 6 | int | `merchandiseId` |
-| 7 | int | `price` |
-| 8 | int | `itemID` |
-| 9 | int | `icon` |
-| 10 | string | `name` |
-| 11 | int | `chance` |
-| 12 | int | `maxSelected` |
-| 13 | int | `itemID` |
-| 14 | int | `icon` |
-| 15 | string | `name` |
-| 16 | int | `amount` |
-| 17 | int | `curAmount` |
-| 18 | string | `name` |
-| 19 | string | `description` |
-| 20 | string | `useDescription` |
-| 21 | int | `icon` |
-| 22 | byte | `level` |
-| 23 | int | `recycleCount` |
-| 24 | string | `recycleName` |
-| 25 | byte | `useType` |
-| 26 | string | `notice` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `diamond_owned` | 当前钻石数 |
+| 2 | u8 | `show_type` | 类型枚举 |
+| 3 | u8 | `function_type` | 类型枚举 |
+| 4 | u32 | `item_id` | 道具 ID |
+| 5 | u8 | `box_type` | 类型枚举 |
+| 6 | u32 | `merchandise_id` | — |
+| 7 | u32 | `price` | 单价 |
+| 8 | u32 | `item_id` | 道具 ID |
+| 9 | u32 | `icon` | 图标编号 |
+| 10 | string | `name` | 名称 |
+| 11 | u32 | `chance` | 概率（万分比） |
+| 12 | u32 | `max_selected` | 上限 |
+| 13 | u32 | `item_id` | 道具 ID |
+| 14 | u32 | `icon` | 图标编号 |
+| 15 | string | `name` | 名称 |
+| 16 | u32 | `amount` | 数量 |
+| 17 | u32 | `cur_amount` | 当前数量 |
+| 18 | string | `name` | 名称 |
+| 19 | string | `description` | 描述文案 |
+| 20 | string | `use_description` | 描述文案 |
+| 21 | u32 | `icon` | 图标编号 |
+| 22 | u8 | `level` | 等级 |
+| 23 | u32 | `recycle_count` | 数量/计数 |
+| 24 | string | `recycle_name` | 名称 |
+| 25 | u8 | `use_type` | 类型枚举 |
+| 26 | string | `notice` | 公告文案 |
 
 ---
 
-#### `cmd=8007` — cimelia function cimelia list 8007
+### `cmd=8007` — 按功能查询道具
 
-- 常量: `Constant.PROT_CIMELIA_FUNCTION_CIMELIA_LIST_8007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `function_target_type` | 类型枚举 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.functionTargetType` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `itemID` |
-| 2 | int | `icon` |
-| 3 | string | `name` |
-| 4 | string | `description` |
-| 5 | int | `curAmount` |
-| 6 | int | `merchandiseId` |
-| 7 | int | `effectValue` |
-| 8 | byte | `limitedOnBuy` |
-| 9 | int | `maxCountOnBuy` |
-| 10 | int | `price` |
-| 11 | int | `diamondOwned` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `icon` | 图标编号 |
+| 3 | string | `name` | 名称 |
+| 4 | string | `description` | 描述文案 |
+| 5 | u32 | `cur_amount` | 当前数量 |
+| 6 | u32 | `merchandise_id` | — |
+| 7 | u32 | `effect_value` | — |
+| 8 | u8 | `limited_on_buy` | — |
+| 9 | u32 | `max_count_on_buy` | 数量/计数 |
+| 10 | u32 | `price` | 单价 |
+| 11 | u32 | `diamond_owned` | 当前钻石数 |
 
 ---
 
-#### `cmd=8018` — cimelia the assembly 8018
+### `cmd=8018` — 道具集结
 
-- 常量: `Constant.PROT_CIMELIA_THE_ASSEMBLY_8018`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `itemNum` |
-| 2 | int | `id` |
-| 3 | int | `imageId` |
-| 4 | string | `name` |
-| 5 | string | `description` |
-| 6 | int | `number` |
-| 7 | int | `price` |
-| 8 | int | `commodityId` |
-| 9 | int | `effect` |
-| 10 | int | `oilEffect` |
-| 11 | int | `diamondCount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_num` | 道具 |
+| 2 | u32 | `id` | — |
+| 3 | u32 | `image_id` | — |
+| 4 | string | `name` | 名称 |
+| 5 | string | `description` | 描述文案 |
+| 6 | u32 | `number` | — |
+| 7 | u32 | `price` | 单价 |
+| 8 | u32 | `commodity_id` | — |
+| 9 | u32 | `effect` | — |
+| 10 | u32 | `oil_effect` | — |
+| 11 | u32 | `diamond_count` | 数量/计数 |
 
 ---
 
-#### `cmd=8020` — cimelia boost list 8020
+### `cmd=8020` — 查询加速道具
 
-- 常量: `Constant.PROT_CIMELIA_BOOST_LIST_8020`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=8021` — cimelia boost active 8021
+### `cmd=8021` — 使用加速道具
 
-- 常量: `Constant.PROT_CIMELIA_BOOST_ACTIVE_8021`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemID` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `message` | — |
 
 ---
 
-#### `cmd=8022` — cimelia truce status 8022
+### `cmd=8022` — 停战状态查询
 
-- 常量: `Constant.PROT_CIMELIA_TRUCE_STATUS_8022`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `finishTime` |
-| 2 | long | `coolTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `finish_time` | 完成时间戳 |
+| 2 | u64 | `cool_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=8023` — cimelia use atomic 8023
+### `cmd=8023` — 使用核弹道具
 
-- 常量: `Constant.PROT_CIMELIA_USE_ATOMIC_8023`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `x` | 地图 X 坐标 |
+| 3 | u32 | `y` | 地图 Y 坐标 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemId` |
-| 2 | int | `this.x` |
-| 3 | int | `this.y` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
-
----
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。

@@ -1,807 +1,733 @@
 # 账号与玩家
 
-> 34 个命令（cmd 1001 ~ 1050）
+> 34 个命令（cmd 1001 ~ 1050）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-#### `cmd=1001` — player login 1001
+### `cmd=1001` — 账号登录
 
-- 常量: `Constant.PROT_PLAYER_LOGIN_1001`
-- 成功判定: `status1=this.status()||2=this.status()`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `user_id` | 账号 ID |
+| 2 | string | `username` | 账号名 |
+| 3 | u32 | `client_ver` | 客户端版本整数 |
+| 4 | string | `platform` | — |
+| 5 | string | `channel` | 渠道名 |
+| 6 | string | `language` | 语言代码 |
+| 7 | string | `app_key` | 客户端应用密钥 |
+| 8 | string | `wst` | — |
+| 9 | string | `install_id` | 设备安装 ID |
+| 10 | u8 | `stop_login_if_online` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.userId` |
-| 2 | string | `this.username` |
-| 3 | int | `this.clientVer` |
-| 4 | string | `this.platform` |
-| 5 | string | `this.channel` |
-| 6 | string | `this.language` |
-| 7 | string | `this.appKey` |
-| 8 | string | `this.wst` |
-| 9 | string | `this.installID` |
-| 10 | byte | `this.stopLoginIfOnline` |
+**响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `identity` |
-| 2 | long | `pushThreshold` |
-| 3 | byte | `age` |
-| 4 | long | `onlineTime` |
-| 5 | string | `realName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `identity` | — |
+| 2 | u64 | `push_threshold` | — |
+| 3 | u8 | `age` | — |
+| 4 | u64 | `online_time` | 时间戳（毫秒） |
+| 5 | string | `real_name` | 名称 |
 
 ---
 
-#### `cmd=1003` — broadcast player kicked off 1003
+### `cmd=1003` — 被顶下线通知
 
-- 常量: `Constant.PROT_BROADCAST_PLAYER_KICKED_OFF_1003`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | string | `_errorMessage` |
-| 3 | string | `message` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | string | `error_message` | 错误描述 |
+| 3 | string | `message` | — |
 
 ---
 
-#### `cmd=1004` — p
+### `cmd=1004` — 续登
 
-- 常量: `Constant.PROT_P`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `user_id` | 账号 ID |
+| 2 | string | `username` | 账号名 |
+| 3 | u32 | `client_ver` | 客户端版本整数 |
+| 4 | string | `platform` | — |
+| 5 | string | `channel` | 渠道名 |
+| 6 | string | `language` | 语言代码 |
+| 7 | string | `app_key` | 客户端应用密钥 |
+| 8 | string | `init_channel` | 渠道名 |
+| 9 | string | `install_id` | 设备安装 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.userId` |
-| 2 | string | `this.username` |
-| 3 | int | `this.clientVer` |
-| 4 | string | `this.platform` |
-| 5 | string | `this.channel` |
-| 6 | string | `this.language` |
-| 7 | string | `this.appKey` |
-| 8 | string | `this.initChannel` |
-| 9 | string | `this.installID` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `age` |
-| 2 | long | `onlineTime` |
-| 3 | string | `realName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `age` | — |
+| 2 | u64 | `online_time` | 时间戳（毫秒） |
+| 3 | string | `real_name` | 名称 |
 
 ---
 
-#### `cmd=1005` — player core info 1005
+### `cmd=1005` — 查询玩家核心信息
 
-- 常量: `Constant.PROT_PLAYER_CORE_INFO_1005`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `gameStatus` |
-| 2 | int | `diamondOwned` |
-| 3 | long | `activeCityID` |
-| 4 | int | `totalCityCount` |
-| 5 | int | `totalPopulationCount` |
-| 6 | int | `totalOfficerCount` |
-| 7 | int | `newbieProtect` |
-| 8 | string | `cityImg` |
-| 9 | int | `nuclearCount` |
-| 10 | int | `helpedCount` |
-| 11 | int | `maxHelpCount` |
-| 12 | int | `resBuildingCount` |
-| 13 | int | `vip` |
-| 14 | long | `diamondCharged` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `game_status` | 结果状态 |
+| 2 | u32 | `diamond_owned` | 当前钻石数 |
+| 3 | u64 | `active_city_id` | 当前主城 ID |
+| 4 | u32 | `total_city_count` | 城池数量 |
+| 5 | u32 | `total_population_count` | 人口数 |
+| 6 | u32 | `total_officer_count` | 数量/计数 |
+| 7 | u32 | `newbie_protect` | — |
+| 8 | string | `city_img` | 城池外观标识 |
+| 9 | u32 | `nuclear_count` | 数量/计数 |
+| 10 | u32 | `helped_count` | 数量/计数 |
+| 11 | u32 | `max_help_count` | 数量/计数 |
+| 12 | u32 | `res_building_count` | 数量/计数 |
+| 13 | u32 | `vip` | — |
+| 14 | u64 | `diamond_charged` | 累计充值钻石 |
 
 ---
 
-#### `cmd=1006` — player rename 1006
+### `cmd=1006` — 玩家改名
 
-- 常量: `Constant.PROT_PLAYER_RENAME_1006`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `new_name` | 名称 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.newName` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `newName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `new_name` | 名称 |
 
 ---
 
-#### `cmd=1007` — player active truce 1007
+### `cmd=1007` — 激活停战
 
-- 常量: `Constant.PROT_PLAYER_ACTIVE_TRUCE_1007`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | u32 | `hours` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemID` |
-| 2 | int | `this.hours` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `timeString` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `time_string` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=1008` — player flaund create 1008
+### `cmd=1008` — 创建抓捕
 
-- 常量: `Constant.PROT_PLAYER_FLAUND_CREATE_1008`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `flaund_type` | 类型枚举 |
+| 2 | u64 | `target_id` | — |
+| 3 | string | `target_name` | 名称 |
+| 4 | u32 | `target_level` | 等级 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.flaundType` |
-| 2 | long | `this.targetId` |
-| 3 | string | `this.targetName` |
-| 4 | int | `this.targetLevel` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `flauntId` |
-| 2 | string | `targetName` |
-| 3 | byte | `flaundType` |
-| 4 | int | `targetLevel` |
-| 5 | string | `battleFieldName` |
-| 6 | int | `battleFieldX` |
-| 7 | int | `battleFieldY` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `flaunt_id` | — |
+| 2 | string | `target_name` | 名称 |
+| 3 | u8 | `flaund_type` | 类型枚举 |
+| 4 | u32 | `target_level` | 等级 |
+| 5 | string | `battle_field_name` | 名称 |
+| 6 | u32 | `battle_field_x` | 地图 X 坐标 |
+| 7 | u32 | `battle_field_y` | 地图 Y 坐标 |
 
 ---
 
-#### `cmd=1009` — player flaund query 1009
+### `cmd=1009` — 查询抓捕详情
 
-- 常量: `Constant.PROT_PLAYER_FLAUND_QUERY_1009`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `flaund_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.flaundId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `flaundType` |
-| 2 | string | `name` |
-| 3 | string | `description` |
-| 4 | int | `icon` |
-| 5 | byte | `level` |
-| 6 | string | `name` |
-| 7 | int | `icon` |
-| 8 | int | `position` |
-| 9 | byte | `level` |
-| 10 | int | `levelRequiredOnWear` |
-| 11 | int | `military` |
-| 12 | int | `knowledge` |
-| 13 | int | `logistics` |
-| 14 | int | `attack` |
-| 15 | int | `defence` |
-| 16 | int | `isBind` |
-| 17 | string | `description` |
-| 18 | byte | `curEndure` |
-| 19 | byte | `maxEndure` |
-| 20 | string | `suitDescription` |
-| 21 | long | `officerId` |
-| 22 | int | `prototypeId` |
-| 23 | string | `officerName` |
-| 24 | int | `icon` |
-| 25 | int | `level` |
-| 26 | int | `star` |
-| 27 | int | `experience` |
-| 28 | int | `experienceNextLevel` |
-| 29 | int | `logisticsBase` |
-| 30 | int | `militaryBase` |
-| 31 | int | `knowledgeBase` |
-| 32 | int | `faithful` |
-| 33 | int | `salary` |
-| 34 | int | `potential` |
-| 35 | int | `attack` |
-| 36 | int | `defence` |
-| 37 | int | `leaderShip` |
-| 38 | int | `skillId` |
-| 39 | string | `icon` |
-| 40 | string | `skillName` |
-| 41 | int | `skillLevel` |
-| 42 | string | `skillDescription` |
-| 43 | long | `equipmentId` |
-| 44 | string | `name` |
-| 45 | int | `icon` |
-| 46 | int | `position` |
-| 47 | byte | `level` |
-| 48 | int | `levelRequiredOnWear` |
-| 49 | int | `military` |
-| 50 | int | `knowledge` |
-| 51 | int | `logistics` |
-| 52 | int | `attack` |
-| 53 | int | `defence` |
-| 54 | int | `isBind` |
-| 55 | string | `description` |
-| 56 | byte | `curEndure` |
-| 57 | byte | `maxEndure` |
-| 58 | int | `goldRequiredOnRepair` |
-| 59 | int | `promotionItemCount` |
-| 60 | short | `logisticsAdd` |
-| 61 | short | `militaryAdd` |
-| 62 | short | `knowledgeAdd` |
-| 63 | short | `attackAdd` |
-| 64 | short | `defenceAdd` |
-| 65 | short | `leaderShipAdd` |
-| 66 | byte | `isOfficerTroop` |
-| 67 | byte | `isSackable` |
-| 68 | long | `reportId` |
-| 69 | string | `url` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `flaund_type` | 类型枚举 |
+| 2 | string | `name` | 名称 |
+| 3 | string | `description` | 描述文案 |
+| 4 | u32 | `icon` | 图标编号 |
+| 5 | u8 | `level` | 等级 |
+| 6 | string | `name` | 名称 |
+| 7 | u32 | `icon` | 图标编号 |
+| 8 | u32 | `position` | 格位编号 |
+| 9 | u8 | `level` | 等级 |
+| 10 | u32 | `level_required_on_wear` | 等级 |
+| 11 | u32 | `military` | — |
+| 12 | u32 | `knowledge` | — |
+| 13 | u32 | `logistics` | — |
+| 14 | u32 | `attack` | — |
+| 15 | u32 | `defence` | — |
+| 16 | u32 | `is_bind` | 布尔标记（0/1） |
+| 17 | string | `description` | 描述文案 |
+| 18 | u8 | `cur_endure` | 当前值 |
+| 19 | u8 | `max_endure` | 上限 |
+| 20 | string | `suit_description` | 描述文案 |
+| 21 | u64 | `officer_id` | — |
+| 22 | u32 | `prototype_id` | 建筑原型 ID |
+| 23 | string | `officer_name` | 名称 |
+| 24 | u32 | `icon` | 图标编号 |
+| 25 | u32 | `level` | 等级 |
+| 26 | u32 | `star` | — |
+| 27 | u32 | `experience` | — |
+| 28 | u32 | `experience_next_level` | 等级 |
+| 29 | u32 | `logistics_base` | — |
+| 30 | u32 | `military_base` | — |
+| 31 | u32 | `knowledge_base` | — |
+| 32 | u32 | `faithful` | — |
+| 33 | u32 | `salary` | — |
+| 34 | u32 | `potential` | — |
+| 35 | u32 | `attack` | — |
+| 36 | u32 | `defence` | — |
+| 37 | u32 | `leader_ship` | — |
+| 38 | u32 | `skill_id` | — |
+| 39 | string | `icon` | 图标编号 |
+| 40 | string | `skill_name` | 名称 |
+| 41 | u32 | `skill_level` | 等级 |
+| 42 | string | `skill_description` | 描述文案 |
+| 43 | u64 | `equipment_id` | — |
+| 44 | string | `name` | 名称 |
+| 45 | u32 | `icon` | 图标编号 |
+| 46 | u32 | `position` | 格位编号 |
+| 47 | u8 | `level` | 等级 |
+| 48 | u32 | `level_required_on_wear` | 等级 |
+| 49 | u32 | `military` | — |
+| 50 | u32 | `knowledge` | — |
+| 51 | u32 | `logistics` | — |
+| 52 | u32 | `attack` | — |
+| 53 | u32 | `defence` | — |
+| 54 | u32 | `is_bind` | 布尔标记（0/1） |
+| 55 | string | `description` | 描述文案 |
+| 56 | u8 | `cur_endure` | 当前值 |
+| 57 | u8 | `max_endure` | 上限 |
+| 58 | u32 | `gold_required_on_repair` | — |
+| 59 | u32 | `promotion_item_count` | 数量/计数 |
+| 60 | u16 | `logistics_add` | — |
+| 61 | u16 | `military_add` | — |
+| 62 | u16 | `knowledge_add` | — |
+| 63 | u16 | `attack_add` | — |
+| 64 | u16 | `defence_add` | — |
+| 65 | u16 | `leader_ship_add` | — |
+| 66 | u8 | `is_officer_troop` | 布尔标记（0/1） |
+| 67 | u8 | `is_sackable` | 布尔标记（0/1） |
+| 68 | u64 | `report_id` | — |
+| 69 | string | `url` | — |
 
 ---
 
-#### `cmd=1012` — player set enemy 1012
+### `cmd=1012` — 设置仇人
 
-- 常量: `Constant.PROT_PLAYER_SET_ENEMY_1012`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
+| 2 | u8 | `truce_tag` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
-| 2 | byte | `this.truceTag` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `truceTag` |
-| 2 | string | `tipMsg` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `truce_tag` | — |
+| 2 | string | `tip_msg` | — |
 
 ---
 
-#### `cmd=1013` — player designation change 1013
+### `cmd=1013` — 更改称号
 
-- 常量: `Constant.PROT_PLAYER_DESIGNATION_CHANGE_1013`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `designation` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.designation` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `designation` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `designation` | — |
 
 ---
 
-#### `cmd=1014` — player avata list 1014
+### `cmd=1014` — 获取头像列表
 
-- 常量: `Constant.PROT_PLAYER_AVATA_LIST_1014`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `prototypeId` |
-| 2 | int | `avata` |
-| 3 | string | `avataName` |
-| 4 | int | `itemID` |
-| 5 | string | `name` |
-| 6 | byte | `donotConsumeCimelia` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `prototype_id` | 建筑原型 ID |
+| 2 | u32 | `avatar` | — |
+| 3 | string | `avatar_name` | 名称 |
+| 4 | u32 | `item_id` | 道具 ID |
+| 5 | string | `name` | 名称 |
+| 6 | u8 | `donot_consume_cimelia` | — |
 
 ---
 
-#### `cmd=1015` — player status list 1015
+### `cmd=1015` — 查询玩家状态列表
 
-- 常量: `Constant.PROT_PLAYER_STATUS_LIST_1015`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `statusId` |
-| 2 | string | `statusName` |
-| 3 | long | `expireTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `status_id` | 结果状态 |
+| 2 | string | `status_name` | 结果状态 |
+| 3 | u64 | `expire_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=1016` — player avata change 1016
+### `cmd=1016` — 更换头像
 
-- 常量: `Constant.PROT_PLAYER_AVATA_CHANGE_1016`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `prototype_id` | 建筑原型 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.prototypeId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `avata` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `avatar` | — |
 
 ---
 
-#### `cmd=1017` — player full detail 1017
+### `cmd=1017` — 查询玩家完整详情
 
-- 常量: `Constant.PROT_PLAYER_FULL_DETAIL_1017`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `playerID` |
-| 2 | string | `nickname` |
-| 3 | int | `racial` |
-| 4 | int | `gender` |
-| 5 | int | `avatar` |
-| 6 | int | `district` |
-| 7 | string | `designation` |
-| 8 | long | `fame` |
-| 9 | long | `personalScore` |
-| 10 | int | `rank` |
-| 11 | int | `position` |
-| 12 | long | `allianceId` |
-| 13 | int | `badgeId` |
-| 14 | string | `allianceName` |
-| 15 | int | `alliancePosition` |
-| 16 | string | `alliancePositionName` |
-| 17 | int | `battleResult` |
-| 18 | byte | `imgStatus` |
-| 19 | string | `imgID` |
-| 20 | int | `allianceDonationNulearCount` |
-| 21 | long | `createTime` |
-| 22 | string | `fightPromiss` |
-| 23 | int | `motifyNameItemId` |
-| 24 | int | `motifyNameIconId` |
-| 25 | string | `motifyNameItemName` |
-| 26 | string | `motifyNameItemDes` |
-| 27 | int | `motifyNameItemCnt` |
-| 28 | int | `changePlayerNameDiamondNeed` |
-| 29 | int | `motifyFlagItemId` |
-| 30 | int | `motifyFlagIconId` |
-| 31 | string | `motifyFlagItemName` |
-| 32 | string | `motifyFlagItemDes` |
-| 33 | int | `motifyFlagItemCnt` |
-| 34 | int | `changeDesignationDiamondNeed` |
-| 35 | int | `vip` |
-| 36 | byte | `guestPresentSwitch` |
-| 37 | long | `influence` |
-| 38 | byte | `curCountry` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
+| 2 | string | `nickname` | 玩家昵称 |
+| 3 | u32 | `racial` | — |
+| 4 | u32 | `gender` | — |
+| 5 | u32 | `avatar` | — |
+| 6 | u32 | `district` | — |
+| 7 | string | `designation` | — |
+| 8 | u64 | `fame` | 声望值 |
+| 9 | u64 | `personal_score` | 积分 |
+| 10 | u32 | `rank` | 军衔等级 |
+| 11 | u32 | `position` | 格位编号 |
+| 12 | u64 | `alliance_id` | 军团 ID |
+| 13 | u32 | `badge_id` | — |
+| 14 | string | `alliance_name` | 军团名称 |
+| 15 | u32 | `alliance_position` | 格位编号 |
+| 16 | string | `alliance_position_name` | 格位编号 |
+| 17 | u32 | `battle_result` | — |
+| 18 | u8 | `img_status` | 结果状态 |
+| 19 | string | `img_id` | — |
+| 20 | u32 | `alliance_donation_nulear_count` | 军团 |
+| 21 | u64 | `create_time` | 创建时间戳 |
+| 22 | string | `fight_promiss` | — |
+| 23 | u32 | `motify_name_item_id` | 道具 ID |
+| 24 | u32 | `motify_name_icon_id` | 名称 |
+| 25 | string | `motify_name_item_name` | 道具名称 |
+| 26 | string | `motify_name_item_des` | 道具 |
+| 27 | u32 | `motify_name_item_cnt` | 道具 |
+| 28 | u32 | `change_player_name_diamond_need` | 玩家名称 |
+| 29 | u32 | `motify_flag_item_id` | 道具 ID |
+| 30 | u32 | `motify_flag_icon_id` | 图标编号 |
+| 31 | string | `motify_flag_item_name` | 道具名称 |
+| 32 | string | `motify_flag_item_des` | 道具 |
+| 33 | u32 | `motify_flag_item_cnt` | 道具 |
+| 34 | u32 | `change_designation_diamond_need` | — |
+| 35 | u32 | `vip` | — |
+| 36 | u8 | `guest_present_switch` | — |
+| 37 | u64 | `influence` | 影响力 |
+| 38 | u8 | `cur_country` | 当前值 |
 
 ---
 
-#### `cmd=1018` — player newbie guide sumbit 1018
+### `cmd=1018` — 提交新手引导进度
 
-- 常量: `Constant.PROT_PLAYER_NEWBIE_GUIDE_SUMBIT_1018`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `task_step` | — |
+| 2 | u8 | `handler_step` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.taskStep` |
-| 2 | byte | `this.handlerStep` |
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1020` — player blacklist names 1020
+### `cmd=1020` — 查询黑名单
 
-- 常量: `Constant.PROT_PLAYER_BLACKLIST_NAMES_1020`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `maxCount` |
-| 2 | long | `playerID` |
-| 3 | string | `nickname` |
-| 4 | int | `avata` |
-| 5 | string | `allianceName` |
-| 6 | long | `createTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `max_count` | 数量/计数 |
+| 2 | u64 | `player_id` | 玩家 ID |
+| 3 | string | `nickname` | 玩家昵称 |
+| 4 | u32 | `avatar` | — |
+| 5 | string | `alliance_name` | 军团名称 |
+| 6 | u64 | `create_time` | 创建时间戳 |
 
 ---
 
-#### `cmd=1021` — player blacklist add 1021
+### `cmd=1021` — 加入黑名单
 
-- 常量: `Constant.PROT_PLAYER_BLACKLIST_ADD_1021`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `player_id` | 玩家 ID |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.playerId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1022` — player blacklist remove 1022
+### `cmd=1022` — 移出黑名单
 
-- 常量: `Constant.PROT_PLAYER_BLACKLIST_REMOVE_1022`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `player_ids.length` | — |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.playerIds.length` |
-| … | 循环 | `for(var e` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1023` — player guest present switch 1023
+### `cmd=1023` — 设置访客展示开关
 
-- 常量: `Constant.PROT_PLAYER_GUEST_PRESENT_SWITCH_1023`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `turn` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.turn` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1024` — player title list 1024
+### `cmd=1024` — 查询称号列表
 
-- 常量: `Constant.PROT_PLAYER_TITLE_LIST_1024`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `titleId` |
-| 2 | string | `titleName` |
-| 3 | string | `color` |
-| 4 | int | `state` |
-| 5 | byte | `timeType` |
-| 6 | long | `expireTime` |
-| 7 | long | `duration` |
-| 8 | byte | `activeState` |
-| 9 | string | `activeMessage` |
-| 10 | string | `bonusMessage` |
-| 11 | int | `groupId` |
-| 12 | byte | `isShow` |
-| 13 | int | `militaryAdd` |
-| 14 | int | `logisticsAdd` |
-| 15 | int | `knowledgeAdd` |
-| 16 | int | `titleBonusType` |
-| 17 | int | `titleBonusSubType` |
-| 18 | byte | `titleBonusValueType` |
-| 19 | int | `titleBonusValue` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `title_id` | — |
+| 2 | string | `title_name` | 名称 |
+| 3 | string | `color` | — |
+| 4 | u32 | `state` | — |
+| 5 | u8 | `time_type` | 类型枚举 |
+| 6 | u64 | `expire_time` | 时间戳（毫秒） |
+| 7 | u64 | `duration` | — |
+| 8 | u8 | `active_state` | — |
+| 9 | string | `active_message` | — |
+| 10 | string | `bonus_message` | — |
+| 11 | u32 | `group_id` | — |
+| 12 | u8 | `is_show` | 布尔标记（0/1） |
+| 13 | u32 | `military_add` | — |
+| 14 | u32 | `logistics_add` | — |
+| 15 | u32 | `knowledge_add` | — |
+| 16 | u32 | `title_bonus_type` | 类型枚举 |
+| 17 | u32 | `title_bonus_sub_type` | 类型枚举 |
+| 18 | u8 | `title_bonus_value_type` | 类型枚举 |
+| 19 | u32 | `title_bonus_value` | — |
 
 ---
 
-#### `cmd=1025` — player title active deactive 1025
+### `cmd=1025` — 佩戴/卸下称号
 
-- 常量: `Constant.PROT_PLAYER_TITLE_ACTIVE_DEACTIVE_1025`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `title_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.titleId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1026` — player random name 1026
+### `cmd=1026` — 随机起名
 
-- 常量: `Constant.PROT_PLAYER_RANDOM_NAME_1026`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `randomId` |
-| 2 | string | `randomName` |
-| 3 | long | `expireTime` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `random_id` | — |
+| 2 | string | `random_name` | 名称 |
+| 3 | u64 | `expire_time` | 时间戳（毫秒） |
 
 ---
 
-#### `cmd=1032` — broadcast player status updated 1032
+### `cmd=1032` — 玩家状态更新推送
 
-- 常量: `Constant.PROT_BROADCAST_PLAYER_STATUS_UPDATED_1032`
-- 成功判定: `status!0`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | string | `_errorMessage` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | string | `error_message` | 错误描述 |
 
 ---
 
-#### `cmd=1033` — player online check confirmed 1033
+### `cmd=1033` — 在线校验确认
 
-- 常量: `Constant.PROT_PLAYER_ONLINE_CHECK_CONFIRMED_1033`
-- 成功判定: `status!0`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `show_time` | 时间戳（毫秒） |
+| 2 | string | `sign` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | long | `this.showTime` |
-| 2 | string | `this.sign` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `_status` |
-| 2 | long | `currentTime` |
-| 3 | long | `showTime` |
-| 4 | string | `sign` |
-| 5 | byte | `type` |
-| 6 | int | `offsetY` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `status` | 结果状态 |
+| 2 | u64 | `current_time` | 时间戳（毫秒） |
+| 3 | u64 | `show_time` | 时间戳（毫秒） |
+| 4 | string | `sign` | — |
+| 5 | u8 | `type` | 类型枚举 |
+| 6 | u32 | `offset_y` | 地图 Y 坐标 |
 
 ---
 
-#### `cmd=1034` — player online check validate code 1034
+### `cmd=1034` — 在线校验验证码
 
-- 常量: `Constant.PROT_PLAYER_ONLINE_CHECK_VALIDATE_CODE_1034`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `code` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.code` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `validateStatus` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `validate_status` | 结果状态 |
 
 ---
 
-#### `cmd=1035` — player trigger payment available list 1035
+### `cmd=1035` — 触发支付可用列表
 
-- 常量: `Constant.PROT_PLAYER_TRIGGER_PAYMENT_AVAILABLE_LIST_1035`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `runtime_enviroments.pay_channel_id` | 渠道名 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `RuntimeEnviroments.payChannelId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | string | `paymentSkuid` |
-| 2 | string | `paymentName` |
-| 3 | long | `paymentShowTime` |
-| 4 | long | `paymentHideTime` |
-| 5 | int | `chargeItemId` |
-| 6 | int | `diamondAmount` |
-| 7 | string | `chargePrice` |
-| 8 | int | `chargeIcon` |
-| 9 | int | `itemID` |
-| 10 | string | `name` |
-| 11 | string | `description` |
-| 12 | int | `icon` |
-| 13 | int | `amount` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `payment_skuid` | — |
+| 2 | string | `payment_name` | 名称 |
+| 3 | u64 | `payment_show_time` | 时间戳（毫秒） |
+| 4 | u64 | `payment_hide_time` | 时间戳（毫秒） |
+| 5 | u32 | `charge_item_id` | 道具 ID |
+| 6 | u32 | `diamond_amount` | 数量 |
+| 7 | string | `charge_price` | 单价 |
+| 8 | u32 | `charge_icon` | 图标编号 |
+| 9 | u32 | `item_id` | 道具 ID |
+| 10 | string | `name` | 名称 |
+| 11 | string | `description` | 描述文案 |
+| 12 | u32 | `icon` | 图标编号 |
+| 13 | u32 | `amount` | 数量 |
 
 ---
 
-#### `cmd=1036` — player activity payment available list 1036
+### `cmd=1036` — 活动支付可用列表
 
-- 常量: `Constant.PROT_PLAYER_ACTIVITY_PAYMENT_AVAILABLE_LIST_1036`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `runtime_enviroments.pay_channel_id` | 渠道名 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `RuntimeEnviroments.payChannelId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `paymentActivityId` |
-| 2 | string | `paymentActivityTitle` |
-| 3 | string | `paymentId` |
-| 4 | string | `paymentSkuid` |
-| 5 | string | `paymentName` |
-| 6 | int | `paymentActivityId` |
-| 7 | long | `paymentHideTime` |
-| 8 | int | `chargeItemId` |
-| 9 | int | `diamondAmount` |
-| 10 | string | `chargePrice` |
-| 11 | int | `chargeIcon` |
-| 12 | int | `itemID` |
-| 13 | string | `name` |
-| 14 | string | `description` |
-| 15 | int | `icon` |
-| 16 | int | `amount` |
-| 17 | int | `buyTimes` |
-| 18 | int | `buyMaxTimes` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `payment_activity_id` | — |
+| 2 | string | `payment_activity_title` | — |
+| 3 | string | `payment_id` | — |
+| 4 | string | `payment_skuid` | — |
+| 5 | string | `payment_name` | 名称 |
+| 6 | u32 | `payment_activity_id` | — |
+| 7 | u64 | `payment_hide_time` | 时间戳（毫秒） |
+| 8 | u32 | `charge_item_id` | 道具 ID |
+| 9 | u32 | `diamond_amount` | 数量 |
+| 10 | string | `charge_price` | 单价 |
+| 11 | u32 | `charge_icon` | 图标编号 |
+| 12 | u32 | `item_id` | 道具 ID |
+| 13 | string | `name` | 名称 |
+| 14 | string | `description` | 描述文案 |
+| 15 | u32 | `icon` | 图标编号 |
+| 16 | u32 | `amount` | 数量 |
+| 17 | u32 | `buy_times` | — |
+| 18 | u32 | `buy_max_times` | — |
 
 ---
 
-#### `cmd=1037` — player activity payment preorder 1037
+### `cmd=1037` — 活动支付预下单
 
-- 常量: `Constant.PROT_PLAYER_ACTIVITY_PAYMENT_PREORDER_1037`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | string | `payment_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | string | `this.paymentId` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | long | `preOrderId` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u64 | `pre_order_id` | — |
 
 ---
 
-#### `cmd=1038` — player country confirm 1038
+### `cmd=1038` — 确认国家阵营
 
-- 常量: `Constant.PROT_PLAYER_COUNTRY_CONFIRM_1038`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `country` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.country` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `racial` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `racial` | — |
 
 ---
 
-#### `cmd=1040` — ios delete account 1040
+### `cmd=1040` — 注销账号（iOS）
 
-- 常量: `Constant.PROT_IOS_DELETE_ACCOUNT_1040`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_ids.length` | 道具 |
+| 2 | 循环 | — | 按前导计数字段循环写入后续字段 |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.itemIds.length` |
-| … | 循环 | `for(var e` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
-> 含列表循环，下列字段为「计数 + 条目数组」结构，条目字段按序排列：
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `itemID` |
-| 2 | string | `name` |
-| 3 | string | `description` |
-| 4 | int | `icon` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `item_id` | 道具 ID |
+| 2 | string | `name` | 名称 |
+| 3 | string | `description` | 描述文案 |
+| 4 | u32 | `icon` | 图标编号 |
 
 ---
 
-#### `cmd=1041` — player title show or stop 1041
+### `cmd=1041` — 称号展示开关
 
-- 常量: `Constant.PROT_PLAYER_TITLE_SHOW_OR_STOP_1041`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `title_id` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | int | `this.titleId` |
-
-**响应字段**: 空（仅 `status` 字节，纯操作命令）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1042` — player title group list 1042
+### `cmd=1042` — 查询称号分组
 
-- 常量: `Constant.PROT_PLAYER_TITLE_GROUP_LIST_1042`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | int | `groupId` |
-| 2 | string | `groupName` |
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u32 | `group_id` | — |
+| 2 | string | `group_name` | 名称 |
 
 ---
 
-#### `cmd=1043` — player syn citizen cert status 1043
+### `cmd=1043` — 同步市民证状态
 
-- 常量: `Constant.PROT_PLAYER_SYN_CITIZEN_CERT_STATUS_1043`
+**请求参数**: 无
 
-**请求参数**: 无（类未定义 encode）
-
-**响应字段**: 空（类未定义 decode，仅 `status` 字节）
+**响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
 
 ---
 
-#### `cmd=1050` — synchronize autotrain config 1050
+### `cmd=1050` — 玩家信息
 
-- 常量: `Constant.PROT_SYNCHRONIZE_AUTOTRAIN_CONFIG_1050`
+**请求参数**（按序拼接为 AES 明文）:
 
-**请求参数**（按序列化顺序）:
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `update` | — |
+| 2 | u64 | `train_officer_id` | — |
+| 3 | u8 | `train_mode` | — |
+| 4 | u8 | `idle_pop_percent` | — |
+| 5 | u8 | `times_add_pop_after_train` | — |
+| 6 | string | `city_config` | — |
+| 7 | u8 | `auto_train)` | — |
 
-| # | 类型 | 字段 / 表达式 |
-|---|---|---|
-| 1 | byte | `this.update` |
-| 2 | long | `this.trainOfficerId` |
-| 3 | byte | `this.trainMode` |
-| 4 | byte | `this.idlePopPercent` |
-| 5 | byte | `this.timesAddPopAfterTrain` |
-| 6 | string | `this.cityConfig` |
-| 7 | byte | `this.autoTrain)` |
+**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-**响应字段**（`status` 成功分支后按序读取）:
-
-| # | 类型 | 字段 |
-|---|---|---|
-| 1 | byte | `autoMultiply` |
-| 2 | long | `trainOfficerId` |
-| 3 | string | `trainOfficerName` |
-| 4 | byte | `trainMode` |
-| 5 | byte | `idlePopPercent` |
-| 6 | byte | `timesAddPopAfterTrain` |
-| 7 | string | `cityConfig` |
-| 8 | long | `expireTime` |
-| 9 | byte | `autoTrain` |
-
----
+| 顺序 | 类型 | 字段 | 说明 |
+|---|---|---|---|
+| 1 | u8 | `auto_multiply` | — |
+| 2 | u64 | `train_officer_id` | — |
+| 3 | string | `train_officer_name` | 名称 |
+| 4 | u8 | `train_mode` | — |
+| 5 | u8 | `idle_pop_percent` | — |
+| 6 | u8 | `times_add_pop_after_train` | — |
+| 7 | string | `city_config` | — |
+| 8 | u64 | `expire_time` | 时间戳（毫秒） |
+| 9 | u8 | `auto_train` | — |
