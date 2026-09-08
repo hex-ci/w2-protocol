@@ -6,6 +6,7 @@
   "scripts": {
     "watch": "node scripts/w2watch.js",
     "signin": "node scripts/w2signin.js",
+    "reward": "node scripts/w2reward.js",
     "parse": "node scripts/w2watch.js --file",
     "probe": "node scripts/w2probe.js",
     "genapi": "node tools/genapi.js"

@@ -24,6 +24,10 @@ npm run signin                          # 每日任务自动领取（等价 node
 node scripts/w2signin.js --id 5042      # 只领单个任务
 node scripts/w2signin.js --dry          # 只查询不领取
 
+npm run reward                          # 邮件奖励自动领取（等价 node scripts/w2reward.js）
+node scripts/w2reward.js --id 1023247   # 只处理指定邮件
+node scripts/w2reward.js --dry          # 只扫描展示，不领取
+
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探（等价 node scripts/w2watch.js）
 npm run parse -- captures/xx.pcap                 # 离线解析已有 pcap
 node scripts/w2watch.js --ip <IP> --iface <iface> --port 8083 --quiet
@@ -38,7 +42,7 @@ npm run genapi                          # 从客户端协议定义重新生成 r
 
 ## 目录
 
-- `scripts/` 功能脚本（w2watch / w2signin / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
+- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
 - `lib/w2.js` 纯解析库：`PcapParser`、`decode`（link type→IP→TCP/UDP）、`framesOut`/`framesIn`（WiST/WIST 帧切分）、`decodeBody`（u32 整数与 4 字节长度前缀 UTF-8 字符串混编）、`idNamePairs`、`cjkStrings`。
 - `lib/w2build.js` 帧构造器：`buildFrame(no, sessionId, cmd, params)` + AES/md5 原语 + 参数封装，带自检（`node lib/w2build.js`）。
 - `lib/sdk.js` 接口调用 SDK：`W2Client` 类封装连接/登录/请求-响应配对/推送监听/声明式响应解析，业务脚本直接 `client.call(cmd, params, schema)`，新脚本优先用它而不是裸写 socket。

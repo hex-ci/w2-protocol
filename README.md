@@ -17,6 +17,7 @@
 ```bash
 cp .env.example .env      # 填入你自己的服务器地址 / 设备 IP
 npm run signin            # 每日任务自动领取
+npm run reward            # 邮件奖励自动领取
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探
 npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 ```
@@ -24,8 +25,8 @@ npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 ## 目录
 
 ```
-scripts/    功能脚本：w2watch 实时嗅探+离线解析 · w2signin 每日领取 · w2probe 帧探测
-lib/        w2.js 协议解析库 · w2build.js 帧构造器 · config.js 配置加载（.env）
+scripts/    功能脚本：w2watch 实时嗅探+离线解析 · w2signin 每日领取 · w2reward 邮件奖励领取 · w2probe 帧探测
+lib/        w2.js 协议解析库 · w2build.js 帧构造器 · sdk.js 会话 SDK · config.js 配置加载（.env）
 protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
 tools/      genapi.js 参考手册生成器（从客户端协议定义提取）
 captures/   抓包产物，已 gitignore
