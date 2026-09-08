@@ -18,17 +18,16 @@
 cp .env.example .env      # 填入你自己的服务器地址 / 设备 IP
 npm run signin            # 每日任务自动领取
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探
-node bin/w2watch.js --file captures/xxx.pcap    # 离线解析已有 pcap
+npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 ```
 
 ## 目录
 
 ```
-bin/        三个入口：w2watch 实时嗅探 · w2signin 每日领取 · w2probe 帧探测
+scripts/    功能脚本：w2watch 实时嗅探+离线解析 · w2signin 每日领取 · w2probe 帧探测
 lib/        w2.js 协议解析库 · w2build.js 帧构造器 · config.js 配置加载（.env）
 protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
 tools/      genapi.js 参考手册生成器（从客户端协议定义提取）
-scripts/    capture.sh 路由器抓包（含 flow offload 自检）
 captures/   抓包产物，已 gitignore
 ```
 
@@ -77,7 +76,8 @@ captures/   抓包产物，已 gitignore
 
 想让工具支持新动作（造兵、采集等）：
 
-1. `node bin/w2watch.js --ip <IP> --tag <标签>` 开始抓包，客户端只做这一个操作
+1. `npm run watch -- --ip <IP> --tag <标签>` 开始抓包，客户端只做这一个操作
+   （启动时自动做连接存活与 flow offload 自检）
 2. 从 `captures/<日期>/*.jsonl` 找到该操作的 cmd，查 [reference/](protocol/reference/README.md) 确认参数字段
    （详见 NOTES §3/§10）
 3. 按 NOTES §1/§2 或调用 `lib/w2build.js` 组帧发送
@@ -90,8 +90,9 @@ captures/   抓包产物，已 gitignore
   - 定时任务建议安排在不玩游戏的时间（如凌晨）
   - 一次脚本运行只建立一个连接、只踢一次——`w2signin.js` 已按此设计（多个任务复用同一连接）
 - **flow offload**：软路由开了流量卸载后抓不到长连接数据，需先关闭（抓完记得开回去）。
+  `w2watch.js` 在线模式启动时会自动检测并提示。
 - **设备端**：关「随机 MAC 地址」；**保持屏幕常亮**——锁屏后 App 被挂起、连接会断。
-- **抓包跑满时长**：中途 Ctrl+C 只会拿到连接收尾包。
+  `w2watch.js` 启动预检会发现无活动连接的情况。
 
 ## 许可
 

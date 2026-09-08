@@ -6,8 +6,8 @@
  * w2probe.js —— 探测工具：登录后可连续发送任意帧，看服务器返回什么
  *
  * 用法:
- *   node bin/w2probe.js <hex1> [hex2] [hex3] ...    依次发送（共用一次登录）
- *   node bin/w2probe.js --file frames.txt           每行一个 hex
+ *   node scripts/w2probe.js <hex1> [hex2] [hex3] ...    依次发送（共用一次登录）
+ *   node scripts/w2probe.js --file frames.txt           每行一个 hex
  *
  * 用来摸清：不同参数对应哪个分类、响应里有哪些任务 ID/名称。
  */
@@ -25,7 +25,7 @@ if (argv[0] === '--file') {
   hexes = argv.filter((s) => /^[0-9a-fA-F]+$/.test(s));
 }
 if (!hexes.length) {
-  console.log('用法: node bin/w2probe.js <hex...>  |  --file frames.txt');
+  console.log('用法: node scripts/w2probe.js <hex...>  |  --file frames.txt');
   process.exit(1);
 }
 

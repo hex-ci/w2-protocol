@@ -3,14 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "某手游私有 TCP 协议解析与自动化工具",
-  "bin": {
-    "w2watch": "bin/w2watch.js",
-    "w2signin": "bin/w2signin.js"
-  },
   "scripts": {
-    "watch": "node bin/w2watch.js",
-    "signin": "node bin/w2signin.js",
-    "parse": "node bin/w2watch.js --file"
+    "watch": "node scripts/w2watch.js",
+    "signin": "node scripts/w2signin.js",
+    "parse": "node scripts/w2watch.js --file",
+    "probe": "node scripts/w2probe.js",
+    "genapi": "node tools/genapi.js"
   },
   "engines": {
     "node": ">=18"

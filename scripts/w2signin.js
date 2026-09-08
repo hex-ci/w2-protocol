@@ -9,9 +9,9 @@
  *       每个任务，凡出现在可领列表中的，逐个发领取帧
  *
  * 用法:
- *   node bin/w2signin.js              领取所有已收录且当前可领的任务
- *   node bin/w2signin.js --id 5042    只领指定任务
- *   node bin/w2signin.js --dry        只查询不领取
+ *   node scripts/w2signin.js              领取所有已收录且当前可领的任务
+ *   node scripts/w2signin.js --id 5042    只领指定任务
+ *   node scripts/w2signin.js --dry        只查询不领取
  */
 
 const net = require('net');

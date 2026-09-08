@@ -9,11 +9,11 @@
  * 同时把结构化事件写入 JSONL 文件（供后续分析/补齐字典）。
  *
  * 用法:
- *   node bin/w2watch.js --ip <设备内网IP>                 # 自动探测接口
- *   node bin/w2watch.js --ip <设备内网IP> --iface <接口>
- *   node bin/w2watch.js --ip <设备内网IP> --tag zao-bing  # 给本次抓取打标签
- *   node bin/w2watch.js --ip <设备内网IP> --port 8083 --quiet
- *   node bin/w2watch.js --file capture.pcap                # 离线解析已有 pcap
+ *   node scripts/w2watch.js --ip <设备内网IP>                 # 自动探测接口
+ *   node scripts/w2watch.js --ip <设备内网IP> --iface <接口>
+ *   node scripts/w2watch.js --ip <设备内网IP> --tag zao-bing  # 给本次抓取打标签
+ *   node scripts/w2watch.js --ip <设备内网IP> --port 8083 --quiet
+ *   node scripts/w2watch.js --file capture.pcap                # 离线解析已有 pcap
  *
  * 输出:
  *   控制台  实时摘要（NEW 表示字典里没有的命令）
@@ -164,6 +164,56 @@ function finish(code) {
   process.exit(code || 0);
 }
 
+// ---------- 环境自检（在线模式专用：连接存活 + flow offload，抓包成败的两大关键检查） ----------
+// conntrack 文件路径（OpenWrt / Debian 兼容）
+function conntrackFile() {
+  for (const p of ['/proc/net/nf_conntrack', '/proc/net/ip_conntrack']) {
+    try { fs.accessSync(p, fs.constants.R_OK); return p; } catch (e) { /* next */ }
+  }
+  return null;
+}
+
+// 检查目标设备的 8083 业务连接是否存活（设备锁屏/切后台会断连，抓不到数据的头号原因）
+function checkConnection(ctFile) {
+  if (!ctFile || !IP) return;
+  const ct = fs.readFileSync(ctFile, 'utf8');
+  const established = ct.split('\n').filter((l) => l.includes(IP) && l.includes('ESTABLISHED'));
+  console.log(`连接预检: ${IP} 活动 TCP 连接 ${established.length} 条`);
+  if (!established.length) {
+    console.log('  !! 没有活动连接 —— 游戏大概率不在前台或已锁屏');
+    console.log('  !! 确认: 游戏停在主界面 / 屏幕常亮，再重跑');
+    return;
+  }
+  console.log(established.some((l) => l.includes(`dport=${PORT}`))
+    ? `  OK: ${PORT} 业务连接存在，可以开抓`
+    : `  !! 没有 ${PORT} 业务连接，游戏可能还没进入主界面`);
+}
+
+// 检查流量卸载：被 offload 的连接绕过 netfilter，tcpdump 只能抓到握手包，业务数据全丢
+function checkOffload(ctFile) {
+  const ctFile2 = ctFile;
+  if (ctFile2) {
+    const ct = fs.readFileSync(ctFile2, 'utf8');
+    const offloadLines = ct.split('\n').filter((l) => l.includes('OFFLOAD'));
+    if (offloadLines.length) {
+      console.log(`!! 发现 ${offloadLines.length} 条 [OFFLOAD] 连接 —— 被流量卸载的连接不走 netfilter，业务数据抓不到`);
+      console.log('!! 关闭后再抓:');
+      console.log('     uci set firewall.@defaults[0].flow_offloading=0');
+      console.log('     uci set firewall.@defaults[0].flow_offloading_hw=0');
+      console.log('     uci commit firewall && service firewall restart');
+      console.log('     (硬件卸载 / SFE / Shortcut-FE 需另关，见 README)');
+    } else {
+      console.log('flow offload 自检: 未发现卸载连接 ✓');
+    }
+  }
+  // 内核模块层面的卸载（即使当前无连接也提示）
+  try {
+    const lsmod = require('child_process').execSync('lsmod 2>/dev/null', { encoding: 'utf8' });
+    const mods = lsmod.split('\n').filter((l) => /offload|shortcut|sfe|fastnat|hw_nat/i.test(l)).map((l) => l.split(/\s+/)[0]);
+    if (mods.length) console.log('  卸载相关内核模块:', mods.join(', '), '（若抓不到业务数据，优先排查）');
+  } catch (e) { /* 无 lsmod，忽略 */ }
+}
+
 // ---------- 离线模式 ----------
 if (FILE) {
   const data = fs.readFileSync(FILE);
@@ -173,6 +223,11 @@ if (FILE) {
   finish(0);
 } else {
   // ---------- 在线模式 ----------
+  // 环境自检：连接存活 + flow offload（抓包失败的两大元凶）
+  const ctFile = conntrackFile();
+  checkConnection(ctFile);
+  checkOffload(ctFile);
+
   const iface = IFACE || '(自动)';
   const filter = IP ? `host ${IP} and tcp port ${PORT}` : `tcp port ${PORT}`;
   const args = ['-nn', '-s', '0', '-U', '--immediate-mode', '-w', '-'];

@@ -371,8 +371,8 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
 
 | 工具 | 用途 |
 |---|---|
-| `bin/w2watch.js` | 实时/离线嗅探，pcap → 可读事件流（jsonl） |
-| `bin/w2probe.js` | 登录后按序发送 hex 帧，观察响应 |
+| `scripts/w2watch.js` | 实时/离线嗅探，pcap → 可读事件流（jsonl） |
+| `scripts/w2probe.js` | 登录后按序发送 hex 帧，观察响应 |
 | `lib/w2build.js` | 程序化组帧（`buildFrame(no, sid, cmd, params)`） |
 | `lib/w2.js` | 帧切分、body 混编解码、字符串提取 |
 | `protocol/commands.json` | cmd → 语义字典 |
