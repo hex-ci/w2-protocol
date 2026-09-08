@@ -53,13 +53,14 @@ if (!IP && !FILE) {
 
 // ---------- 字典 ----------
 const dictPath = path.join(ROOT, 'protocol', 'commands.json');
-let dict = { commands: {}, push: {}, tasks: {} };
+let dict = { names: {}, push: [], tasks: {} };
 try {
   dict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
 } catch (e) {
   console.log('警告: 读不到命令字典', dictPath);
 }
-const nameOf = (cmd) => (dict.commands && dict.commands[String(cmd)]) || (dict.push && dict.push[String(cmd)]) || '';
+const pushSet = new Set(dict.push || []);
+const nameOf = (cmd) => dict.names[String(cmd)] || '';
 
 // ---------- 输出目录 ----------
 const now = new Date();

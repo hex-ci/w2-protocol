@@ -1,4 +1,5 @@
 'use strict';
+
 // 从客户端协议定义全量提取各命令的请求/响应字段，按业务域分文件生成 API 参考手册
 // 输出面向接口调用者：字段统一 snake_case + 中文说明，成功判定折算为具体 status 值
 // 用法: W2_PROTO_SRC=<客户端协议定义文件> node tools/genapi.js
@@ -16,11 +17,15 @@ const OUT_DIR = path.join(__dirname, '..', 'protocol', 'reference');
 // ---------- 1. 扫描所有协议类 ----------
 const src = fs.readFileSync(SRC, 'utf8');
 const classes = new Map();
-const re = /Prot(\d+)=function\(/g;
+// 形态 A: ProtNNNN=function(e){...}；形态 B: (Broadcast)ProtNNNN=(_dec...=function(e){...}
+const reA = /Prot(\d+)=function\(/g;
+const reB = /Prot(\d+)=\(_dec/g;
 let m;
-while ((m = re.exec(src)) !== null) {
-  const num = m[1];
-  if (!classes.has(num)) classes.set(num, m.index);
+while ((m = reA.exec(src)) !== null) {
+  if (!classes.has(m[1])) classes.set(m[1], m.index);
+}
+while ((m = reB.exec(src)) !== null) {
+  if (!classes.has(m[1])) classes.set(m[1], m.index);
 }
 
 // ---------- 2. 业务域分段 ----------
@@ -256,17 +261,33 @@ function succText(succ) {
 }
 
 // ---------- 6. 条目渲染 ----------
+function findClass(num) {
+  // 两种定义形态：ProtNNNN=function(e){...} 与 装饰器形态 BroadcastProtNNNN=(_dec=ccclass(...)
+  return classes.get(num) !== undefined
+    ? { start: classes.get(num), seg: src.slice(classes.get(num), classes.get(num) + 16000) }
+    : null;
+}
+
 function extract(num) {
+  // 形态 A：ProtNNNN=function(e){function t(){...}
   const start0 = classes.get(num);
   const seg0 = src.slice(start0, start0 + 16000);
   const blockEnd0 = seg0.indexOf('_RF.pop()', seg0.indexOf('_RF.push('));
   const block0 = seg0.slice(0, blockEnd0 > 0 ? blockEnd0 : 3000);
-  // 空壳继承类（无 protId 且无 encode/decode，服务端不会单独寻址）跳过
-  if (!/protId=function/.test(block0) && !/encode=function/.test(block0) && !/decode=function/.test(block0)) {
+  const hasBody = /protId=function/.test(block0) || /encode=function/.test(block0) || /decode=function/.test(block0);
+  if (!hasBody) {
+    // 形态 B：装饰器类（BroadcastProtNNNN=(_dec...=function(e){...}）
+    const am = new RegExp('(Broadcast)?Prot' + num + '=\\(_dec').exec(src);
+    if (am) {
+      const seg = src.slice(am.index, am.index + 8000);
+      const pid = seg.match(/protId=function\(\)\{return Constant\.([A-Z_0-9]+)/);
+      const decM = seg.match(/decode=function\(e\)\{([\s\S]*?)\},i\.success=/s);
+      return { num, pid: pid ? pid[1] : null, enc: '', dec: decM ? decM[1] : '', succ: null, deco: true };
+    }
+    // 空壳继承类：无 protId/encode/decode，无装饰器定义，服务端不单独寻址 → 跳过
     return { num, pid: null, enc: '', dec: '', succ: null, ghost: true };
   }
-  const start = classes.get(num);
-  const seg = src.slice(start, start + 16000);
+  const seg = seg0;
   const pid = seg.match(/protId=function\(\)\{return Constant\.([A-Z_0-9]+)/);
   const encM = seg.match(/encode=function\(\)\{([\s\S]*?)\},i\.(?:decode|success|protId|handle0)=/s);
   const decM = seg.match(/decode=function\(e\)\{([\s\S]*?)\},i\.(?:success|isBroadcast|handle0|abandonData)\b/s)
@@ -275,8 +296,8 @@ function extract(num) {
   return { num, pid: pid ? pid[1] : null, enc: encM ? encM[1] : '', dec: decM ? decM[1] : '', succ: succM ? succM[1].trim() : null };
 }
 
-// 接口英文名 → 中文接口名
-const NAME_ZH = require('./api-names.json');
+// 接口英文名 → 中文接口名（与 commands.json names 同源）
+const NAME_ZH = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'protocol', 'commands.json'), 'utf8')).names;
 
 function renderEntry(e) {
   const L = [];
@@ -284,6 +305,10 @@ function renderEntry(e) {
   const zhName = NAME_ZH[e.num] || (e.pid ? e.pid.replace(/^PROT_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '未命名');
   L.push(`### \`cmd=${e.num}\` — ${zhName}${isPush ? '（服务端推送）' : ''}`);
   L.push('');
+  if (e.captureOnly) {
+    L.push('> 此命令在客户端协议定义中无对应类（iOS 客户端独有或版本差异），请求/响应结构以抓包实据为准，字段语义待解。');
+    L.push('');
+  }
 
   // 请求
   if (e.enc.trim()) {
@@ -357,6 +382,14 @@ const indexLines = ['# W2 接口参考手册 · 索引', '',
 let totalRendered = 0;
 for (const dom of DOMAINS) {
   const list = entries.filter(e => dom.test(Number(e.num)));
+  // names 中已收录但 H5 无类定义的命令（iOS 抓包独有），补占位条目
+  for (const [k, zh] of Object.entries(NAME_ZH)) {
+    const n = Number(k);
+    if (dom.test(n) && !entries.some(e => e.num === k) && !list.some(e => e.num === k)) {
+      list.push({ num: k, pid: null, enc: '', dec: '', succ: null, captureOnly: true });
+    }
+  }
+  list.sort((a, b) => Number(a.num) - Number(b.num));
   if (!list.length) continue;
   const file = path.join(OUT_DIR, dom.id + '.md');
   const rel = dom.id + '.md';
@@ -383,4 +416,4 @@ indexLines.push('', `> 共 ${totalRendered} 个命令（另有继承空壳类不
 fs.writeFileSync(path.join(OUT_DIR, 'README.md'), indexLines.join('\n') + '\n');
 console.log(`已生成 ${DOMAINS.filter(d => entries.some(e => d.test(Number(e.num)))).length + (ungrouped.length ? 1 : 0)} + 1(索引) 个文件，共 ${totalRendered} 个命令`);
 const missingNames = entries.filter(e => !NAME_ZH[e.num]).length;
-console.log(`中文接口名覆盖: ${entries.length - missingNames}/${entries.length}（缺 ${missingNames} 个，缺省用英文名）`);
+console.log(`手册条目: ${totalRendered}，names 字典: ${Object.keys(NAME_ZH).length}，差集: ${Math.abs(totalRendered - Object.keys(NAME_ZH).length)}`);
