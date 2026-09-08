@@ -163,6 +163,15 @@ const fmtDur = (ms) => {
   }
   console.log(`共 ${cities.length} 座城池，本次处理 ${targets.length} 座\n`);
 
+  // 记录操作前的当前城，全部结束后切回（当前城 = 1005.activeCityId）
+  const originCityId = (await c.call(1005, Buffer.alloc(0), {
+    fields: [
+      ['game_status', 'u32'],
+      ['diamond_owned', 'u32'],
+      ['active_city_id', 'u64'],
+    ],
+  })).active_city_id.toString();
+
   // 3007 兵种原型表：取兵种名用于报告
   let armyName = `兵种${ARMY_ID}`;
   const protoRaw = (await c.call(3007, Buffer.alloc(0))).raw;
@@ -308,6 +317,13 @@ const fmtDur = (ms) => {
     if (r.trained > 0) {
       console.log(`   ${r.city}: ${fmt(r.trained)} 架`);
     }
+  }
+
+  // 切回操作前的当前城
+  if (originCityId) {
+    await jitter();
+    const back = await c.call(2002, p.u64(originCityId));
+    if (back.ok) console.log(`已切回操作前的城池（cityId=${originCityId}）`);
   }
 
   c.close();
