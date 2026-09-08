@@ -212,25 +212,54 @@ const fmtDur = (ms) => {
     let cityFinish = 0;
     const plantReports = [];
 
+    // 第一遍：收集各厂该兵种的规格（单价/耗时）
+    const specs = [];
     for (const plant of plants) {
       await jitter();
       const info = parsePlantInfo((await c.call(3006, p.u64(plant.bid))).raw);
       const spec = info.trainables[ARMY_ID];
-      if (!spec) {
-        plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 不支持该兵种`);
-        continue;
-      }
+      if (spec) specs.push({ plant, spec });
+      else plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 不支持该兵种`);
+    }
+    if (!specs.length) {
+      plantReports.forEach((s) => console.log(s));
+      console.log('');
+      continue;
+    }
 
-      // 资源允许的最大量（每架消耗 粮/矿/油/钢）
-      const byRes = Math.floor(Math.min(
-        spec.food ? res.food / spec.food : Infinity,
-        spec.mineral ? res.mineral / spec.mineral : Infinity,
-        spec.oil ? res.oil / spec.oil : Infinity,
-        spec.steel ? res.steel / spec.steel : Infinity
-      ));
-      const amount = Math.max(0, Math.min(byRes, MAX_PER_PLANT));
+    // 平分策略：总可造数按厂均分，资源是一次性总账（同城同兵种单价一致）
+    // 总量 = min(各资源/单价)，每厂 base = floor(总量/N)，前 remainder 个厂各 +1
+    const s0 = specs[0].spec;
+    const totalAffordable = Math.floor(Math.min(
+      s0.food ? res.food / s0.food : Infinity,
+      s0.mineral ? res.mineral / s0.mineral : Infinity,
+      s0.oil ? res.oil / s0.oil : Infinity,
+      s0.steel ? res.steel / s0.steel : Infinity
+    ));
+    const perPlant = Math.min(
+      Math.floor(totalAffordable / specs.length),
+      MAX_PER_PLANT
+    );
+    const remainder = Math.min(
+      MAX_PER_PLANT === Infinity ? totalAffordable % specs.length : 0,
+      totalAffordable - perPlant * specs.length,
+      specs.length
+    );
+
+    if (totalAffordable === 0) {
+      plantReports.push(`   ○ 资源不足 1 架（需 粮${s0.food} 矿${s0.mineral} 油${s0.oil} 钢${s0.steel}/架）`);
+      plantReports.forEach((s) => console.log(s));
+      console.log(`   余量: 粮 ${fmt(res.food)} | 钢 ${fmt(res.steel)} | 矿 ${fmt(res.mineral)} | 油 ${fmt(res.oil)}`);
+      console.log('');
+      continue;
+    }
+
+    // 第二遍：逐厂下单
+    for (let i = 0; i < specs.length; i++) {
+      const { plant, spec } = specs[i];
+      const amount = perPlant + (i < remainder ? 1 : 0);
       if (amount === 0) {
-        plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 资源不足 1 架（需 粮${spec.food} 矿${spec.mineral} 油${spec.oil} 钢${spec.steel}/架）`);
+        plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 平分后不足 1 架`);
         continue;
       }
 
@@ -239,7 +268,6 @@ const fmtDur = (ms) => {
 
       if (DRY) {
         plantReports.push(`   ▷ 厂#${plant.bid.slice(-3)}(L${plant.level}): 将造 ${fmt(amount)} 架，需 ${fmtDur(finishMs)}（约 ${finishAt} 完成）`);
-        // 模拟扣资源，供后续厂计算
         res.food -= spec.food * amount;
         res.steel -= spec.steel * amount;
         res.mineral -= spec.mineral * amount;
