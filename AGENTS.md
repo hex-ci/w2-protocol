@@ -28,6 +28,12 @@ npm run reward                          # 邮件奖励自动领取（等价 node
 node scripts/w2reward.js --id 1023247   # 只处理指定邮件
 node scripts/w2reward.js --dry          # 只扫描展示，不领取
 
+npm run train                           # 全域造兵（默认侦察机，资源允许的最大量）
+node scripts/w2train.js --army 10       # 指定兵种（armyId 见 3007 兵种表）
+node scripts/w2train.js --city 103636   # 只在指定城造
+node scripts/w2train.js --max 100       # 每厂最多造 100 架
+node scripts/w2train.js --dry           # 模拟计算，不下单
+
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探（等价 node scripts/w2watch.js）
 npm run parse -- captures/xx.pcap                 # 离线解析已有 pcap
 node scripts/w2watch.js --ip <IP> --iface <iface> --port 8083 --quiet

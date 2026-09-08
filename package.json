@@ -9,7 +9,8 @@
     "reward": "node scripts/w2reward.js",
     "parse": "node scripts/w2watch.js --file",
     "probe": "node scripts/w2probe.js",
-    "genapi": "node tools/genapi.js"
+    "genapi": "node tools/genapi.js",
+    "train": "node scripts/w2train.js"
   },
   "engines": {
     "node": ">=18"
