@@ -3,7 +3,7 @@
 某手游移动端客户端与其业务服务器之间的**私有 TCP 协议**逆向记录，附带解析工具与自动化脚本。
 
 > 抓包样本取自 iOS 端；协议由服务端统一实现，格式与客户端平台无关。
-> Android 端为 Cocos H5 实现，帧格式一致（已实测验证加密算法两端通用）。
+> Android 端帧格式一致（已实测验证加密算法两端通用）。
 > 零依赖，Node 18+。
 
 > 本项目仅用于**网络协议分析与安全技术学习研究**，探讨二进制封包与长连接通信机制。
@@ -25,8 +25,9 @@ node bin/w2watch.js --file captures/xxx.pcap    # 离线解析已有 pcap
 
 ```
 bin/        三个入口：w2watch 实时嗅探 · w2signin 每日领取 · w2probe 帧探测
-lib/        w2.js 协议解析库 · config.js 配置加载（.env）
-protocol/   NOTES.md 协议全记录 · commands.json 命令字典 · frames.example.json 帧模板
+lib/        w2.js 协议解析库 · w2build.js 帧构造器 · config.js 配置加载（.env）
+protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
+tools/      genapi.js 参考手册生成器（从客户端协议定义提取）
 scripts/    capture.sh 路由器抓包（含 flow offload 自检）
 captures/   抓包产物，已 gitignore
 ```
@@ -77,8 +78,8 @@ captures/   抓包产物，已 gitignore
 想让工具支持新动作（造兵、采集等）：
 
 1. `node bin/w2watch.js --ip <IP> --tag <标签>` 开始抓包，客户端只做这一个操作
-2. 从 `captures/<日期>/*.jsonl` 找到该操作的 cmd 与明文参数结构
-   （对应 H5 包 `Prot<cmd>` 类的 encode，详见 NOTES §3/§10）
+2. 从 `captures/<日期>/*.jsonl` 找到该操作的 cmd，查 [reference/](protocol/reference/README.md) 确认参数字段
+   （详见 NOTES §3/§10）
 3. 按 NOTES §1/§2 或调用 `lib/w2build.js` 组帧发送
 4. 验证：`status=0x01` 即成功；无响应 = 帧无效（校验错会被静默丢弃）
 

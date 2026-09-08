@@ -59,8 +59,8 @@ scripts/capture.sh <设备IP> [iface] [秒]   # 在路由器/设备侧抓包（O
 
 1. **抓包**：`node bin/w2watch.js --ip <设备IP> --tag <动作名>`，客户端**只做这一个动作**，Ctrl+C 结束。
 2. **定位命令**：控制台 `★NEW` 行或 `captures/<日期>/*.jsonl` 找 cmd。
-3. **取参数结构**：查 Android H5 包 `Prot<cmd>` 类的 `encode`（请求参数）/`decode`（响应结构）——
-   解包 APK → `assets/embed/*.zip` → Cocos `index.*.js`，搜索 `Prot<cmd>=function`。命令语义全部可从此处确认。
+3. **取参数结构**：查 [reference/](protocol/reference/README.md) 对应业务域文件的命令条目，确认请求/响应字段；
+   reference 未覆盖的新命令，从 Android 客户端的协议定义中定位该命令的参数序列化顺序。
 4. **组帧**：按 NOTES §1/§2 调用 `lib/w2build.js` 构造新帧（AES key = sessionId 十进制左补零、MD5 前 16B 二进制）；亦可直接从 pcap 提取原始帧进行对比测试。
 5. **入库与验证**：命令名补进 `protocol/commands.json`；发出后看响应——
    `status=0x01` 成功、重复操作返回短响应无副作用、**无响应 = 帧无效**（md5/AES/参数错都会静默丢弃）。
@@ -81,7 +81,7 @@ scripts/capture.sh <设备IP> [iface] [秒]   # 在路由器/设备侧抓包（O
 - `idNamePairs` 的 ID 过滤下限别抬高：曾设 500 导致 290/307 这些低 ID 任务被漏掉。
 - `decoded` 混编字段是非自描述的，按命令逐个解析；字符串长度前缀是字节数不是字符数（中文 3 字节/字）。
 - 玩家 ID、建筑 ID、时间戳是 **u64**（writeLong），用 `readBigUInt64BE` 读，别当 u32。
-- `8016`/`6020` 在 iOS 抓包中存在，但在提取的 APK H5 代码中未定义，可能系版本迭代或平台实现差异，暂未解出语义。
+- `8016`/`6020` 在 iOS 客户端抓包中存在，但 Android 客户端协议定义中未包含，可能系版本迭代或平台实现差异，暂未解出语义。
 - pcap magic 字节序：以 LE 读出的值 `0xa1b2c3d4` = 小端、`0xd4c3b2a1` = 大端（写反会解析出 0 个包）。
 - 抓包必须跑满设定时长，中途 Ctrl+C 只会拿到连接收尾包，几乎无有效数据。
 - 设备端：关「随机/私有 MAC」、保持屏幕常亮（锁屏会挂起 App 并断开长连接）。
