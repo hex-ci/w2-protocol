@@ -78,8 +78,8 @@ captures/   抓包产物，已 gitignore
 1. `npm run watch -- --ip <IP> --tag <标签>` 开始抓包，客户端只做这一个操作
    （启动时自动做连接存活与 flow offload 自检）
 2. 从 `captures/<日期>/*.jsonl` 找到该操作的 cmd，查 [reference/](protocol/reference/README.md) 确认参数字段
-   （详见 NOTES §3/§10）
-3. 按 NOTES §1/§2 或调用 `lib/w2build.js` 组帧发送
+   （详见 NOTES §4/§11）
+3. 按 NOTES §2/§3 或调用 `lib/w2build.js` 组帧发送
 4. 验证：`status=0x01` 即成功；无响应 = 帧无效（校验错会被静默丢弃）
 
 ## 坑记录

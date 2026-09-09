@@ -160,7 +160,7 @@ const frame = buildFrame(1, 88888, 1001, params);
 socket.write(frame);
 ```
 
-- **凭据提取**：从抓包登录帧可解密出全部字段（AES key = 帧内 sessionId 补零，见 NOTES §2），提取一次后填入 `.env` 的 `W2_LOGIN_*`，供 `config.loginParams()` 与 SDK 使用。
+- **凭据提取**：从抓包登录帧可解密出全部字段（AES key = 帧内 sessionId 补零，见 NOTES §3），提取一次后填入 `.env` 的 `W2_LOGIN_*`，供 `config.loginParams()` 与 SDK 使用。
 
 #### `cmd=1005` — 玩家核心信息
 - **请求**：无参数。
