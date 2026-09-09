@@ -142,8 +142,6 @@ const fmtDur = (ms) => {
     console.log('缺少配置：请把真实值写入 .env（W2_HOST 与 W2_LOGIN_*，模板见 .env.example）');
     process.exit(1);
   }
-  console.log(`目标 ${config.host}:${config.port}`);
-  console.log('注意: 会建立独立会话，已在线的客户端可能被挤下线。');
 
   const c = new W2Client({ host: config.host, port: config.port, loginParams: lp });
   try {
