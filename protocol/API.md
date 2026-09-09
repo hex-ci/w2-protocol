@@ -32,7 +32,7 @@
 | 文件 | 内容 | 查什么 |
 |---|---|---|
 | [API.md](API.md)（本文件） | 调用规范、会话流程、代表性接口详解、示例代码 | 「这个协议怎么调」 |
-| [reference/](reference/README.md) | **全量 407 个命令**逐条参数表（自动生成） | 「cmd=XXXX 收发什么字段」 |
+| [reference/](reference/README.md) | **全量 419 个命令**逐条参数表（自动生成） | 「cmd=XXXX 收发什么字段」 |
 | [NOTES.md](NOTES.md) | 帧格式、加密算法、抓包防错 | 「字节怎么编解码」 |
 | [commands.json](commands.json) | cmd → 中文名字典（工具加载用） | 「这个 cmd 叫什么」 |
 
@@ -193,9 +193,12 @@ long cityId, string cityName, int x, int y,
 string mayor, int population, int morale,
 int coastal, int hasCarrier, string imgID,
 byte isColonial, int mayorIcon, int constructNum,
-byte haveResearchingTech (+ int techId + int techLevel 若为1),
-int helpNum, int trainingCount, int officerCount, int officerCountMax
+int helpNum, [若 isJoinLeagueWar=1: int leagueScorePlunderable],
+int trainingCount, int officerCount, int officerCountMax,
+byte 未知尾字节
 ```
+
+> 服务器实现与客户端 Cityinfo 定义有差异：无 `haveResearchingTech` 条件字段，且每条目末尾多 1 字节（实测字节序见 `scripts/w2train.js` 的 `parseCityList`）。
 
 #### `cmd=2003` — 城内资源总览
 - **请求**：无参数。

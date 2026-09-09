@@ -1,6 +1,6 @@
 # AGENTS.md
 
-某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。零依赖，纯 Node 18+ 与 POSIX sh，无框架、无构建、无 CI。核心是 `lib/w2.js`（pcap/IP-TCP/WiST-WIST 帧/body 解码）配 `scripts/` 下三个功能脚本（实时嗅探、每日领奖、帧探测）。
+某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖仅 `crypto-es`（DES 加密），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下四个业务脚本（嗅探、领奖、邮件、造兵）与 `tools/w2login.js`（登录）。
 
 > 面向使用者的介绍在 `README.md`；本文件面向开发者与 AI 助手（环境、命令、约定、坑、扩展流程）。
 > 协议知识（帧格式、加密算法、命令语义）的唯一数据源是 `protocol/NOTES.md`，改协议认识先改那里。
@@ -13,13 +13,15 @@
 
 ## 环境
 
-- 无需 `npm install`：没有第三方依赖、没有 lockfile、没有 build 步骤。`node` 即可运行。
-- 真实服务器地址、设备 IP、登录凭据全部放 `.env`（已 gitignore），仓库只留 `.env.example` 模板。登录凭据 `W2_LOGIN_*` 从抓包登录帧解密提取一次后填入（方法见 `protocol/API.md`）。
+- 运行时依赖仅 `crypto-es`：`npm install` 一次即可，无 lockfile、无 build 步骤。
+- 登录凭据（wst/username/userId）与游戏服地址由 `node tools/w2login.js <邮箱> <密码>` 登录后写入 `.identity.local.json`（gitignore）；`.env` 只放服务端不会下发的配置（`W2_PLATFORM`、`W2_TASK_IDS`、`W2_SSO_*` 渠道常量兜底）。抓包设备 IP 放 `W2_PHONE_IP`/`W2_IFACE`。
 - 实时嗅探依赖本机 `tcpdump`（需 root/sudo 或已在路由器上）。
 
 ## 常用命令
 
 ```bash
+npm run login                           # 完整登录（SSO→选服→userId），凭据缓存到 .identity.local.json
+
 npm run signin                          # 每日任务自动领取（等价 node scripts/w2signin.js）
 node scripts/w2signin.js --id 5042      # 只领单个任务
 node scripts/w2signin.js --dry          # 只查询不领取
@@ -48,11 +50,12 @@ npm run genapi                          # 从客户端协议定义重新生成 r
 
 ## 目录
 
-- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
+- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2train / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
+- `tools/w2login.js` 登录命令：SSO mlogin（静默续登优先）→ 选服（cmd=2 列表/cmd=1 确认）→ userId + 游戏服地址，全部落盘 `.identity.local.json`。
 - `lib/w2.js` 纯解析库：`PcapParser`、`decode`（link type→IP→TCP/UDP）、`framesOut`/`framesIn`（WiST/WIST 帧切分）、`decodeBody`（u32 整数与 4 字节长度前缀 UTF-8 字符串混编）、`idNamePairs`、`cjkStrings`。
 - `lib/w2build.js` 帧构造器：`buildFrame(no, sessionId, cmd, params)` + AES/md5 原语 + 参数封装，带自检（`node lib/w2build.js`）。
 - `lib/sdk.js` 接口调用 SDK：`W2Client` 类封装连接/登录/请求-响应配对/推送监听/声明式响应解析，业务脚本直接 `client.call(cmd, params, schema)`，新脚本优先用它而不是裸写 socket。
-- `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.loginParams()` 组装 `W2_LOGIN_*` 凭据，`config.tasks` 读 `W2_TASK_IDS` 任务清单。
+- `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.loginParams()`/`config.gameServer()` 读 `.identity.local.json`，`config.tasks` 读 `W2_TASK_IDS` 任务清单。
 - `protocol/NOTES.md` 协议全记录（帧格式、加密算法、命令语义、初始化流程），**协议问题先读它**。
 - `protocol/commands.json` 命令字典（单一数据源）：`names`（全量 cmd→中文名，w2watch/w2signin/genapi 共用）、`push`（推送类 cmd 编号）、`tasks`（任务/物品 ID）、`_categories`（taskType 分类）。抓包遇到未收录命令会标 `★NEW`，确认后补进 `names`。
 - `protocol/reference/` 全量参数表（由 `tools/genapi.js` 生成，勿手改；生成逻辑改动后重跑 `npm run genapi`）。

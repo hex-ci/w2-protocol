@@ -15,7 +15,18 @@
 ## 快速开始
 
 ```bash
-cp .env.example .env      # 填入你自己的服务器地址 / 设备 IP
+npm install
+node tools/w2login.js <邮箱或账号> <密码>   # 完整登录（SSO→选服→userId），凭据自动缓存 .identity.local.json
+npm run signin      # 每日任务自动领取
+npm run reward      # 邮件奖励自动领取
+npm run train       # 全域造兵（默认侦察机）
+```
+
+登录后无需再配任何凭据；wst 失效时重跑 `node tools/w2login.js`（静默续登，免密码）。
+仅**抓包/离线解析**需要 `.env`（`W2_PHONE_IP`/`W2_IFACE`，模板见 `.env.example`）：
+
+```bash
+cp .env.example .env      # 填入抓包设备的 IP
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探
 npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 ```
@@ -24,17 +35,17 @@ npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 
 ```
 scripts/    功能脚本
-lib/        w2.js 协议解析库 · w2build.js 帧构造器 · sdk.js 会话 SDK · config.js 配置加载（.env）
+lib/        w2.js 协议解析库 · w2build.js 帧构造器 · sdk.js 会话 SDK · config.js 配置加载
 protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
-tools/      genapi.js 参考手册生成器（从客户端协议定义提取）
+tools/      w2login.js 登录（SSO→选服→userId 全自动） · genapi.js 参考手册生成器
 captures/   抓包产物，已 gitignore
 ```
 
-> 登录凭据等敏感配置存 `.env`（不入库），模板见 `.env.example`；登录凭据从抓包登录帧解密提取一次后填入，方法见 [`protocol/API.md`](protocol/API.md)。
+> 登录凭据与游戏服地址由登录命令写入 `.identity.local.json`（不入库）；`.env` 只放服务端不会下发的配置（见 `.env.example`）。
 
 ## 协议速查
 
-业务主通道为一条 TCP 长连接（默认 8083，见 `.env`）。完整细节见 [`protocol/NOTES.md`](protocol/NOTES.md)。
+业务主通道为一条 TCP 长连接（游戏服地址由选服服务器下发，登录后缓存）。完整细节见 [`protocol/NOTES.md`](protocol/NOTES.md)。
 
 **客户端 → 服务器**（`WiST` 帧，参数 AES 加密）：
 

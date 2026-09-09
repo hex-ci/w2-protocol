@@ -407,27 +407,33 @@ const entries = [...classes.keys()].sort((a, b) => Number(a) - Number(b)).map(ex
 // 章首特例段（每个业务域文件的固定开头补充，如选服服务器的部署架构说明）
 const DOMAIN_HEAD = {
   '00-choice': [
+    '> 本文件是**选服（choice）服务器**的命令，cmd 编号与游戏服是**两套独立命名空间**——两边都有 cmd=1，含义不同：本文件 cmd=1 是「选服登录」，游戏服的 cmd=1 是「获取服务器时间」。',
+    '',
     '**服务器部署按平台隔离**：',
     '',
     '| 平台 | 选服地址 | 协议形态 |',
     '|---|---|---|',
     '| iOS | `w2vcn_G.ios.wistone.com:8081` | 裸 TCP，明文 WIST 帧 |',
-    '| Android（H5） | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |',
+    '| Android | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |',
     '',
     '服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自源码内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。',
     '',
   ],
 };
 
+// 手册总命令数 = Android 有类定义的条目 + 字典里 Android 未收录的占位条目（iOS 抓包独有）
+const totalCmds = entries.length
+  + Object.keys(NAME_ZH).filter((k) => !entries.some((e) => String(e.num) === k)).length;
+
 const indexLines = ['# W2 接口参考手册 · 索引', '',
-  '> 全量 ' + entries.length + ' 个命令，按业务域分文件。字段名为 snake_case 规范命名，附中文说明。', '',
+  '> 全量 ' + totalCmds + ' 个命令，按业务域分文件。字段名为 snake_case 规范命名，附中文说明。', '',
   '> 如何组装请求、判断成功失败见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](NOTES.md)。', '',
   '| 文件 | 业务域 | 命令数 | cmd 范围 |', '|---|---|---|---|'];
 
 let totalRendered = 0;
 for (const dom of DOMAINS) {
   const list = entries.filter(e => dom.test(Number(e.num)));
-  // names 中已收录但 H5 无类定义的命令（iOS 抓包独有），补占位条目
+  // names 中已收录但 Android 无类定义的命令（iOS 抓包独有），补占位条目
   for (const [k] of Object.entries(NAME_ZH)) {
     const n = Number(k);
     if (dom.test(n) && !entries.some(e => e.num === k) && !list.some(e => e.num === k)) {

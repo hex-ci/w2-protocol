@@ -46,7 +46,8 @@ const has = (n) => argv.includes('--' + n);
 
 const IP = arg('ip', '') || config.phoneIp;
 const IFACE = arg('iface', '') || config.iface;
-const PORT = parseInt(arg('port', String(config.port)), 10);
+// 游戏服 TCP 端口为常量 8083（各服均为 :8083，见 reference/00-choice.md 服务器列表）
+const PORT = parseInt(arg('port', '8083'), 10);
 const TAG = arg('tag', 'op');
 const FILE = arg('file', '');
 const QUIET = has('quiet');

@@ -2,12 +2,14 @@
 
 > 14 个命令（cmd 1 ~ 30）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
+> 本文件是**选服（choice）服务器**的命令，cmd 编号与游戏服是**两套独立命名空间**——两边都有 cmd=1，含义不同：本文件 cmd=1 是「选服登录」，游戏服的 cmd=1 是「获取服务器时间」。
+
 **服务器部署按平台隔离**：
 
 | 平台 | 选服地址 | 协议形态 |
 |---|---|---|
 | iOS | `w2vcn_G.ios.wistone.com:8081` | 裸 TCP，明文 WIST 帧 |
-| Android（H5） | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |
+| Android | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |
 
 服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自源码内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。
 

@@ -140,9 +140,44 @@
 
 ---
 
-## 8. 登录与初始化时序
+## 8. 登录全链路（SSO → 选服 → 游戏服）
 
-客户端连接建立后的典型通信流程：
+客户端冷启动（或新设备首次登录）到「进入游戏」分三段，前两段在连接游戏服之前完成：
+
+```
+① SSO 账号登录   POST mlogin → WST(凭据) + WTGT(续登票据) + wistoneId
+② 选服（choice） 独立 TCP 8081，明文 WIST 帧 → userId + 游戏服地址(ip:port)
+③ 游戏服握手     8083，hello(6) → 登录(1001) → 业务
+```
+
+### 8.1 SSO 账号登录（mlogin）
+
+- **端点**：`http://sso.wistone.com/wistoneSSO/mlogin`（`W2_SSO_URL`，代码内置缺省 + .env 覆盖）。
+- **两步 POST**（`application/x-www-form-urlencoded`）：
+  1. `login_type=0` 空表单 → `resultType=0`，取 `flowExecutionKey`/`loginTicket`/`sessionId`；
+  2. `login_type=1`，`email`/`password` 经 DES-ECB/PKCS7 加密（密钥 = SECURITY_KEY 常量，HEX 大写），附 `execution`/`l_t`/`_eventId=loginSubmit` → `resultType=1`。
+- **响应关键字段**：
+  - `WST`（`ST-` 开头）——登录凭据，游戏服 1001 的 `wst` 字段用它（**不是 WTGT**）。
+  - `WTGT`（152 位 hex）——静默续登票据，客户端缓存，冷启动时免密码换新 `WST`。
+  - `wistoneId`（64 hex）——DES 解密即 `username`（36 字符 UUID），与抓包 1001 帧的 username 三方一致。
+- **静默续登**：缓存有 `WTGT` 时发 `login_type=0` + `WID`（= `DES(username)`，80 hex）+ `WTGT`，免密码重新换取 `WST`；失败（服务器对无效请求回 HTML 错误页而非 JSON）自动回退账号密码登录。
+- **iOS 真机表单**：设备字段 `device_id/open_udid/advertising_id/for_vendor_id`（Android 为 `android_id/mac_address/imei/sim_serial_number`），`lang=zh_CN`、`version=1.0.2`。SSO 常量（appid/app_secret/SECURITY_KEY）全渠道唯一、不分平台。
+
+### 8.2 选服服务器（choice）
+
+- **独立于游戏服**：iOS = `w2vcn_G.ios.wistone.com:8081`（裸 TCP 明文 WIST 帧）；Android = `w2v-g-add-choice.wistone.com:8087`（**WebSocket** 端口，裸 TCP 发 WIST 无响应）。**按平台隔离部署，服务端校验 platform/channel 匹配**——iOS 服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`。
+- **明文帧**（无 AES/MD5）：`WIST + u32 sessionId + u32 L + u32 cmd + 明文 payload`。SDK 用 `new W2Client({mode:'choice'})` 复用同一套收发逻辑。
+- **`cmd=2` 拉服务器列表**：`str username + str platform + str channel + str language + str device_info + u32 client_tag + str client_version`，返回 `u32 count + N×(u32 serverId + str serverName + str serverHost + u32 pri + u8 game_entry_flag)`。
+- **`cmd=1` 选服登录**：参数在 cmd=2 基础上多 `u8 is_self + u32 server_id`（其中 server_id 是客户端缓存的上次服务器号）、前置 4 参相同。响应（status=1/2 成功）：
+  - `u64 userid` —— **userId 唯一来源**（不在 SSO 响应里），客户端缓存终身复用；
+  - `u32 server_id + str server_name + str server_host`（游戏服地址 ip:port，服务端下发）、`u32 server_sort`、条件字段 `u8 game_entry_flag`（=1 才跟 string）、`str init_channel`、`u64 timevalue/timeoffset`。
+  - status=3 = 换服需确认，仅 `str confirm_message`。
+- **选服机制 = 客户端记忆 + 服务器核对**：客户端缓存上次的 serverId/host，发进 cmd=1 的 server_id 供服务器核对；全新设备先 cmd=2 拉列表再选。游戏服地址是选服下发的，**不写死**。
+- **⚠️ userId 必配且必须与 wst 匹配**：填 0/错值 + 有效 wst 触发风控（「非法操作行为封停」）。
+
+### 8.3 游戏服握手与登录
+
+游戏服连接建立后的典型通信流程：
 
 ```
 客户端                                      服务端
@@ -168,6 +203,8 @@
 ---
 
 ## 9. 命令号分布规划
+
+> 本表是**游戏服**的命令号分布。选服（choice）服务器另有独立的 cmd 命名空间（1~30，见 §8.2 与 `reference/00-choice.md`），两边 cmd=1 含义不同：游戏服=获取服务器时间，选服服=选服登录。
 
 ```
 1 ~ 99        基础服务与心跳（1: 服务器时间、6: 配置 hello、11: 充值配置、12: 设备 Token）

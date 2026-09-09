@@ -22,6 +22,7 @@
  */
 
 import http from 'http';
+import crypto from 'crypto';
 import readline from 'readline';
 import { DES, Utf8, Latin1, ECB, Pkcs7, Hex } from 'crypto-es';
 import config from '../lib/config.js';
@@ -255,6 +256,11 @@ async function choiceLogin(username, serverId) {
   }
 
   // 第 4 步：全部落盘
+  // installID/appKey 是设备持久化指纹：
+  // 首次登录无此值则生成并缓存，之后稳定复用——每次换新值会让服务端日志出现「每日换设备」的机器人特征
+  if (!identity.installID) identity.installID = crypto.randomBytes(16).toString('hex').toUpperCase();
+  if (!identity.appKey) identity.appKey = crypto.randomBytes(16).toString('hex');
+
   const host = String(r3.server_host).match(/^(.+):(\d+)$/);
   config.saveIdentity({
     ...identity,
