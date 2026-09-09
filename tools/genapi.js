@@ -1,18 +1,19 @@
-'use strict';
-
 // 从客户端协议定义全量提取各命令的请求/响应字段，按业务域分文件生成 API 参考手册
 // 输出面向接口调用者：字段统一 snake_case + 中文说明，成功判定折算为具体 status 值
 // 用法: W2_PROTO_SRC=<客户端协议定义文件> node tools/genapi.js
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const SRC = process.env.W2_PROTO_SRC || process.argv[2] || '';
 if (!SRC) {
   console.error('用法: W2_PROTO_SRC=<客户端协议定义文件> node tools/genapi.js');
   process.exit(1);
 }
-const OUT_DIR = path.join(__dirname, '..', 'protocol', 'reference');
+const OUT_DIR = path.join(ROOT, 'protocol', 'reference');
 
 // ---------- 1. 扫描所有协议类 ----------
 const src = fs.readFileSync(SRC, 'utf8');
@@ -289,7 +290,7 @@ function extract(num) {
 }
 
 // 接口英文名 → 中文接口名（与 commands.json names 同源）
-const NAME_ZH = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'protocol', 'commands.json'), 'utf8')).names;
+const NAME_ZH = JSON.parse(fs.readFileSync(path.join(ROOT, 'protocol', 'commands.json'), 'utf8')).names;
 
 function renderEntry(e) {
   const L = [];

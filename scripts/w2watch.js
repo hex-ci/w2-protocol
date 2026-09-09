@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-'use strict';
-
 /**
- * w2watch.js —— 实时协议嗅探器（某手游私有 TCP 协议）
+ * w2watch.js —— 实时协议嗅探器
  *
  * 启动后会拉起 tcpdump，边抓边解析，控制台实时打印每个操作，
  * 同时把结构化事件写入 JSONL 文件（供后续分析/补齐字典）。
@@ -22,13 +20,21 @@
  *   captures/<日期>/<时间>_<tag>.new.txt 本次发现的新命令（直接发给分析者）
  */
 
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const {
-  PcapParser, decode, framesOut, framesIn, decodeBody, idNamePairs, cjkStrings, hex,
-} = require('../lib/w2.js');
-const config = require('../lib/config.js');
+import { spawn, execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import {
+  PcapParser,
+  decode,
+  framesOut,
+  framesIn,
+  decodeBody,
+  idNamePairs,
+  cjkStrings,
+  hex,
+} from '../lib/w2.js';
+import config from '../lib/config.js';
 
 // ---------- 参数 ----------
 const argv = process.argv.slice(2);
@@ -44,7 +50,7 @@ const PORT = parseInt(arg('port', String(config.port)), 10);
 const TAG = arg('tag', 'op');
 const FILE = arg('file', '');
 const QUIET = has('quiet');
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 if (!IP && !FILE) {
   console.log('需要 --ip <设备内网IP>  或  --file <pcap>');
@@ -207,7 +213,7 @@ function checkOffload(ctFile) {
   }
   // 内核模块层面的卸载（即使当前无连接也提示）
   try {
-    const lsmod = require('child_process').execSync('lsmod 2>/dev/null', { encoding: 'utf8' });
+    const lsmod = execSync('lsmod 2>/dev/null', { encoding: 'utf8' });
     const mods = lsmod.split('\n').filter((l) => /offload|shortcut|sfe|fastnat|hw_nat/i.test(l)).map((l) => l.split(/\s+/)[0]);
     if (mods.length) console.log('  卸载相关内核模块:', mods.join(', '), '（若抓不到业务数据，优先排查）');
   } catch (e) { /* 无 lsmod，忽略 */ }

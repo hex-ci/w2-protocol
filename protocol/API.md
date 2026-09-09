@@ -144,7 +144,8 @@ TCP connect
 - **示例**（构造，`lib/w2build.js`）：
 
 ```js
-const { buildFrame, p } = require('./lib/w2build.js');
+import { buildFrame, p } from './lib/w2build.js';
+
 const params = p.cat(
   p.u64(10001),                 // userId
   p.str('0f0e1d2c-3b4a-5968-7700-112233445566'),
@@ -375,7 +376,8 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
 **推荐业务脚本统一走 SDK**（`lib/sdk.js`），底层传输、加密、请求-响应配对全部封装：
 
 ```js
-const { W2Client, p } = require('../lib/sdk.js');
+import { W2Client, p } from '../lib/sdk.js';
+
 const c = new W2Client({ host, port, loginParams });  // loginParams 来自 config.loginParams()
 await c.connect();                                   // hello + 登录
 const r = await c.call(10001, p.byte(0), {           // schema 照抄 reference/ 字段表

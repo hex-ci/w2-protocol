@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-'use strict';
-
 /**
  * w2reward.js —— 邮件奖励自动领取
  *
@@ -16,8 +14,8 @@
  *   node scripts/w2reward.js --dry        只扫描展示，不领取
  */
 
-const config = require('../lib/config.js');
-const { W2Client, p } = require('../lib/sdk.js');
+import config from '../lib/config.js';
+import { W2Client, p } from '../lib/sdk.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {

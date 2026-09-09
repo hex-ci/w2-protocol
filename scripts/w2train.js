@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-'use strict';
-
 /**
  * w2train.js —— 全域造兵
  *
@@ -18,8 +16,8 @@
  *   node scripts/w2train.js --dry               只模拟计算，不下单
  */
 
-const config = require('../lib/config.js');
-const { W2Client, p } = require('../lib/sdk.js');
+import config from '../lib/config.js';
+import { W2Client, p } from '../lib/sdk.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {

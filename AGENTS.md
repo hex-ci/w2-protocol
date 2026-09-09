@@ -60,7 +60,7 @@ npm run genapi                          # 从客户端协议定义重新生成 r
 
 ## 约定
 
-- CommonJS：`'use strict'` 开头，`require`/`module.exports`，不引入 ES modules。
+- ESM：`package.json` 已设 `"type": "module"`，统一 `import`/`export` 写法；无 `__dirname`/`require`，模块目录定位用 `path.dirname(fileURLToPath(import.meta.url))`。
 - 二进制一律大端 `readUInt32BE`（`PcapParser` 的 pcap 头按 magic 判断字节序，其余都是大端）。
 - 命令号/任务 ID 在 JS 里当字符串比较（字典 key 是字符串），注意别直接用整数匹配。
 - 提交信息用 Conventional Commits（英文，如 `feat:` `refactor(core):`）。

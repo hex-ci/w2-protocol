@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-'use strict';
-
 /**
  * w2signin.js —— 每日任务自动领取
  *
@@ -16,8 +14,8 @@
  *   node scripts/w2signin.js --dry        只查询不领取
  */
 
-const config = require('../lib/config.js');
-const { W2Client, p } = require('../lib/sdk.js');
+import config from '../lib/config.js';
+import { W2Client, p } from '../lib/sdk.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {

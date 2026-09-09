@@ -1,9 +1,11 @@
 {
   "name": "w2-protocol",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "某手游私有 TCP 协议解析与自动化工具",
   "scripts": {
+    "lint": "eslint . --cache --max-warnings 0",
     "watch": "node scripts/w2watch.js",
     "signin": "node scripts/w2signin.js",
     "reward": "node scripts/w2reward.js",
