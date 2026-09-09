@@ -120,7 +120,7 @@
 | 53 | u32 | `seller_avatar` | — |
 | 54 | string | `seller_nickname` | 玩家昵称 |
 | 55 | string | `seller_alliance_name` | 军团名称 |
-| 56 | string | `confirm_message` | — |
+| 56 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -285,7 +285,7 @@
 | 53 | u32 | `seller_avatar` | — |
 | 54 | string | `seller_nickname` | 玩家昵称 |
 | 55 | string | `seller_alliance_name` | 军团名称 |
-| 56 | string | `confirm_message` | — |
+| 56 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -374,7 +374,7 @@
 | 51 | u32 | `seller_avatar` | — |
 | 52 | string | `seller_nickname` | 玩家昵称 |
 | 53 | string | `seller_alliance_name` | 军团名称 |
-| 54 | string | `confirm_message` | — |
+| 54 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -437,7 +437,7 @@
 | 37 | u32 | `seller_avatar` | — |
 | 38 | string | `seller_nickname` | 玩家昵称 |
 | 39 | string | `seller_alliance_name` | 军团名称 |
-| 40 | string | `confirm_message` | — |
+| 40 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -521,7 +521,7 @@
 | 9 | u32 | `seller_avatar` | — |
 | 10 | string | `seller_nickname` | 玩家昵称 |
 | 11 | string | `seller_alliance_name` | 军团名称 |
-| 12 | string | `confirm_message` | — |
+| 12 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -600,7 +600,7 @@
 | 9 | u32 | `seller_avatar` | — |
 | 10 | string | `seller_nickname` | 玩家昵称 |
 | 11 | string | `seller_alliance_name` | 军团名称 |
-| 12 | string | `confirm_message` | — |
+| 12 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -616,7 +616,7 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | string | `confirm_message` | — |
+| 1 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -633,7 +633,7 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | string | `confirm_message` | — |
+| 1 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -1245,7 +1245,7 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | string | `confirm_message` | — |
+| 1 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 

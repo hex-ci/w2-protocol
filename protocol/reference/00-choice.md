@@ -2,7 +2,16 @@
 
 > 14 个命令（cmd 1 ~ 30）。所有响应均以 1 字节 status 打头，成功值见各条目。
 
-### `cmd=1` — 获取服务器时间
+**服务器部署按平台隔离**：
+
+| 平台 | 选服地址 | 协议形态 |
+|---|---|---|
+| iOS | `w2vcn_G.ios.wistone.com:8081` | 裸 TCP，明文 WIST 帧 |
+| Android（H5） | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |
+
+服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自源码内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。
+
+### `cmd=1` — 选服登录（客户端用它换 userId + 游戏服地址）
 
 **请求参数**（按序拼接为 AES 明文）:
 
@@ -17,22 +26,24 @@
 | 7 | string | `device_info` | — |
 | 8 | u32 | `client_tag` | — |
 | 9 | string | `client_version` | 客户端版本号 |
-| 10 | u8 | `confirm_to_abort_abandon` | — |
+| 10 | u8 | `confirm_to_abort_abandon` | 确认放弃标记（0/1） |
 
-**响应**（status 为 **1** 或 **2** 或 **3** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
+**响应**（status 为 **1** 或 **2** 时成功；**3**=需二次确认（仅 confirm_message）；失败时仅 1 字节状态 + 错误文案字符串）:
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u64 | `userid` | — |
+| 1 | u64 | `userid` | 账号在该服的游戏 userId |
 | 2 | u32 | `server_id` | 服务器编号 |
 | 3 | string | `server_name` | 服务器名称 |
-| 4 | string | `server_host` | 服务器地址 |
-| 5 | u32 | `server_sort` | — |
-| 6 | string | `game_entry` | — |
-| 7 | string | `init_channel` | 渠道名 |
-| 8 | u64 | `timevalue` | — |
-| 9 | u64 | `timeoffset` | — |
-| 10 | string | `confirm_message` | — |
+| 4 | string | `server_host` | 游戏服地址（ip:port） |
+| 5 | u32 | `server_sort` | 服务器排序值 |
+| 6 | string | `game_entry` | 游戏入口标识 |
+| 7 | string | `init_channel` | 渠道名回显 |
+| 8 | u64 | `timevalue` | 服务器当前毫秒时间戳 |
+| 9 | u64 | `timeoffset` | 客户端-服务器毫秒时差 |
+| 10 | string | `confirm_message` | 服务器要求确认的文案 |
+
+> 第 6 项是**条件字段**：1 字节 flag，flag=1 时才后接 game_entry 字符串（Prot1.decode: CLIENT_TAG>=3 时读 flag）。
 
 ---
 
@@ -58,9 +69,9 @@
 |---|---|---|---|
 | 1 | u32 | `server_id` | 服务器编号 |
 | 2 | string | `server_name` | 服务器名称 |
-| 3 | string | `server_host` | 服务器地址 |
+| 3 | string | `server_host` | 游戏服地址（ip:port） |
 | 4 | u32 | `pri` | — |
-| 5 | string | `game_entry` | — |
+| 5 | string | `game_entry` | 游戏入口标识 |
 | 6 | u8 | `update_mode` | — |
 | 7 | string | `latest_version` | — |
 | 8 | string | `update_description` | 描述文案 |
@@ -362,16 +373,16 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u64 | `userid` | — |
+| 1 | u64 | `userid` | 账号在该服的游戏 userId |
 | 2 | u32 | `server_id` | 服务器编号 |
 | 3 | string | `server_name` | 服务器名称 |
-| 4 | string | `server_host` | 服务器地址 |
-| 5 | u32 | `server_sort` | — |
-| 6 | string | `game_entry` | — |
-| 7 | string | `init_channel` | 渠道名 |
-| 8 | u64 | `timevalue` | — |
-| 9 | u64 | `timeoffset` | — |
-| 10 | string | `confirm_message` | — |
+| 4 | string | `server_host` | 游戏服地址（ip:port） |
+| 5 | u32 | `server_sort` | 服务器排序值 |
+| 6 | string | `game_entry` | 游戏入口标识 |
+| 7 | string | `init_channel` | 渠道名回显 |
+| 8 | u64 | `timevalue` | 服务器当前毫秒时间戳 |
+| 9 | u64 | `timeoffset` | 客户端-服务器毫秒时差 |
+| 10 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -390,16 +401,16 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u64 | `userid` | — |
+| 1 | u64 | `userid` | 账号在该服的游戏 userId |
 | 2 | u32 | `server_id` | 服务器编号 |
 | 3 | string | `server_name` | 服务器名称 |
-| 4 | string | `server_host` | 服务器地址 |
-| 5 | u32 | `server_sort` | — |
-| 6 | string | `game_entry` | — |
-| 7 | string | `init_channel` | 渠道名 |
-| 8 | u64 | `timevalue` | — |
-| 9 | u64 | `timeoffset` | — |
-| 10 | string | `confirm_message` | — |
+| 4 | string | `server_host` | 游戏服地址（ip:port） |
+| 5 | u32 | `server_sort` | 服务器排序值 |
+| 6 | string | `game_entry` | 游戏入口标识 |
+| 7 | string | `init_channel` | 渠道名回显 |
+| 8 | u64 | `timevalue` | 服务器当前毫秒时间戳 |
+| 9 | u64 | `timeoffset` | 客户端-服务器毫秒时差 |
+| 10 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 

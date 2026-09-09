@@ -341,7 +341,7 @@
 | 102 | u32 | `seller_avatar` | — |
 | 103 | string | `seller_nickname` | 玩家昵称 |
 | 104 | string | `seller_alliance_name` | 军团名称 |
-| 105 | string | `confirm_message` | — |
+| 105 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 
@@ -495,7 +495,7 @@
 | 102 | u32 | `seller_avatar` | — |
 | 103 | string | `seller_nickname` | 玩家昵称 |
 | 104 | string | `seller_alliance_name` | 军团名称 |
-| 105 | string | `confirm_message` | — |
+| 105 | string | `confirm_message` | 服务器要求确认的文案 |
 
 ---
 

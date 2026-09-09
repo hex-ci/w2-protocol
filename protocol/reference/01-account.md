@@ -58,7 +58,7 @@
 | 5 | string | `channel` | 渠道名 |
 | 6 | string | `language` | 语言代码 |
 | 7 | string | `app_key` | 客户端应用密钥 |
-| 8 | string | `init_channel` | 渠道名 |
+| 8 | string | `init_channel` | 渠道名回显 |
 | 9 | string | `install_id` | 设备安装 ID |
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:

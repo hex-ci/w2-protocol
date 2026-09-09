@@ -139,7 +139,16 @@ const SEMANTIC = [
   ['alliance', '军团'],
   ['server_id', '服务器编号'],
   ['server_name', '服务器名称'],
-  ['server_host', '服务器地址'],
+  ['server_host', '游戏服地址（ip:port）'],
+  ['server_sort', '服务器排序值'],
+  ['user_id', '账号 ID'],
+  ['userid', '账号在该服的游戏 userId'],
+  ['timevalue', '服务器当前毫秒时间戳'],
+  ['timeoffset', '客户端-服务器毫秒时差'],
+  ['init_channel', '渠道名回显'],
+  ['confirm_message', '服务器要求确认的文案'],
+  ['confirm_to_abort_abandon', '确认放弃标记（0/1）'],
+  ['game_entry', '游戏入口标识'],
   ['client_ver', '客户端版本整数'],
   ['client_version', '客户端版本号'],
   ['channel', '渠道名'],
@@ -292,10 +301,26 @@ function extract(num) {
 // 接口英文名 → 中文接口名（与 commands.json names 同源）
 const NAME_ZH = JSON.parse(fs.readFileSync(path.join(ROOT, 'protocol', 'commands.json'), 'utf8')).names;
 
+// 命令特例修正（生成器静态规则覆盖不了的实据知识，重跑生成不丢失）：
+//   succ:    替换该命令响应的成功判定行（客户端 success() 写法与实况不符时）
+//   note:    追加在响应表后的补充说明（条件字段/实测行为）
+//   title:   覆盖命令标题
+const CMD_OVERRIDES = {
+  1: {
+    title: '选服登录（客户端用它换 userId + 游戏服地址）',
+    succ: 'status 为 **1** 或 **2** 时成功；**3**=需二次确认（仅 confirm_message）',
+    note: '第 6 项是**条件字段**：1 字节 flag，flag=1 时才后接 game_entry 字符串（Prot1.decode: CLIENT_TAG>=3 时读 flag）。',
+  },
+  3001: {
+    note: '同厂可连续下多单并行排队。训练条件与单价查询见 cmd=3006；兵种原型 ID 对照：BuildingType 枚举 14=军工厂(ARMS_PLANT)、18=机场(AIRPORT)，训练空军兵种需城中机场。',
+  },
+};
+
 function renderEntry(e) {
   const L = [];
   const isPush = /isBroadcast=function\(\)\{return!0\}/.test(e.dec) || Number(e.num) >= 26000;
-  const zhName = NAME_ZH[e.num] || (e.pid ? e.pid.replace(/^PROT_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '未命名');
+  const ov = CMD_OVERRIDES[Number(e.num)] || {};
+  const zhName = ov.title || NAME_ZH[e.num] || (e.pid ? e.pid.replace(/^PROT_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '未命名');
   L.push(`### \`cmd=${e.num}\` — ${zhName}${isPush ? '（服务端推送）' : ''}`);
   L.push('');
   if (e.captureOnly) {
@@ -334,7 +359,7 @@ function renderEntry(e) {
   }
 
   // 响应
-  const succLine = succText(e.succ);
+  const succLine = ov.succ || succText(e.succ);
   if (e.dec.trim()) {
     const { fields, flat } = parseDecode(e.dec);
     const isList = /new \w+info/i.test(flat) || /for\(var \w+=e\.readInt\(\)/.test(flat);
@@ -352,13 +377,25 @@ function renderEntry(e) {
         L.push(`| ${i + 1} | ${TYPE_MAP[f.type] || f.type} | \`${snake}\` | ${explain(snake) || '—'} |`);
       });
       L.push('');
+      if (ov.note) {
+        L.push(`> ${ov.note}`);
+        L.push('');
+      }
     } else {
       L.push(`**响应**: 无业务数据。${succLine}；失败时为状态字节 + 错误文案。`);
       L.push('');
+      if (ov.note) {
+        L.push(`> ${ov.note}`);
+        L.push('');
+      }
     }
   } else {
     L.push(`**响应**: 无业务数据。${succLine}；失败时为状态字节 + 错误文案。`);
     L.push('');
+    if (ov.note) {
+      L.push(`> ${ov.note}`);
+      L.push('');
+    }
   }
   return L.join('\n');
 }
@@ -366,6 +403,21 @@ function renderEntry(e) {
 // ---------- 7. 分域输出 ----------
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const entries = [...classes.keys()].sort((a, b) => Number(a) - Number(b)).map(extract).filter(e => !e.ghost);
+
+// 章首特例段（每个业务域文件的固定开头补充，如选服服务器的部署架构说明）
+const DOMAIN_HEAD = {
+  '00-choice': [
+    '**服务器部署按平台隔离**：',
+    '',
+    '| 平台 | 选服地址 | 协议形态 |',
+    '|---|---|---|',
+    '| iOS | `w2vcn_G.ios.wistone.com:8081` | 裸 TCP，明文 WIST 帧 |',
+    '| Android（H5） | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |',
+    '',
+    '服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自源码内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。',
+    '',
+  ],
+};
 
 const indexLines = ['# W2 接口参考手册 · 索引', '',
   '> 全量 ' + entries.length + ' 个命令，按业务域分文件。字段名为 snake_case 规范命名，附中文说明。', '',
@@ -387,6 +439,7 @@ for (const dom of DOMAINS) {
   const file = path.join(OUT_DIR, dom.id + '.md');
   const rel = dom.id + '.md';
   const buf = [`# ${dom.title}`, '', `> ${list.length} 个命令（cmd ${list[0].num} ~ ${list[list.length - 1].num}）。所有响应均以 1 字节 status 打头，成功值见各条目。`, ''];
+  if (DOMAIN_HEAD[dom.id]) buf.push(...DOMAIN_HEAD[dom.id]);
   const bodies = list.map(renderEntry);
   buf.push(bodies.join('\n---\n\n'));
   fs.writeFileSync(file, buf.join('\n'));

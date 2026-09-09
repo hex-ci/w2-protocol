@@ -87,12 +87,13 @@ const CLAIM_SCHEMA = {
 
 (async function main() {
   const lp = config.loginParams();
-  if (!config.host || !lp) {
-    console.log('缺少配置：请把真实值写入 .env（W2_HOST 与 W2_LOGIN_*，模板见 .env.example）');
+  const gs = config.gameServer();
+  if (!gs || !lp) {
+    console.log('尚未登录：先执行 node tools/w2login.js <邮箱或账号> <密码> 完成首次登录');
     process.exit(1);
   }
 
-  const c = new W2Client({ host: config.host, port: config.port, loginParams: lp });
+  const c = new W2Client({ host: gs.host, port: gs.port, loginParams: lp });
   c.onPush(26003, () => { /* 任务/活动提示推送，此处仅静默 */ });
 
   try {

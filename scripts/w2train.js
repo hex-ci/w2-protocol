@@ -37,7 +37,17 @@ const jitter = () => sleep(300 + Math.floor(Math.random() * 500));
 
 // ---------- 解析器 ----------
 
-/** 2001 城池列表 → [{ cityId, name, x, y }]（结构依据客户端 Cityinfo 定义） */
+/**
+ * 2001 城池列表 → [{ cityId, name, x, y }]
+ * 服务器实现与客户端 Cityinfo 定义有差异，本解析按实测字节序：
+ *   u8 isJoinLeagueWar + u8 count + N×{
+ *     u64 cityId, str name, u32 x, u32 y, str mayor,
+ *     u32 population, u32 morale, u32 coastal, u32 hasCarrier, str imgID,
+ *     u8 isColonial, u32 mayorIcon, u32 constructNum, u32 helpNum,
+ *     u32 trainingCount, u32 officerCount, u32 officerCountMax, u8 未知尾字节
+ *   }
+ * 偏移经真机逐字段核对（字符串长度前缀定位），仅取前 5 个字段。
+ */
 function parseCityList(raw) {
   let off = 0;
   const u8 = () => raw[off++];
@@ -49,14 +59,13 @@ function parseCityList(raw) {
   const cities = [];
   for (let i = 0; i < count; i++) {
     const cityId = u64(), name = str(), x = u32(), y = u32();
-    u32(); u32(); u32(); u32();       // population, morale, coastal, hasCarrier
-    str();                            // imgID
-    u8(); u32(); u32();               // isColonial, mayorIcon, constructNum
-    const haveTech = u8();
-    if (haveTech === 1) { u32(); u32(); }
-    u32();                            // helpNum
-    if (joinWar === 1) u32();         // leagueScorePlunderable
-    u32(); u32(); u32();              // trainingCount, officerCount, officerCountMax
+    str();                                 // mayor
+    u32(); u32(); u32(); u32();            // population, morale, coastal, hasCarrier
+    str();                                 // imgID
+    u8();                                  // isColonial
+    u32(); u32(); u32();                   // mayorIcon, constructNum, helpNum
+    if (joinWar === 1) u32();              // leagueScorePlunderable
+    u32(); u32(); u32(); u8();             // trainingCount, officerCount, officerCountMax, 未知
     cities.push({ cityId: cityId.toString(), name, x, y });
   }
   return cities;
@@ -136,12 +145,13 @@ const fmtDur = (ms) => {
 
 (async function main() {
   const lp = config.loginParams();
-  if (!config.host || !lp) {
-    console.log('缺少配置：请把真实值写入 .env（W2_HOST 与 W2_LOGIN_*，模板见 .env.example）');
+  const gs = config.gameServer();
+  if (!gs || !lp) {
+    console.log('尚未登录：先执行 node tools/w2login.js <邮箱或账号> <密码> 完成首次登录');
     process.exit(1);
   }
 
-  const c = new W2Client({ host: config.host, port: config.port, loginParams: lp });
+  const c = new W2Client({ host: gs.host, port: gs.port, loginParams: lp });
   try {
     await c.connect();
   } catch (e) {

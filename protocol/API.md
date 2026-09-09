@@ -161,7 +161,8 @@ const frame = buildFrame(1, 88888, 1001, params);
 socket.write(frame);
 ```
 
-- **凭据提取**：从抓包登录帧可解密出全部字段（AES key = 帧内 sessionId 补零，见 NOTES §3），提取一次后填入 `.env` 的 `W2_LOGIN_*`，供 `config.loginParams()` 与 SDK 使用。
+- **凭据获取**：登录命令 `tools/w2login.js`（或 `npm run login`）模拟客户端完整流程：SSO mlogin（账号密码）→ 选服服务器 → userId + 游戏服地址，全部凭据自动落盘 `.identity.local.json`。SSO 两步 `mlogin`（① 空表单取 `flowExecutionKey`/`loginTicket`；② `email`/`password` DES-ECB 加密 + `_eventId=loginSubmit`）换取 `WST`。SSO 端点与 DES 密钥、appid/app_secret 等常量经 `.env` 的 `W2_SSO_*` 配置。
+- **获取 userId**：userId 不在 SSO 响应中，它由选服协议（cmd=1）响应返回（`u64 _userid`），客户端本地缓存后每次登录复用。`tools/w2login.js` 已自动完成此步骤。注意 userId 必须与 wst 匹配——实测 userId 填 0/错值 + 有效 wst 会触发风控（返回「非法操作行为封停」文案）。userId 是账号终身属性。
 
 #### `cmd=1005` — 玩家核心信息
 - **请求**：无参数。
