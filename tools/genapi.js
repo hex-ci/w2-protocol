@@ -30,24 +30,24 @@ while ((m = reB.exec(src)) !== null) {
 
 // ---------- 2. 业务域分段 ----------
 const DOMAINS = [
-  { id: '00-choice',    title: '选服与渠道登录（Choice 通道）', test: n => n < 1000 },
-  { id: '01-account',   title: '账号与玩家',                   test: n => n >= 1000 && n < 2000 },
-  { id: '02-city',      title: '城池与资源',                   test: n => n >= 2000 && n < 3000 },
-  { id: '03-army',      title: '军队与训练',                   test: n => n >= 3000 && n < 4000 },
-  { id: '04-tech',      title: '科技研发',                     test: n => n >= 4000 && n < 5000 },
-  { id: '05-alliance',  title: '军团',                         test: n => n >= 5000 && n < 6000 },
-  { id: '06-chat',      title: '聊天',                         test: n => n >= 6000 && n < 7000 },
-  { id: '07-item',      title: '道具与背包',                   test: n => n >= 8000 && n < 9000 },
-  { id: '08-mail',      title: '邮件',                         test: n => n >= 9000 && n < 10000 },
-  { id: '09-task',      title: '任务与奖励',                   test: n => n >= 10000 && n < 11000 },
-  { id: '10-officer',   title: '名将',                         test: n => n >= 11000 && n < 12000 },
-  { id: '11-shop-pay',  title: '商城与支付',                   test: n => (n >= 7000 && n < 8000) || (n >= 12000 && n < 13000) },
-  { id: '12-map',       title: '地图与战报',                   test: n => n >= 15000 && n < 20000 },
-  { id: '13-activity',  title: '活动',                         test: n => n >= 22000 && n < 24000 },
-  { id: '14-ranking',   title: '排行榜',                       test: n => n >= 24000 && n < 25000 },
-  { id: '15-battle',    title: '战斗与演习',                   test: n => (n >= 20000 && n < 22000) || (n >= 25000 && n < 26000) || (n >= 29000 && n < 30000) },
-  { id: '16-notice',    title: '公告与系统',                   test: n => n >= 13000 && n < 15000 },
-  { id: '17-push',      title: '服务端推送（Broadcast）',      test: n => n >= 26000 && n < 27000 },
+  { id: '00-choice', title: '选服与渠道登录', test: n => n < 1000 },
+  { id: '01-account', title: '账号与玩家', test: n => n >= 1000 && n < 2000 },
+  { id: '02-city', title: '城池与资源', test: n => n >= 2000 && n < 3000 },
+  { id: '03-army', title: '军队与训练', test: n => n >= 3000 && n < 4000 },
+  { id: '04-tech', title: '科技研发', test: n => n >= 4000 && n < 5000 },
+  { id: '05-alliance', title: '军团', test: n => n >= 5000 && n < 6000 },
+  { id: '06-chat', title: '聊天', test: n => n >= 6000 && n < 7000 },
+  { id: '07-item', title: '道具与背包', test: n => n >= 8000 && n < 9000 },
+  { id: '08-mail', title: '邮件', test: n => n >= 9000 && n < 10000 },
+  { id: '09-task', title: '任务与奖励', test: n => n >= 10000 && n < 11000 },
+  { id: '10-officer', title: '名将', test: n => n >= 11000 && n < 12000 },
+  { id: '11-shop-pay', title: '商城与支付', test: n => (n >= 7000 && n < 8000) || (n >= 12000 && n < 13000) },
+  { id: '12-map', title: '地图与战报', test: n => n >= 15000 && n < 20000 },
+  { id: '13-activity', title: '活动', test: n => n >= 22000 && n < 24000 },
+  { id: '14-ranking', title: '排行榜', test: n => n >= 24000 && n < 25000 },
+  { id: '15-battle', title: '战斗与演习', test: n => (n >= 20000 && n < 22000) || (n >= 25000 && n < 26000) || (n >= 29000 && n < 30000) },
+  { id: '16-notice', title: '公告与系统', test: n => n >= 13000 && n < 15000 },
+  { id: '17-push', title: '服务端推送', test: n => n >= 26000 && n < 27000 },
 ];
 
 // ---------- 3. 类型与命名 ----------
@@ -260,14 +260,6 @@ function succText(succ) {
   return 'status 为 ' + vals.map(v => `**${v}**`).join(' 或 ') + ' 时成功';
 }
 
-// ---------- 6. 条目渲染 ----------
-function findClass(num) {
-  // 两种定义形态：ProtNNNN=function(e){...} 与 装饰器形态 BroadcastProtNNNN=(_dec=ccclass(...)
-  return classes.get(num) !== undefined
-    ? { start: classes.get(num), seg: src.slice(classes.get(num), classes.get(num) + 16000) }
-    : null;
-}
-
 function extract(num) {
   // 形态 A：ProtNNNN=function(e){function t(){...}
   const start0 = classes.get(num);
@@ -383,7 +375,7 @@ let totalRendered = 0;
 for (const dom of DOMAINS) {
   const list = entries.filter(e => dom.test(Number(e.num)));
   // names 中已收录但 H5 无类定义的命令（iOS 抓包独有），补占位条目
-  for (const [k, zh] of Object.entries(NAME_ZH)) {
+  for (const [k] of Object.entries(NAME_ZH)) {
     const n = Number(k);
     if (dom.test(n) && !entries.some(e => e.num === k) && !list.some(e => e.num === k)) {
       list.push({ num: k, pid: null, enc: '', dec: '', succ: null, captureOnly: true });
@@ -415,5 +407,4 @@ if (ungrouped.length) {
 indexLines.push('', `> 共 ${totalRendered} 个命令（另有继承空壳类不计入）。`);
 fs.writeFileSync(path.join(OUT_DIR, 'README.md'), indexLines.join('\n') + '\n');
 console.log(`已生成 ${DOMAINS.filter(d => entries.some(e => d.test(Number(e.num)))).length + (ungrouped.length ? 1 : 0)} + 1(索引) 个文件，共 ${totalRendered} 个命令`);
-const missingNames = entries.filter(e => !NAME_ZH[e.num]).length;
 console.log(`手册条目: ${totalRendered}，names 字典: ${Object.keys(NAME_ZH).length}，差集: ${Math.abs(totalRendered - Object.keys(NAME_ZH).length)}`);

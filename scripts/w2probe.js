@@ -12,7 +12,6 @@
  * 用来摸清：不同参数对应哪个分类、响应里有哪些任务 ID/名称。
  */
 
-const net = require('net');
 const fs = require('fs');
 const config = require('../lib/config.js');
 const { framesIn, idNamePairs, cjkStrings, decodeBody } = require('../lib/w2.js');

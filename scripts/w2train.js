@@ -50,7 +50,7 @@ function parseCityList(raw) {
   const count = u8();
   const cities = [];
   for (let i = 0; i < count; i++) {
-    const cityId = u64(), name = str(), x = u32(), y = u32(), mayor = str();
+    const cityId = u64(), name = str(), x = u32(), y = u32();
     u32(); u32(); u32(); u32();       // population, morale, coastal, hasCarrier
     str();                            // imgID
     u8(); u32(); u32();               // isColonial, mayorIcon, constructNum
@@ -73,7 +73,7 @@ function parseMilitaryBuildings(raw) {
   const count = u8();
   const list = [];
   for (let i = 0; i < count; i++) {
-    const bid = u64(), proto = u32(), level = u32(), pos = u32(), status = u32();
+    const bid = u64(), proto = u32(), level = u32();
     u64(); u64(); u64(); u8();        // remainTime, finishTime, totalTime, helped
     list.push({ bid: bid.toString(), proto, level });
   }

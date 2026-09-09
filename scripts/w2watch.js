@@ -59,7 +59,6 @@ try {
 } catch (e) {
   console.log('警告: 读不到命令字典', dictPath);
 }
-const pushSet = new Set(dict.push || []);
 const nameOf = (cmd) => dict.names[String(cmd)] || '';
 
 // ---------- 输出目录 ----------

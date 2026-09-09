@@ -48,24 +48,6 @@ const MAIL_LIST_SCHEMA = {
   ],
 };
 
-// ---------- 9002 邮件详情 schema（依据客户端 Prot9002.decode 定义） ----------
-// 响应: u8 mailType回显 + str mailReceiver + u64 senderPlayerId + str senderNickname
-//      + u64 createTime(毫秒) + str mailTitle + str mailContent + u8 attachmentFlag
-//      + u8 附件条数 + N×(str name + str desc + u32 icon + u32 amount)
-const MAIL_DETAIL_SCHEMA = {
-  skip: 1, // status 后 1 字节 mailType 回显
-  fields: [
-    ['mail_receiver', 'string'],
-    ['sender_player_id', 'u64'],
-    ['sender_nickname', 'string'],
-    ['create_time', 'u64'],
-    ['mail_title', 'string'],
-    ['mail_content', 'string'],
-    ['attachment_flag', 'u8'],
-  ],
-  tail: [['attachment_count', 'u8']],
-};
-
 // 附件条目名称/描述之后的 icon+amount 需按条目循环，schema 不支持嵌套循环，
 // 从 raw 上按 decodeBySchema 消费完的偏移继续解析。这里改为整体手工解析：
 function parseDetail(raw) {
