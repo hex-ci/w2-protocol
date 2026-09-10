@@ -65,20 +65,22 @@
 
 ### `cmd=3005` — 查询训练队列
 
+> 实测修正：包含条件字段。先读 `u32 count`，每个条目先读 `u64 building_id`、`u32 building_position`、`u32 status`。
+> 仅在 `status == 1` 时才跟后续队列 4 个字段（`training_id`、`army_id`、`remain_time`、`total_time`）；`status == 0` 表示该厂当前空闲无在产队列。
+
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
-
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
 | 1 | u64 | `building_id` | 建筑实例 ID |
 | 2 | u32 | `building_position` | 格位编号 |
-| 3 | u64 | `training_id` | 训练队列 ID |
-| 4 | u32 | `army_id` | 兵种 ID |
-| 5 | u64 | `remain_time` | 剩余毫秒数 |
-| 6 | u64 | `total_time` | 总耗时毫秒 |
+| 3 | u32 | `status` | 生产状态（0=空闲, 1=在产） |
+| 4 | u64 | `training_id` | 训练队列 ID（仅 `status=1` 时存在） |
+| 5 | u32 | `army_id` | 兵种 ID（仅 `status=1` 时存在） |
+| 6 | u64 | `remain_time` | 剩余毫秒数（仅 `status=1` 时存在） |
+| 7 | u64 | `total_time` | 总耗时毫秒（仅 `status=1` 时存在） |
 
 ---
 

@@ -418,37 +418,37 @@
 
 ### `cmd=2026` — 查询资源生产信息
 
+> 实测修正：服务器下发 Body 全长固定 100 字节（大端序）。
+> 粮食块 24B（含 8B 军粮消耗），钢铁/稀矿/石油块各 16B（8B 储量 + 4B 容量 + 4B 基础产量）。
+> 黄金与人口字段固定在尾部，不受驻军种类影响。空闲人口在部队超编时会出现负数（按有符号 i32 读取）。
+
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-> 客户端按 long 读储量字段；实测显示服务器按 24B 资源块发送，
-> 块内字段为 u32（如粮食储量 4211500 按 u32 对齐可读，按 long 读会错位）。下表为客户端基线，
-> 与服务器实现的确切差异未逐字段复核——写自动化前先抓包对齐。
-
-| 顺序 | 类型 | 字段 | 说明 |
-|---|---|---|---|
-| 1 | u64 | `food_amount` | 粮食储量 |
-| 2 | u64 | `food_capacity` | 粮食容量 |
-| 3 | u32 | `food_basic_output` | 产量 |
-| 4 | u64 | `food_army_used` | — |
-| 5 | u64 | `steel_amount` | 钢铁储量 |
-| 6 | u64 | `steel_capacity` | 钢铁容量 |
-| 7 | u32 | `steel_basic_output` | 产量 |
-| 8 | u64 | `mineral_amount` | 稀矿储量 |
-| 9 | u64 | `mineral_capacity` | 稀矿容量 |
-| 10 | u32 | `mineral_basic_output` | 产量 |
-| 11 | u64 | `oil_amount` | 石油储量 |
-| 12 | u64 | `oil_capacity` | 石油容量 |
-| 13 | u32 | `oil_basic_output` | 产量 |
-| 14 | u64 | `gold_amount` | 黄金储量 |
-| 15 | u64 | `gold_capacity` | 黄金容量 |
-| 16 | u32 | `gold_basic_output` | 产量 |
-| 17 | u32 | `gold_title_extra_add` | — |
-| 18 | u32 | `gold_output` | 产量 |
-| 19 | u32 | `population_amount` | 人口数 |
-| 20 | u32 | `population_capacity` | 人口数 |
-| 21 | u32 | `population_idle` | 人口数 |
+| 偏移 | 顺序 | 类型 | 字段 | 说明 |
+|---:|---|---|---|---|
+| +0 | 1 | u64 | `food_amount` | 粮食储量（高 4B 在 +0，低 4B 在 +4） |
+| +8 | 2 | u32 | `food_capacity` | 粮食容量上限 |
+| +12 | 3 | u32 | `food_basic_output` | 粮食基础产量 |
+| +16 | 4 | u64 | `food_army_used` | 军队粮食消耗 |
+| +20 | 5 | u64 | `steel_amount` | 钢铁储量（高 4B 在 +20，低 4B 在 +24） |
+| +28 | 6 | u32 | `steel_capacity` | 钢铁容量上限 |
+| +32 | 7 | u32 | `steel_basic_output` | 钢铁基础产量 |
+| +36 | 8 | u64 | `mineral_amount` | 稀矿储量（高 4B 在 +36，低 4B 在 +40） |
+| +44 | 9 | u32 | `mineral_capacity` | 稀矿容量上限 |
+| +48 | 10 | u32 | `mineral_basic_output` | 稀矿基础产量 |
+| +52 | 11 | u64 | `oil_amount` | 石油储量（高 4B 在 +52，低 4B 在 +56） |
+| +60 | 12 | u32 | `oil_capacity` | 石油容量上限 |
+| +64 | 13 | u32 | `oil_basic_output` | 产量基础产量 |
+| +68 | 14 | u32 | `gold_amount` | 黄金储量 |
+| +72 | 15 | u32 | `gold_capacity` | 黄金容量上限（特化城通常为 5500 万） |
+| +76 | 16 | u32 | `gold_basic_output` | 黄金基础税收 |
+| +80 | 17 | u32 | `gold_title_extra_add` | 黄金称号加成 |
+| +84 | 18 | u32 | `gold_output` | 黄金净产量 |
+| +88 | 19 | u32 | `population_amount` | 当前人口 |
+| +92 | 20 | u32 | `population_capacity` | 人口上限 |
+| +96 | 21 | i32 | `population_idle` | 空闲人口（负数表示部队超编） |
 
 ---
 

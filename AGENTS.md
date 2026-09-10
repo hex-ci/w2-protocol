@@ -1,6 +1,6 @@
 # AGENTS.md
 
-某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖仅 `crypto-es`（DES 加密），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下四个业务脚本（嗅探、领奖、邮件、造兵）与 `tools/w2login.js`（登录）。
+某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖仅 `crypto-es`（DES 加密），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下六个业务脚本（嗅探、领奖、邮件、造兵、运输调度、状态总览）与 `tools/w2login.js`（登录）。
 
 > 面向使用者的介绍在 `README.md`；本文件面向开发者与 AI 助手（环境、命令、约定、坑、扩展流程）。
 > 协议事实分层：帧格式、加密和通用约束以 `protocol/NOTES.md` 为准；命令名称/推送/任务 ID 以 `commands.json` 为准；命令字段以 `protocol/reference/` 的客户端基线和实测修正为准。
@@ -35,6 +35,15 @@ node scripts/w2train.js --army 10       # 指定兵种（armyId 见 3007 兵种�
 node scripts/w2train.js --city <cityId> # 只在指定城造
 node scripts/w2train.js --max 100       # 每厂最多造 100 架
 node scripts/w2train.js --dry           # 模拟计算，不下单
+
+npm run transport                       # 全域资源智能调度与超上限归集（等价 node scripts/w2transport.js）
+node scripts/w2transport.js --dry       # 模拟规划调度，不发车
+node scripts/w2transport.js --clean-route   # 忽略拓扑缓存，强制重新推导核心仓与路线
+
+npm run status                          # 全域资产与战备总览（等价 node scripts/w2status.js）
+node scripts/w2status.js --res          # 只看资源仓储明细
+node scripts/w2status.js --mil          # 只看驻军战备与军工状态
+node scripts/w2status.js --city <cityId>    # 单城详细透视
 
 npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探（等价 node scripts/w2watch.js）
 npm run parse -- captures/xx.pcap                 # 离线解析已有 pcap

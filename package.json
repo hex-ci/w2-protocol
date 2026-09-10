@@ -15,7 +15,8 @@
     "probe": "node scripts/w2probe.js",
     "genapi": "node tools/genapi.js",
     "train": "node scripts/w2train.js",
-    "transport": "node scripts/w2transport.js"
+    "transport": "node scripts/w2transport.js",
+    "status": "node scripts/w2status.js"
   },
   "engines": {
     "node": ">=18"
