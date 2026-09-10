@@ -5,6 +5,9 @@
 
 # 抓包产物（含设备标识、会话数据）
 captures/
+protocol/reference.generated/
+protocol/source/*
+!protocol/source/README.md
 *.pcap
 *.pcapng
 
@@ -13,3 +16,5 @@ node_modules/
 
 package-lock.json
 .eslintcache
+
+.hermes/plans/

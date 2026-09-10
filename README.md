@@ -2,13 +2,12 @@
 
 某手游移动端客户端与其业务服务器之间的**私有 TCP 协议**逆向记录，附带解析工具与自动化脚本。
 
-> 抓包样本取自 iOS 端；协议由服务端统一实现，格式与客户端平台无关。
-> Android 端帧格式一致（已实测验证加密算法两端通用）。
-> 零依赖，Node 18+。
+> 抓包样本取自 iOS 端；游戏服帧格式已在 iOS/Android 抓包间交叉核验。
+> Node 18+；运行时依赖 `crypto-es`，开发校验使用 ESLint。
+> 目前仅 iOS 选服链路可登录；Android 选服为 WebSocket，尚未实现。
 
 > 本项目仅用于**网络协议分析与安全技术学习研究**，探讨二进制封包与长连接通信机制。
 > 不包含外挂辅助、数值篡改、破解付费或对抗反作弊等非法内容，不分发任何受版权保护的游戏资产或代码。
-> 文中不出现产品名与厂商信息；服务器地址、设备 IP、账号凭据一律通过本地 `.env` 配置，不入库。
 
 开发者与 AI 协作指引见 **[AGENTS.md](AGENTS.md)**（目录详解、命令、代码约定、已知坑）。
 
@@ -16,19 +15,6 @@
 
 ```bash
 npm install
-node tools/w2login.js <邮箱或账号> <密码>   # 完整登录（SSO→选服→userId），凭据自动缓存 .identity.local.json
-npm run signin      # 每日任务自动领取
-npm run reward      # 邮件奖励自动领取
-npm run train       # 全域造兵（默认侦察机）
-```
-
-登录后无需再配任何凭据；wst 失效时重跑 `node tools/w2login.js`（静默续登，免密码）。
-仅**抓包/离线解析**需要 `.env`（`W2_PHONE_IP`/`W2_IFACE`，模板见 `.env.example`）：
-
-```bash
-cp .env.example .env      # 填入抓包设备的 IP
-npm run watch -- --ip <设备内网IP> --tag my-op   # 实时嗅探
-npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 ```
 
 ## 目录
@@ -37,8 +23,7 @@ npm run parse -- captures/xxx.pcap              # 离线解析已有 pcap
 scripts/    功能脚本
 lib/        w2.js 协议解析库 · w2build.js 帧构造器 · sdk.js 会话 SDK · config.js 配置加载
 protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
-tools/      w2login.js 登录（SSO→选服→userId 全自动） · genapi.js 参考手册生成器
-captures/   抓包产物，已 gitignore
+tools/      w2login.js 登录（SSO→选服→userId 全自动） · genapi.js 客户端基线生成器（默认读取 protocol/source/index.js，输出到 protocol/reference.generated/）
 ```
 
 > 登录凭据与游戏服地址由登录命令写入 `.identity.local.json`（不入库）；`.env` 只放服务端不会下发的配置（见 `.env.example`）。
@@ -71,34 +56,25 @@ captures/   抓包产物，已 gitignore
 
 ## 能力概览
 
-协议骨架与**加密算法已完全解析**（帧构造不再有黑盒），覆盖握手登录、心跳保活、邮件、
-任务/奖励、道具背包、城池资源、活动推送等。完整命令字典在
-[`protocol/commands.json`](protocol/commands.json)——**那里是唯一数据源**。
-抓包遇到未收录的命令会自动标 `★NEW`。
-
-支撑自动化的三个关键机制：
-
-- **加密可逆向构造**：AES key 由帧内 sessionId 推导、md5 校验算法已知 → 任意参数的帧可凭空构造。
-- **登录凭据可重放**：握手包里的加密凭据能被服务器原样接受，无需破解即可建立会话。
-- **服务器不防重放**：整帧复用长期有效（重复领取会被拒绝，但无副作用）。
+协议骨架与**加密算法已完成字节级构造验证**，覆盖握手登录、心跳保活、邮件、任务/奖励、道具背包、城池资源、活动推送等。命令名称和推送编号见 [`protocol/commands.json`](protocol/commands.json)；字段级请求/响应结构见 [`protocol/reference/`](protocol/reference/README.md)。抓包遇到未收录的命令会自动标 `★NEW`。
 
 ## 扩展新操作
 
-想让工具支持新动作（造兵、采集等）：
+想让工具支持新动作：
 
 1. `npm run watch -- --ip <IP> --tag <标签>` 开始抓包，客户端只做这一个操作
    （启动时自动做连接存活与 flow offload 自检）
 2. 从 `captures/<日期>/*.jsonl` 找到该操作的 cmd，查 [reference/](protocol/reference/README.md) 确认参数字段
    （详见 NOTES §4/§11）
 3. 按 NOTES §2/§3 或调用 `lib/w2build.js` 组帧发送
-4. 验证：`status=0x01` 即成功；无响应 = 帧无效（校验错会被静默丢弃）
+4. 验证：按该命令文档的成功 status 判断；完全无响应通常表示帧被静默丢弃，也可能是链路异常。
 
 ## 坑记录
 
 - **单会话限制**：同一账号在业务长连接上**只能有一个会话**。脚本登录会把已在线的客户端挤下线
   （客户端提示断开/要求关闭）。因此：
   - 定时任务建议安排在不玩游戏的时间（如凌晨）
-  - 一次脚本运行只建立一个连接、只踢一次——`w2signin.js` 已按此设计（多个任务复用同一连接）
+  - 一次脚本运行只建立一个连接、只踢一次
 - **flow offload**：软路由开了流量卸载后抓不到长连接数据，需先关闭（抓完记得开回去）。
   `w2watch.js` 在线模式启动时会自动检测并提示。
 - **设备端**：关「随机 MAC 地址」；**保持屏幕常亮**——锁屏后 App 被挂起、连接会断。

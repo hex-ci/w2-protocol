@@ -267,7 +267,7 @@
 
 **响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
+> 客户端：先读 `u32 channel_type` + `u8 earlier_load_mode`，然后 `u32 计数` 循环消息条目。每条以 `u8 chat_type` 开头，0/1/2 为完整玩家消息（1 多 voice_file_path、2 多 flaund_id），3 为系统消息（仅 `chat_id + chat_message + chat_color + bold_font + chat_time`）。下表是 chat_type=0 的字段；其余按上述差异增删。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|

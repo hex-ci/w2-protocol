@@ -6,13 +6,13 @@
 
 **请求参数**: 无
 
-**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
+**响应**（当前服务器实测布局）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
+> `u8 is_join_league_war + u8 city_count` 后循环条目。该布局与客户端基线不同：没有 `have_researching_tech` 相关字段，条目尾部多 1 个未知字节。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u8 | `is_join_league_war` | 布尔标记（0/1） |
+| 1 | u8 | `is_join_league_war` | 是否加入军团战 |
 | 2 | u8 | `city_count` | 城池数量 |
 | 3 | u64 | `city_id` | 城池 ID |
 | 4 | string | `city_name` | 城池名称 |
@@ -22,20 +22,17 @@
 | 8 | u32 | `population` | 人口数 |
 | 9 | u32 | `morale` | 士气值 |
 | 10 | u32 | `coastal` | — |
-| 11 | u32 | `has_carrier` | 布尔标记（0/1） |
-| 12 | string | `img_id` | — |
-| 13 | u8 | `is_colonial` | 布尔标记（0/1） |
-| 14 | u32 | `mayor_icon` | 驻守市长名 |
-| 15 | u32 | `construct_num` | 数量 |
-| 16 | u8 | `have_researching_tech` | 研究 |
-| 17 | u32 | `researching_tech_id` | 研究 |
-| 18 | u32 | `researching_tech_level` | 研究 |
-| 19 | u32 | `help_num` | 数量 |
-| 20 | u32 | `league_score_plunderable` | 积分 |
-| 21 | u32 | `training_count` | 数量/计数 |
-| 22 | u32 | `officer_count` | 数量/计数 |
-| 23 | u32 | `officer_count_max` | 数量/计数 |
-| 24 | u32 | `random_move_chance` | 概率（万分比） |
+| 11 | u32 | `has_carrier` | — |
+| 12 | string | `img_id` | 城池外观标识 |
+| 13 | u8 | `is_colonial` | 是否殖民城 |
+| 14 | u32 | `mayor_icon` | 市长图标 |
+| 15 | u32 | `construct_num` | 建造队列数 |
+| 16 | u32 | `help_num` | 互助数 |
+| 17 | u32 | `league_score_plunderable` | 仅 `is_join_league_war=1` 时存在 |
+| 18 | u32 | `training_count` | 训练队列数 |
+| 19 | u32 | `officer_count` | 名将数 |
+| 20 | u32 | `officer_count_max` | 名将上限 |
+| 21 | u8 | `unknown_tail` | 未解尾字段 |
 
 ---
 
@@ -59,42 +56,16 @@
 
 **请求参数**: 无
 
-**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
+**响应**（当前服务器实测布局；客户端定义的 long 版本仅作基线，不能直接用于造兵脚本）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
+> 每种资源块为 24B；下表仅列出 `scripts/w2train.js` 已验证并使用的四个储量偏移。黄金、人口及资源块其余字段尚未以当前服务器抓包逐项确认。
 
-| 顺序 | 类型 | 字段 | 说明 |
-|---|---|---|---|
-| 1 | u64 | `food_amount` | 粮食储量 |
-| 2 | u64 | `food_capacity` | 粮食容量 |
-| 3 | u32 | `food_original_output` | 产量 |
-| 4 | u32 | `food_basic_output` | 产量 |
-| 5 | u64 | `food_army_used` | — |
-| 6 | u32 | `food_current_output` | 产量 |
-| 7 | u64 | `steel_amount` | 钢铁储量 |
-| 8 | u64 | `steel_capacity` | 钢铁容量 |
-| 9 | u32 | `steel_output` | 产量 |
-| 10 | u32 | `steel_basic_output` | 产量 |
-| 11 | u64 | `mineral_amount` | 稀矿储量 |
-| 12 | u64 | `mineral_capacity` | 稀矿容量 |
-| 13 | u32 | `mineral_output` | 产量 |
-| 14 | u32 | `mineral_basic_output` | 产量 |
-| 15 | u64 | `oil_amount` | 石油储量 |
-| 16 | u64 | `oil_capacity` | 石油容量 |
-| 17 | u32 | `oil_output` | 产量 |
-| 18 | u32 | `oil_basic_output` | 产量 |
-| 19 | u32 | `army_fort_count` | 数量/计数 |
-| 20 | u32 | `army_id` | 兵种 ID |
-| 21 | u32 | `cur_amount` | 当前数量 |
-| 22 | u64 | `gold_amount` | 黄金储量 |
-| 23 | u64 | `gold_capacity` | 黄金容量 |
-| 24 | u32 | `gold_basic_output` | 产量 |
-| 25 | u32 | `gold_officer_used` | — |
-| 26 | u32 | `gold_output` | 产量 |
-| 27 | u32 | `population_amount` | 人口数 |
-| 28 | u32 | `population_capacity` | 人口数 |
-| 29 | u32 | `population_idle` | 人口数 |
-| 30 | u32 | `population_trend` | 人口数 |
+| 资源 | 偏移 | 类型 | 字段 |
+|---|---:|---|---|
+| 粮食 | +4 | u32 | `food_amount` |
+| 钢铁 | +32 | u32 | `steel_amount` |
+| 稀矿 | +52 | u32 | `mineral_amount` |
+| 石油 | +72 | u32 | `oil_amount` |
 
 ---
 
@@ -445,6 +416,10 @@
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
+
+> 客户端按 long 读储量字段；实测显示服务器按 24B 资源块发送，
+> 块内字段为 u32（如粮食储量 4211500 按 u32 对齐可读，按 long 读会错位）。下表为客户端基线，
+> 与服务器实现的确切差异未逐字段复核——写自动化前先抓包对齐。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|

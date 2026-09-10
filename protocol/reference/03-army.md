@@ -90,37 +90,33 @@
 |---|---|---|---|
 | 1 | u64 | `building_id` | 建筑实例 ID |
 
-**响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
+**响应**（当前服务器实测布局）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
+> 头部为 `u32 ignored + u32 queue_count`；随后是训练队列，再是 `u32 trainable_count` 与每个兵种规格。列表中的建筑/科技/道具条件由各自计数前缀控制。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u64 | `training_id` | 训练队列 ID |
-| 2 | u32 | `army_id` | 兵种 ID |
-| 3 | u32 | `amount` | 数量 |
-| 4 | u64 | `remain_time` | 剩余毫秒数 |
-| 5 | u64 | `total_time` | 总耗时毫秒 |
-| 6 | u8 | `allow_speedup` | — |
-| 7 | u32 | `army_id` | 兵种 ID |
-| 8 | u32 | `cur_amount` | 当前数量 |
-| 9 | u32 | `food_required` | — |
-| 10 | u32 | `mineral_required` | — |
-| 11 | u32 | `oil_required` | — |
-| 12 | u32 | `steel_required` | — |
-| 13 | u32 | `nuclear_required` | — |
-| 14 | u32 | `prototype_id` | 建筑原型 ID |
-| 15 | u32 | `level` | 等级 |
-| 16 | u32 | `cur_level` | 等级 |
-| 17 | u32 | `technique_id` | 科技 ID |
-| 18 | u32 | `level` | 等级 |
-| 19 | u32 | `cur_level` | 等级 |
-| 20 | u32 | `item_id` | 道具 ID |
-| 21 | string | `name` | 名称 |
-| 22 | u32 | `amount` | 数量 |
-| 23 | u32 | `cur_amount` | 当前数量 |
-| 24 | u64 | `time` | 时间戳（毫秒） |
-| 25 | u32 | `speedup_item_price` | 单价 |
+| 1 | u32 | `ignored` | 客户端读取但未使用 |
+| 2 | u32 | `queue_count` | 训练队列条数 |
+| 3 | u64 | `training_id` | 每条队列 |
+| 4 | u32 | `army_id` | 每条队列 |
+| 5 | u32 | `amount` | 每条队列 |
+| 6 | u64 | `remain_time` | 每条队列 |
+| 7 | u64 | `total_time` | 每条队列 |
+| 8 | u8 | `allow_speedup` | 每条队列 |
+| 9 | u32 | `trainable_count` | 可训练兵种条数 |
+| 10 | u32 | `army_id` | 每个兵种规格 |
+| 11 | u32 | `cur_amount` | 当前数量 |
+| 12 | u32 | `food_required` | 单位粮食消耗 |
+| 13 | u32 | `mineral_required` | 单位稀矿消耗 |
+| 14 | u32 | `oil_required` | 单位石油消耗 |
+| 15 | u32 | `steel_required` | 单位钢铁消耗 |
+| 16 | u32 | `nuclear_required` | 单位核资源消耗 |
+| 17 | u32 | `building_requirement_count` | 后续为 N×(prototype_id, level, cur_level) |
+| 18 | u32 | `tech_requirement_count` | 后续为 N×(technique_id, level, cur_level) |
+| 19 | u32 | `item_requirement_count` | 后续为 N×(item_id, name, amount, cur_amount) |
+| 20 | u64 | `time` | 单位训练耗时 |
+| 21 | u32 | `speedup_item_price` | 单价 |
 
 ---
 
@@ -129,6 +125,8 @@
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
+
+> 响应包含**连续两段**原型列表：每段先读 `u32 count`，再读下表的 N 个原型。客户端将两段分别保存为 `prototypes[0]`、`prototypes[1]`；`w2train.js` 两段都会扫描以取得兵种名。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|

@@ -15,8 +15,8 @@
 | 概念 | HTTP API | 本协议 |
 |---|---|---|
 | 接口寻址 | `METHOD /path` | `u32 cmd` |
-| 请求体 | JSON / form | AES 密文内的参数序列 |
-| 响应体 | JSON | 明文参数序列（TLV 混编） |
+| 请求体 | JSON / form | 游戏服为 AES 密文参数；选服为明文 payload |
+| 响应体 | JSON | 明文顺序字段序列（整数与长度前缀字符串混编） |
 | 状态码 | HTTP status + code 字段 | 1 字节 `status` 前缀 |
 | 连接模型 | 一请求一连接 | 单条长连接全双工复用 |
 | 接口清单 | OpenAPI 文档 | 客户端内置协议定义 |
@@ -24,7 +24,7 @@
 接口按方向分三类：
 
 1. **Request/Response（请求-响应）**：客户端发 `cmd` 帧，服务端回同 `cmd` 帧。绝大多数接口属于此类。
-2. **Server Push（服务端推送）**：`cmd ∈ 26001~26999`，sessionId 固定为 `0xffffffff`，客户端无请求也会收到。
+2. **Server Push（服务端推送）**：主段为 `26001~26999`，另有 `1003`、`1032` 等例外；sessionId 固定为 `0xffffffff`，完整清单见 `commands.json` 的 `push`。
 3. **Heartbeat（心跳）**：低频维持连接的查询帧（如 `cmd=1` 服务器时间）。
 
 ### 1.1 文档结构
@@ -32,7 +32,7 @@
 | 文件 | 内容 | 查什么 |
 |---|---|---|
 | [API.md](API.md)（本文件） | 调用规范、会话流程、代表性接口详解、示例代码 | 「这个协议怎么调」 |
-| [reference/](reference/README.md) | **全量 419 个命令**逐条参数表（自动生成） | 「cmd=XXXX 收发什么字段」 |
+| [reference/](reference/README.md) | **全量 419 个命令**逐条参数表（客户端基线 + 实测修正） | 「cmd=XXXX 收发什么字段」 |
 | [NOTES.md](NOTES.md) | 帧格式、加密算法、抓包防错 | 「字节怎么编解码」 |
 | [commands.json](commands.json) | cmd → 中文名字典（工具加载用） | 「这个 cmd 叫什么」 |
 
@@ -40,13 +40,14 @@
 
 ## 2. 通用调用约定
 
-### 2.1 请求封装（所有接口一致）
+### 2.1 游戏服请求封装
 
 ```
-请求帧 = WiST 头(37B) + AES(cmd 的业务参数)
+请求帧 = 游戏服 WiST 头(37B) + AES(业务参数)
+选服服务器另用明文 WIST 头(12B) + cmd + payload，见 `reference/00-choice.md`。
 ```
 
-调用方需要提供四个输入：
+调用游戏服接口时需要提供四个输入：
 
 | 参数 | 类型 | 说明 |
 |---|---|---|
@@ -59,7 +60,7 @@
 
 ```
 响应帧 = WIST 头(12B) + body
-body   = u32 cmd + u8 status + 响应数据（仅 status 表示成功时存在）
+body  = u32 cmd + u8 status + 分支对应的响应数据
 ```
 
 `status` 语义（从客户端协议响应处理逻辑与各命令的成功判定归纳）：
@@ -68,7 +69,7 @@ body   = u32 cmd + u8 status + 响应数据（仅 status 表示成功时存在�
 |---|---|---|
 | `0x01` | 成功（标准） | 接口定义的响应字段 |
 | `0x00` | 成功（部分接口如建筑操作视为成功） | 同上 |
-| `0x02` / `0x03` | 特殊成功分支（如登录的「确认顶号」流程） | 接口自定义 |
+| `0x02` / `0x03` | 特殊成功/确认分支（如选服切换确认） | 接口自定义 |
 | 其他（负值，int8） | 失败 | `str errorMessage`（人类可读错误文案），**没有数字错误码** |
 
 > 失败响应无统一错误码表，只有服务端下发的本地化错误文案字符串；客户端按 `status<0` 统一走错误分支。
@@ -125,7 +126,7 @@ TCP connect
 - **响应**：`str resourceHost` + `int tradeDownPrice` + `int tradeUpPrice` + 一组功能开关 int + `str serverVersion` + `str serverKey` + 快捷消息列表等 30+ 字段。
 
 #### `cmd=1001` — 登录 ✦
-- **请求**（明文 211B 量级）：
+- **请求**：`u64 userId + str username + u32 clientVer + str platform + str channel + str language + str appKey + str wst + str installID + byte stopLoginIfOnline`。
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -135,9 +136,10 @@ TCP connect
 | platform | string | `"ios"` / `"android"` |
 | channel | string | 渠道名 |
 | language | string | `"zh"` |
-| appKey | string | 32 位客户端内置常量 |
-| wst | string | ★ 登录凭据（SSO 换取，52~64 字符） |
+| appKey | string | 设备持久应用标识 |
+| wst | string | ★ 登录凭据（SSO 换取） |
 | installID | string | 32 位设备安装 ID |
+| stopLoginIfOnline | byte | 顶号确认标记，默认 0 |
 
 - **响应**：`byte status`；成功后 `byte identity` + `long pushThreshold` + `byte age` + `long onlineTime` + `str realName`。
 - **错误**：凭据失效时 status 为失败值 + 错误文案。
@@ -153,15 +155,16 @@ const params = p.cat(
   p.str('ios'),
   p.str('wst_zh_001'),
   p.str('zh'),
-  p.str('APPKEY_0000000000000000000000000000'),
-  p.str('ST-demoToken-1001-sso.example'),   // wst 凭据
-  p.str('INSTALLID00000000000000000000000000')
+  p.str('00000000000000000000000000000000'),
+  p.str('ST-demoToken-sso.example'),
+  p.str('INSTALLID00000000000000000000000000'),
+  p.byte(0)
 );
 const frame = buildFrame(1, 88888, 1001, params);
 socket.write(frame);
 ```
 
-- **凭据获取**：登录命令 `tools/w2login.js`（或 `npm run login`）模拟客户端完整流程：SSO mlogin（账号密码）→ 选服服务器 → userId + 游戏服地址，全部凭据自动落盘 `.identity.local.json`。SSO 两步 `mlogin`（① 空表单取 `flowExecutionKey`/`loginTicket`；② `email`/`password` DES-ECB 加密 + `_eventId=loginSubmit`）换取 `WST`。SSO 端点与 DES 密钥、appid/app_secret 等常量经 `.env` 的 `W2_SSO_*` 配置。
+- **凭据获取**：登录命令 `tools/w2login.js`（或 `npm run login`）模拟客户端完整流程：交互式账号密码或静默续登 → 选服服务器 → userId + 游戏服地址，全部凭据自动落盘 `.identity.local.json`。SSO 两步 `mlogin`（① 空表单取 `flowExecutionKey`/`loginTicket`；② `email`/`password` DES-ECB 加密 + `_eventId=loginSubmit`）换取 `WST`。工具使用 HTTPS；SSO 端点与 DES 密钥、appid/app_secret 等常量可由 `.env` 的 `W2_SSO_*` 覆盖。
 - **获取 userId**：userId 不在 SSO 响应中，它由选服协议（cmd=1）响应返回（`u64 _userid`），客户端本地缓存后每次登录复用。`tools/w2login.js` 已自动完成此步骤。注意 userId 必须与 wst 匹配——实测 userId 填 0/错值 + 有效 wst 会触发风控（返回「非法操作行为封停」文案）。userId 是账号终身属性。
 
 #### `cmd=1005` — 玩家核心信息
@@ -202,7 +205,7 @@ byte 未知尾字节
 
 #### `cmd=2003` — 城内资源总览
 - **请求**：无参数。
-- **响应**：四资源各 6 字段（`long 储量, long 容量, int 基础产量, int 原始产量, long 军队占用, int 当前产量`）+ `int armyFortCount` + 各军 `int armyId + int curAmount` + 黄金 5 字段 + 人口 4 字段。
+- **响应**：客户端定义为完整资源结构；当前服务器实测供造兵使用的储量字段为 u32：粮食 `+4`、钢铁 `+32`、稀矿 `+52`、石油 `+72`。其余字段尚未对当前服务器版本逐项复核，见 `reference/02-city.md`。
 
 ### 4.3 建筑系统（写操作范例）
 
@@ -306,7 +309,7 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
 | cmd | 接口 | 请求参数 |
 |---|---|---|
 | `9001` | 邮件列表 | `byte mailType` + `int pageNum` + `byte pageSize` |
-| `9002` | 邮件详情 | `long mailId` |
+| `9002` | 邮件详情 | `byte mailType` + `long mailId` |
 | `9003` ✦ | 删除邮件 | `byte mailType` + `int count` + `long[] mailIds` |
 
 - `9001` 响应：`byte mailType + int pageCount + int pageNum` + 条目数组（`long mailId + string title + string sender + long createTime + byte readed + int color + byte attachmentFlag`）。
@@ -395,9 +398,9 @@ await c.close();
 
 - `loginParams` 优先走凭据构造登录；`login`（整帧 hex 重放）仅作调试回退
 
-- `c.call(cmd, params, schema?, opts?)`：`schema` 声明响应字段表（`fields`/`list`/`item`/`tail`/`skip`），自动解析成对象；`opts.okStatuses` 指定成功 status 集合（默认 `>0`，建筑类传 `[0, 1]`）
+- `c.call(cmd, params, schema?, opts?)`：`schema` 声明响应字段表（`fields`/`list`/`item`/`tail`/`skip`），自动解析成对象；`opts.okStatuses` 指定额外成功 status 集合（默认仅 `1`）。同命令并发请求按响应 sessionId 配对。
 - 失败响应统一返回 `{ ok: false, status, message }`，`message` 为服务端错误文案
-- 内置 10s 超时、500ms 请求间隔（对齐客户端频控）、单会话单连接
+- 内置 10s 超时、500ms 请求间隔、连接关闭时立即拒绝 pending 请求；同一账号仍应只维持一条业务连接
 - 推送：`c.onPush(cmd, fn)`，收到 `26000` 段帧时触发回调
 
 | 工具 | 用途 |
@@ -406,9 +409,10 @@ await c.close();
 | `scripts/w2watch.js` | 实时/离线嗅探，pcap → 可读事件流（jsonl） |
 | `scripts/w2probe.js` | 登录后按序发送 hex 帧，观察响应 |
 | `lib/w2build.js` | 程序化组帧（`buildFrame(no, sid, cmd, params)`），SDK 底层依赖 |
-| `lib/w2.js` | 帧切分、body 混编解码、字符串提取 |
+| `lib/w2.js` | pcap 链路/IP/TCP 解析、TCP/协议帧重组、body 混编解码、字符串提取 |
 | `protocol/commands.json` | cmd → 语义字典（SDK 无关，工具加载用） |
-| `tools/genapi.js` | 从客户端协议定义重新生成 `reference/` 全量参数表（客户端更新后重跑） |
+| `tools/genapi.js` | 默认读取 gitignore 的 `protocol/source/index.js`，生成 `protocol/reference.generated/` 基线；不覆盖 `reference/` 实测手册 |
+| `protocol/source/README.md` | 客户端基线更新流程 |
 
 推荐调试顺序：`w2watch` 抓真实操作 → 从 jsonl 定位 cmd → 查 [reference/](reference/README.md) 对应条目确认字段 → SDK `c.call()` 直接收发 → 异常时用 `w2probe` 发裸帧对照。
 

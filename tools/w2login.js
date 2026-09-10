@@ -16,12 +16,13 @@
  * 失败自动回退到账号密码登录。
  *
  * 用法:
- *   node tools/w2login.js                    # 静默续登（有 WTGT 缓存）或完整登录
- *   node tools/w2login.js <邮箱或账号> <密码>  # 完整登录
+ *   node tools/w2login.js                    # 静默续登（有 WTGT 缓存）或交互式完整登录
+ *   node tools/w2login.js <邮箱或账号>         # 提供账号后安全输入密码
  *   node tools/w2login.js --list             # 强制列出服务器列表重选
  */
 
-import http from 'http';
+import https from 'https';
+import zlib from 'zlib';
 import crypto from 'crypto';
 import readline from 'readline';
 import { DES, Utf8, Latin1, ECB, Pkcs7, Hex } from 'crypto-es';
@@ -29,20 +30,65 @@ import config from '../lib/config.js';
 import { W2Client, clientUserAgent } from '../lib/sdk.js';
 import { p } from '../lib/w2build.js';
 
+if (config.platform === 'android') {
+  console.log('当前仅实现 iOS 选服的裸 TCP 通道；Android 选服需要 WebSocket，暂不支持登录。');
+  process.exit(1);
+}
+
 const CHOICE_HOST = config.sso.choiceHost;
 const CHOICE_PORT = config.sso.choicePort;
 
 const argv = process.argv.slice(2);
 const forceList = argv.includes('--list');
 const positional = argv.filter((a) => !a.startsWith('--'));
+if (positional.length > 1) {
+  console.log('密码不能作为命令行参数传入；请仅提供账号后按提示输入密码');
+  process.exit(1);
+}
 let account = positional[0] || '';
-let password = positional[1] || '';
+let password = '';
 
 // ---------- 控制台交互 ----------
 function ask(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
     rl.question(question, (answer) => { rl.close(); resolve(answer.trim()); });
+  });
+}
+
+function askPassword(question) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) return Promise.resolve('');
+  return new Promise((resolve) => {
+    let value = '';
+    const finish = (result) => {
+      process.stdin.off('data', onData);
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      resolve(result);
+    };
+    const onData = (chunk) => {
+      for (const ch of chunk.toString('utf8')) {
+        if (ch === '\u0003') {
+          finish('');
+          process.exit(130);
+        }
+        if (ch === '\r' || ch === '\n') {
+          process.stdout.write('\n');
+          finish(value);
+          return;
+        }
+        if (ch === '\u007f' || ch === '\b') {
+          value = value.slice(0, -1);
+          continue;
+        }
+        value += ch;
+      }
+    };
+    process.stdout.write(question);
+    process.stdin.setEncoding('utf8');
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.on('data', onData);
   });
 }
 
@@ -60,27 +106,43 @@ function desDecrypt(hex) {
 function post(form, jsessionid) {
   return new Promise((resolve, reject) => {
     const u = new URL(config.sso.url + 'mlogin');
+    if (u.protocol !== 'https:') {
+      reject(new Error('SSO 地址必须使用 HTTPS'));
+      return;
+    }
     const body = new URLSearchParams(form).toString();
-    const req = http.request({
+    const req = https.request({
       hostname: u.hostname,
+      port: u.port || undefined,
       path: u.pathname + (jsessionid ? ';jsessionid=' + jsessionid : ''),
       method: 'POST',
+      timeout: 15000,
       headers: {
-        // 请求头对齐 iOS 客户端 CFNetwork 栈
-        'Host': u.host,
+        Host: u.host,
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Connection': 'keep-alive',
-        'Accept': '*/*',
+        Connection: 'keep-alive',
+        Accept: '*/*',
         'User-Agent': clientUserAgent(),
         'Accept-Language': 'zh-CN,zh-Hans;q=0.9',
         'Accept-Encoding': 'gzip, deflate',
         'Content-Length': Buffer.byteLength(body),
       },
     }, (res) => {
-      let data = '';
-      res.on('data', (c) => { data += c; });
-      res.on('end', () => resolve(data));
+      let stream = res;
+      const encoding = String(res.headers['content-encoding'] || '').toLowerCase();
+      if (encoding === 'gzip') stream = res.pipe(zlib.createGunzip());
+      else if (encoding === 'deflate') stream = res.pipe(zlib.createInflate());
+      else if (encoding && encoding !== 'identity') {
+        res.resume();
+        reject(new Error(`不支持的 SSO 响应压缩: ${encoding}`));
+        return;
+      }
+      const chunks = [];
+      stream.on('data', (chunk) => chunks.push(chunk));
+      stream.on('error', reject);
+      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     });
+    req.on('timeout', () => req.destroy(new Error('SSO 请求超时')));
     req.on('error', reject);
     req.write(body);
     req.end();
@@ -130,21 +192,27 @@ async function silentLogin(wtgt) {
 
 // 完整登录：账号密码
 async function fullLogin() {
-  const r1 = JSON.parse(await post(baseForm()));
+  let r1;
+  try { r1 = JSON.parse(await post(baseForm())); } catch { throw new Error('SSO 第 1 步返回非 JSON 响应'); }
   if (r1.resultType !== '0') throw new Error('SSO 第 1 步失败: resultType=' + r1.resultType + (r1.message ? '（' + r1.message + '）' : ''));
-  const r2 = JSON.parse(await post(baseForm({
-    login_type: 1,
-    email: desEncrypt(account),
-    password: desEncrypt(password),
-    execution: r1.flowExecutionKey,
-    l_t: r1.loginTicket,
-    _eventId: 'loginSubmit',
-  }), r1.sessionId));
+  let r2;
+  try {
+    r2 = JSON.parse(await post(baseForm({
+      login_type: 1,
+      email: desEncrypt(account),
+      password: desEncrypt(password),
+      execution: r1.flowExecutionKey,
+      l_t: r1.loginTicket,
+      _eventId: 'loginSubmit',
+    }), r1.sessionId));
+  } catch {
+    throw new Error('SSO 第 2 步返回非 JSON 响应');
+  }
   return r2.resultType === '1' ? r2 : null;
 }
 
 // ---------- 选服 ----------
-// 拉服务器列表（cmd=2），返回 [{ serverId, serverName, serverHost, pri }]
+// 拉服务器列表（cmd=2），返回 [{ serverId, serverName, serverHost, pri, gameEntry }]
 async function fetchServerList(username) {
   const c = new W2Client({ host: CHOICE_HOST, port: CHOICE_PORT, mode: 'choice' });
   await c.connect();
@@ -156,19 +224,34 @@ async function fetchServerList(username) {
     p.str(config.sso.deviceInfo),
     p.u32(3),
     p.str(config.sso.gameVersion)
-  ), {
-    list: true,
-    item: [
-      ['serverId', 'u32'], ['serverName', 'string'], ['serverHost', 'string'], ['pri', 'u32'],
-    ],
-    itemTail: [['game_entry_flag', 'u8']],
-  }, { okStatuses: [1] });
+  ));
   c.close();
-  return r;
+  if (!r.ok || r.status !== 1) {
+    return r.ok ? { ...r, ok: false, message: `服务器列表返回非成功状态: ${r.status}` } : r;
+  }
+
+  const raw = r.raw;
+  let off = 0;
+  const u8 = () => raw[off++];
+  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
+  const str = () => { const len = u32(); const v = raw.subarray(off, off + len).toString('utf8'); off += len; return v; };
+  try {
+    const count = u32();
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const item = { serverId: u32(), serverName: str(), serverHost: str(), pri: u32() };
+      if (u8() === 1) item.gameEntry = str();
+      items.push(item);
+    }
+    if (off !== raw.length) throw new Error(`剩余 ${raw.length - off} 字节`);
+    return { ...r, items };
+  } catch (e) {
+    return { ...r, parseError: `服务器列表解析失败: ${e.message}` };
+  }
 }
 
 // 选服登录（cmd=1）：返回声明式解析结果
-async function choiceLogin(username, serverId) {
+async function choiceLogin(username, serverId, confirmed = false) {
   const c = new W2Client({ host: CHOICE_HOST, port: CHOICE_PORT, mode: 'choice' });
   await c.connect();
   const r = await c.call(1, p.cat(
@@ -176,21 +259,51 @@ async function choiceLogin(username, serverId) {
     p.str(config.platform),
     p.str(config.loginParams()?.channel || 'wst_ios_zh_002'),
     p.str(config.sso.choiceLang),
-    p.byte(1),                        // is_self
+    p.byte(1),
     p.u32(serverId),
     p.str(config.sso.deviceInfo),
-    p.u32(3),                         // client_tag
+    p.u32(3),
     p.str(config.sso.gameVersion),
-    p.byte(0)                         // confirm_to_abort_abandon
-  ), {
-    fields: [
-      ['userid', 'u64'], ['server_id', 'u32'], ['server_name', 'string'],
-      ['server_host', 'string'], ['server_sort', 'u32'],
-    ],
-    tail: [['init_channel', 'string']],
-  }, { okStatuses: [1, 2] });
+    p.byte(confirmed ? 1 : 0)
+  ), null, { okStatuses: [1, 2, 3] });
   c.close();
-  return r;
+  if (!r.ok || ![1, 2, 3].includes(r.status)) {
+    return r.ok ? { ...r, ok: false, message: `选服返回非成功状态: ${r.status}` } : r;
+  }
+  if (r.status === 3) {
+    try {
+      const len = r.raw.readUInt32BE(0);
+      if (len > r.raw.length - 4) throw new Error('确认文案长度越界');
+      return { ...r, confirmationRequired: true, confirm_message: r.raw.subarray(4, 4 + len).toString('utf8') };
+    } catch (e) {
+      return { ...r, parseError: `选服确认响应解析失败: ${e.message}` };
+    }
+  }
+
+  const raw = r.raw;
+  let off = 0;
+  const u8 = () => raw[off++];
+  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
+  const u64 = () => { const v = raw.readBigUInt64BE(off); off += 8; return v; };
+  const str = () => { const len = u32(); const v = raw.subarray(off, off + len).toString('utf8'); off += len; return v; };
+  try {
+    const result = {
+      ...r,
+      userid: u64(),
+      server_id: u32(),
+      server_name: str(),
+      server_host: str(),
+      server_sort: u32(),
+    };
+    if (u8() === 1) result.game_entry = str();
+    result.init_channel = str();
+    result.timevalue = u64();
+    result.timeoffset = u64();
+    if (off !== raw.length) throw new Error(`剩余 ${raw.length - off} 字节`);
+    return result;
+  } catch (e) {
+    return { ...r, parseError: `选服响应解析失败: ${e.message}` };
+  }
 }
 
 // ---------- main ----------
@@ -204,6 +317,8 @@ async function choiceLogin(username, serverId) {
     sso = await silentLogin(identity.WTGT);
     if (sso) console.log('静默续登成功 ✓');
   }
+  if (!sso && !account && process.stdin.isTTY) account = await ask('账号: ');
+  if (!sso && account && !password) password = await askPassword('密码: ');
   if (!sso && account && password) {
     console.log('SSO 账号密码登录…');
     sso = await fullLogin();
@@ -214,8 +329,8 @@ async function choiceLogin(username, serverId) {
     console.log('登录成功 ✓');
   }
   if (!sso) {
-    console.log('缺少凭据：缓存 WTGT 已失效时请提供账号密码');
-    console.log('用法: node tools/w2login.js <邮箱或账号> <密码>');
+    console.log('缺少凭据：缓存 WTGT 已失效时请在终端交互式输入账号和密码');
+    console.log('用法: node tools/w2login.js [邮箱或账号]');
     process.exit(1);
   }
 
@@ -228,6 +343,9 @@ async function choiceLogin(username, serverId) {
   let serverName = identity.serverName;
   if (forceList || !serverId) {
     const list = await fetchServerList(username);
+    if (!list.ok || list.parseError) {
+      throw new Error(list.parseError || list.message || `服务器列表查询失败（status=${list.status}）`);
+    }
     const items = list.items || [];
     if (!items.length) {
       console.log('服务器列表为空');
@@ -249,9 +367,17 @@ async function choiceLogin(username, serverId) {
   }
 
   // 第 3 步：选服登录（换 userId + 游戏服地址）
-  const r3 = await choiceLogin(username, serverId);
-  if (!r3.ok) {
-    console.log('选服失败: status=' + r3.status + (r3.message ? '（' + r3.message + '）' : ''));
+  let r3 = await choiceLogin(username, serverId);
+  if (r3.confirmationRequired) {
+    const answer = await ask(`服务器要求确认：${r3.confirm_message}\n继续切换吗？[y/N] `);
+    if (!/^y(es)?$/i.test(answer)) {
+      console.log('已取消切换服务器');
+      process.exit(0);
+    }
+    r3 = await choiceLogin(username, serverId, true);
+  }
+  if (!r3.ok || r3.parseError || r3.confirmationRequired) {
+    console.log('选服失败: ' + (r3.parseError || ('status=' + r3.status + (r3.message ? '（' + r3.message + '）' : ''))));
     process.exit(1);
   }
 

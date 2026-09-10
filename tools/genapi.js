@@ -1,6 +1,8 @@
 // 从客户端协议定义全量提取各命令的请求/响应字段，按业务域分文件生成 API 参考手册
 // 输出面向接口调用者：字段统一 snake_case + 中文说明，成功判定折算为具体 status 值
-// 用法: W2_PROTO_SRC=<客户端协议定义文件> node tools/genapi.js
+// 用法: node tools/genapi.js --write
+// 默认读取 protocol/source/index.js（gitignore 的本地 APK 基线）；
+// W2_PROTO_SRC 或位置参数仅用于临时覆盖。实测修正由 protocol/reference/ 的 Markdown 维护。
 
 import fs from 'fs';
 import path from 'path';
@@ -8,12 +10,19 @@ import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const SRC = process.env.W2_PROTO_SRC || process.argv[2] || '';
-if (!SRC) {
-  console.error('用法: W2_PROTO_SRC=<客户端协议定义文件> node tools/genapi.js');
+const DEFAULT_SRC = path.join(ROOT, 'protocol', 'source', 'index.js');
+const SRC = process.env.W2_PROTO_SRC || process.argv.slice(2).find((arg) => !arg.startsWith('--')) || DEFAULT_SRC;
+const WRITE = process.argv.includes('--write');
+if (!fs.existsSync(SRC)) {
+  console.error(`找不到客户端协议定义: ${SRC}`);
+  console.error('请从 APK 提取 index.*.js 后保存为 protocol/source/index.js，或设置 W2_PROTO_SRC 临时覆盖。');
   process.exit(1);
 }
-const OUT_DIR = path.join(ROOT, 'protocol', 'reference');
+if (!WRITE) {
+  console.error('安全起见，生成器默认不写入。请在临时副本中追加 --write。');
+  process.exit(1);
+}
+const OUT_DIR = path.join(ROOT, 'protocol', 'reference.generated');
 
 // ---------- 1. 扫描所有协议类 ----------
 const src = fs.readFileSync(SRC, 'utf8');
@@ -318,6 +327,7 @@ const CMD_OVERRIDES = {
 
 function renderEntry(e) {
   const L = [];
+  const isChoice = [1, 2, 5, 25, 26, 27, 30].includes(Number(e.num));
   const isPush = /isBroadcast=function\(\)\{return!0\}/.test(e.dec) || Number(e.num) >= 26000;
   const ov = CMD_OVERRIDES[Number(e.num)] || {};
   const zhName = ov.title || NAME_ZH[e.num] || (e.pid ? e.pid.replace(/^PROT_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '未命名');
@@ -333,7 +343,7 @@ function renderEntry(e) {
     const fields = parseEncode(e.enc);
     const real = fields.filter(f => f.op === 'write' || f.op === 'loop' || f.op === 'cond');
     if (real.length) {
-      L.push('**请求参数**（按序拼接为 AES 明文）:');
+      L.push(`**请求参数**（按序拼接为${isChoice ? '明文 payload' : ' AES 明文'}）:`);
       L.push('');
       L.push('| 顺序 | 类型 | 字段 | 说明 |');
       L.push('|---|---|---|---|');
@@ -416,7 +426,7 @@ const DOMAIN_HEAD = {
     '| iOS | `w2vcn_G.ios.wistone.com:8081` | 裸 TCP，明文 WIST 帧 |',
     '| Android | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |',
     '',
-    '服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自源码内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。',
+    '服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。',
     '',
   ],
 };
@@ -427,7 +437,7 @@ const totalCmds = entries.length
 
 const indexLines = ['# W2 接口参考手册 · 索引', '',
   '> 全量 ' + totalCmds + ' 个命令，按业务域分文件。字段名为 snake_case 规范命名，附中文说明。', '',
-  '> 如何组装请求、判断成功失败见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](NOTES.md)。', '',
+  '> 如何组装请求、判断成功失败见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](../NOTES.md)。', '',
   '| 文件 | 业务域 | 命令数 | cmd 范围 |', '|---|---|---|---|'];
 
 let totalRendered = 0;

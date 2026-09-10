@@ -22,7 +22,12 @@ const arg = (n, d) => {
   const i = argv.indexOf('--' + n);
   return i >= 0 && i + 1 < argv.length ? argv[i + 1] : d;
 };
+const onlyArg = arg('id', '');
 const has = (n) => argv.includes('--' + n);
+if (onlyArg && (!/^\d+$/.test(onlyArg) || BigInt(onlyArg) === 0n || BigInt(onlyArg) > 0xffffffffffffffffn)) {
+  console.log('--id 必须是正的无符号 64 位邮件 ID');
+  process.exit(1);
+}
 
 // ---------- 9001 邮件列表 schema（依据客户端 Mailinfo 定义 + 实测对齐） ----------
 // 头部: u8 mailType 回显 + u32 pageCount + u32 pageNum + u32 条数 + 条目数组
@@ -86,7 +91,7 @@ function fmtTime(msBigint) {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：先执行 node tools/w2login.js <邮箱或账号> <密码> 完成首次登录');
+    console.log('尚未登录：请先完成首次登录');
     process.exit(1);
   }
 
@@ -116,7 +121,7 @@ function fmtTime(msBigint) {
   console.log(`邮箱共 ${mails.length} 封邮件`);
 
   // 过滤带附件的邮件
-  const only = arg('id', '');
+  const only = onlyArg;
   const withAttach = only
     ? mails.filter((m) => String(m.mail_id) === only)
     : mails.filter((m) => m.attachment_flag === 1);
@@ -136,7 +141,17 @@ function fmtTime(msBigint) {
       console.log(`  ✗ ${m.title}（id=${m.mail_id}）: 详情获取失败${r.message ? '（' + r.message + '）' : ''}`);
       continue;
     }
-    const detail = parseDetail(r.raw);
+    if (typeof r.raw === 'undefined') {
+      console.log(`  ✗ ${m.title}: 详情响应缺少原始数据`);
+      continue;
+    }
+    let detail;
+    try {
+      detail = parseDetail(r.raw);
+    } catch (e) {
+      console.log(`  ✗ ${m.title}: 详情解析失败（${e.message}）`);
+      continue;
+    }
     if (!detail.attachments.length) {
       console.log(`  - ${m.title}（id=${m.mail_id}）: 详情显示无附件，跳过`);
       continue;

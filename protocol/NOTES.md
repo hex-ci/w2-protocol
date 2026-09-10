@@ -1,8 +1,8 @@
 # 协议逆向全记录
 
-> 本文件是协议知识的**唯一数据源**：帧格式、加密算法、参数编码、命令语义、初始化流程与分析防错指南。
-> 配套文件：`commands.json`（命令字典）、`lib/w2build.js`（帧构造实现）。
-> 所有结论均经真实抓包与回放代码闭环验证。
+> 本文件记录已验证的帧格式、加密、参数编码、登录链路与防错约束；命令级字段结构以 `protocol/reference/` 的基线和实测修正为准。
+> 配套文件：`commands.json`（命令名称/推送/任务字典）、`lib/w2build.js`（帧构造实现）。
+> 所有“已验证”结论均有真实抓包或本地字节重构依据；未标为实测的命令字段仍须在自动化前复核。
 
 ## 0. 客户端行为指纹
 
@@ -26,8 +26,8 @@
 | 模块 | 状态 | 规范与实现 |
 |---|---|---|
 | 出站帧格式 / 加密算法 | ✅ 完全解析 | AES-128-ECB + MD5 前 16 字节截断（`lib/w2build.js`） |
-| 入站帧格式 / 响应结构 | ✅ 完全解析 | 4B 长度前缀 UTF-8 字符串 + 整数混编（`lib/w2.js`） |
-| 任意命令组帧构造 | ✅ 完全支持 | 支持凭空构造任意参数请求帧，无需依赖抓包重放 |
+| 入站帧格式 / 通用响应骨架 | ✅ 已验证 | WIST 头 + cmd/status + 命令级字段（`lib/w2.js`） |
+| 任意命令组帧构造 | ✅ 已支持 | 可构造任意已知参数序列；命令级字段需以抓包/客户端复核 |
 | 凭据重放与长连接认证 | ✅ 稳定可用 | 提取握手 wst token 即可脱离客户端维持业务会话 |
 | 自动化任务领取 | ✅ 稳定可用 | 每日自动领取职位工资、军衔补助、钻石奖励（`scripts/w2signin.js`） |
 
@@ -68,6 +68,11 @@
 ### ③ 组帧
 将魔数、版本、序号、MD5 校验值、sessionId、长度 L、cmd 及 AES 密文顺序拼接即可。实现详见 `lib/w2build.js`。
 
+> **实测边界（captures/2026-09-08）**：出站存在少量 `sessionId=0xffffffff` 的帧（如 29006/6016/1020/12，
+> MD5 校验仍通过），但其 AES 密文无法用 `String(4294967295).padStart(16,'0')` 解密，
+> 亦非全零 / 上一下文 sessionId 等候选值——客户端当前可见仅有一条 WiST 组帧路径，key 来源未明。
+> 本项目工具不生成此类帧，解析侧遇到解密失败帧按原样保留密文即可（w2watch 已如此处理）。
+
 ---
 
 ## 4. 明文参数编码规范
@@ -87,7 +92,7 @@
 | cmd | 命令名称 | 明文参数定义 |
 |---|---|---|
 | `6` | 握手配置 hello | 空参数（明文长度 0B，仅有命令字） |
-| `1001` | 账号登录 | `u64 userId` + `str username` + `u32 clientVer` + `str platform` + `str channel` + `str language` + `str appKey` + `str wst` + `str installID` |
+| `1001` | 账号登录 | `u64 userId` + `str username` + `u32 clientVer` + `str platform` + `str channel` + `str language` + `str appKey` + `str wst` + `str installID` + `byte stopLoginIfOnline` |
 | `10001` | 任务列表查询 | `byte taskType`（1 字节分类枚举，见 §7） |
 | `10003` | 领取任务奖励 | `u32 taskId`（4 字节任务 ID） |
 | `10006` | 新手任务列表 | `byte 4` |
@@ -107,8 +112,8 @@
 +8    4    u32     长度 L（等于 body 全长；body = 命令字(4B) + status(1B) + 数据）
 +12   L    bytes   响应 Body：
                    - 前 4 字节：u32 命令字
-                   - 第 5 字节：u8 status（0x01 表示成功；其余通常表示业务异常）
-                   - 后续字段：根据命令字对应的响应结构反序列化（结构见 commands.json）
+                   - 第 5 字节：u8 status（常见成功值为 0x01，具体命令见 reference/）
+                   - 后续字段：根据命令字对应的响应结构反序列化（结构见 `reference/`）
 ```
 
 ---
@@ -121,7 +126,7 @@
 4. **不防重放**：整帧原样重发长期有效（跨天验证过）；重复领取返回短响应但无副作用。
 5. **随机会话密钥**：服务器按帧内 sessionId 推导 AES 密钥解密，客户端每帧可独立随机生成。
 6. **连接只能登录一次**：同连接二次登录返回 status=-10（拒绝），SDK 的 connect() 已按此实现。
-7. **频控**：客户端对同命令 500ms 内去重；服务器侧未见同类限制。
+7. **频控**：客户端对同命令 500ms 内去重；SDK 也串行保留最小 500ms 间隔。服务器侧未见同类限制。
 
 ---
 
@@ -146,13 +151,13 @@
 
 ```
 ① SSO 账号登录   POST mlogin → WST(凭据) + WTGT(续登票据) + wistoneId
-② 选服（choice） 独立 TCP 8081，明文 WIST 帧 → userId + 游戏服地址(ip:port)
+② iOS 选服      独立 TCP 8081，明文 WIST 帧 → userId + 游戏服地址(ip:port)
 ③ 游戏服握手     8083，hello(6) → 登录(1001) → 业务
 ```
 
 ### 8.1 SSO 账号登录（mlogin）
 
-- **端点**：`http://sso.wistone.com/wistoneSSO/mlogin`（`W2_SSO_URL`，代码内置缺省 + .env 覆盖）。
+- **端点**：`https://sso.wistone.com/wistoneSSO/mlogin`（`W2_SSO_URL`，代码内置缺省 + .env 覆盖；工具拒绝 HTTP）。
 - **两步 POST**（`application/x-www-form-urlencoded`）：
   1. `login_type=0` 空表单 → `resultType=0`，取 `flowExecutionKey`/`loginTicket`/`sessionId`；
   2. `login_type=1`，`email`/`password` 经 DES-ECB/PKCS7 加密（密钥 = SECURITY_KEY 常量，HEX 大写），附 `execution`/`l_t`/`_eventId=loginSubmit` → `resultType=1`。
@@ -242,7 +247,7 @@
 2. **使用构造器组帧**：
    调用 `lib/w2build.js` 中的 `buildFrame(no, sessionId, cmd, paramsBuffer)` 生成标准出站帧。
 3. **注册字典与测试**：
-   将命令定义录入 `protocol/commands.json`，通过 `scripts/w2probe.js` 或独立脚本发送，观察服务端入站响应（`status === 1` 即代表执行成功）。
+   将命令定义录入 `protocol/commands.json`，通过 `scripts/w2probe.js` 或独立脚本发送，按该命令在 `reference/` 中记录的成功 status 判断结果。
 
 ---
 

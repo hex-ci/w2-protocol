@@ -17,7 +17,7 @@
 | 7 | string | `app_key` | 客户端应用密钥 |
 | 8 | string | `wst` | — |
 | 9 | string | `install_id` | 设备安装 ID |
-| 10 | u8 | `stop_login_if_online` | — |
+| 10 | u8 | `stop_login_if_online` | 顶号确认标记（0/1，默认 0） |
 
 **响应**（status 为 **1** 或 **2** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 

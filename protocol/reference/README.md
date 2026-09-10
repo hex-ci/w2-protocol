@@ -2,11 +2,13 @@
 
 > 全量 419 个命令，按业务域分文件。字段名为 snake_case 规范命名，附中文说明。
 
-> 如何组装请求、判断成功失败见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](NOTES.md)。
+> 如何组装请求、判断成功失败见 [API.md](../API.md)；帧格式与加密见 [NOTES.md](../NOTES.md)。
+>
+> 本手册以客户端字段基线和已复核抓包共同维护。默认基线位于本地 gitignore 文件 `protocol/source/index.js`，由 `npm run genapi -- --write` 输出到 `protocol/reference.generated/`；手册不会被生成器改写。带“实测”标记的条目优先；无该标记的复杂列表、条件字段应在自动化前用抓包复核。
 
 | 文件 | 业务域 | 命令数 | cmd 范围 |
 |---|---|---|---|
-| [00-choice.md](00-choice.md) | 选服与渠道登录 | 14 | 1 ~ 30 |
+| [00-choice.md](00-choice.md) | 选服与基础服务 | 14 | 1 ~ 30 |
 | [01-account.md](01-account.md) | 账号与玩家 | 36 | 1001 ~ 1050 |
 | [02-city.md](02-city.md) | 城池与资源 | 27 | 2001 ~ 2030 |
 | [03-army.md](03-army.md) | 军队与训练 | 14 | 3001 ~ 3015 |

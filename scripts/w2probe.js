@@ -12,7 +12,13 @@
 
 import fs from 'fs';
 import config from '../lib/config.js';
-import { framesIn, idNamePairs, cjkStrings, decodeBody } from '../lib/w2.js';
+import {
+  W2FrameReassembler,
+  idNamePairs,
+  cjkStrings,
+  decodeBody,
+} from '../lib/w2.js';
+import { parseFrame } from '../lib/w2build.js';
 import { W2Client } from '../lib/sdk.js';
 
 const argv = process.argv.slice(2);
@@ -26,41 +32,46 @@ if (!hexes.length) {
   console.log('用法: node scripts/w2probe.js <hex...>  |  --file frames.txt');
   process.exit(1);
 }
+for (const frame of hexes) {
+  if (frame.length % 2 !== 0 || Buffer.from(frame, 'hex').toString('hex') !== frame.toLowerCase()) {
+    console.log('存在非十六进制或奇数长度的帧参数，请检查');
+    process.exit(1);
+  }
+}
 
-/** 从响应缓冲切出 WIST 帧并打印可读摘要 */
-function showAll(buf) {
+/** 打印已完整重组的 WIST 帧 */
+function showAll(frames, expectedSid) {
   let n = 0;
-  while (buf.length >= 16 && buf.toString('latin1', 0, 4) === 'WIST') {
-    const L = buf.readUInt32BE(8);
-    if (buf.length < 12 + L) break;
-    const frame = buf.subarray(0, 12 + L);
-    buf = buf.subarray(12 + L);
-    const f = framesIn(frame)[0];
-    if (!f) continue;
+  const expected = [];
+  const unrelated = [];
+  for (const f of frames) {
+    (f.fieldA === expectedSid ? expected : unrelated).push(f);
+  }
+  for (const f of [...expected, ...unrelated]) {
     n++;
-    // 入站 body: cmd(4B) + status(1B) + 数据
     const cmd = f.body.readUInt32BE(0);
-    const status = f.body.length > 4 ? f.body.readInt8(4) : -1;
+    const status = f.body.readInt8(4);
     const data = f.body.subarray(5);
+    const prefix = f.fieldA === expectedSid ? '  ' : `  [sid=${f.fieldA}] `;
     const pairs = idNamePairs(data);
     const texts = cjkStrings(data);
     const { fields } = decodeBody(data, 8);
     if (pairs.length) {
-      console.log(`  cmd=${cmd} status=${status} len=${f.len}  任务:`);
+      console.log(`${prefix}cmd=${cmd} status=${status} len=${f.len}  任务:`);
       pairs.slice(0, 25).forEach((p) => console.log(`      ${String(p.id).padEnd(9)}${p.name}`));
     } else {
-      console.log(`  cmd=${cmd} status=${status} len=${f.len}  ${fields.map((x) => (x.t === 'str' ? `"${x.v}"` : x.v)).join(', ').slice(0, 130)}`);
+      console.log(`${prefix}cmd=${cmd} status=${status} len=${f.len}  ${fields.map((x) => (x.t === 'str' ? `"${x.v}"` : x.v)).join(', ').slice(0, 130)}`);
       if (texts.length) console.log(`      中文: ${texts.slice(0, 3).join(' | ').slice(0, 100)}`);
     }
   }
-  return { rest: buf, count: n };
+  return n;
 }
 
 (async function main() {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：先执行 node tools/w2login.js <邮箱或账号> <密码> 完成首次登录');
+    console.log('尚未登录：请先完成首次登录');
     process.exit(1);
   }
 
@@ -75,18 +86,25 @@ function showAll(buf) {
 
   // 探测的是未知结构的响应，绕开 SDK 的 schema 解析：
   // SDK _onData 会把响应吃掉，这里直接在 socket 上挂原始监听收集
-  let rawBuf = Buffer.alloc(0);
-  c.sock.on('data', (d) => { rawBuf = Buffer.concat([rawBuf, d]); });
+  const responses = [];
+  const splitter = new W2FrameReassembler('in');
+  c.sock.on('data', (d) => { responses.push(...splitter.push(d)); });
   // SDK 的 _onData 先注册会先消费，但它只 resolve pending（探测帧无 pending），
   // 不影响这里追加监听收到的原始字节
 
   for (let i = 0; i < hexes.length; i++) {
+    const frame = Buffer.from(hexes[i], 'hex');
+    const parsed = parseFrame(frame);
+    if (!parsed) {
+      console.log(`帧${i + 1}: 格式无效，跳过`);
+      continue;
+    }
     console.log(`帧${i + 1}: ...${hexes[i].slice(-16)}`);
-    c.sock.write(Buffer.from(hexes[i], 'hex'));
+    c.sock.write(frame);
     await new Promise((r) => setTimeout(r, 2800));
-    const { count } = showAll(rawBuf);
+    // 每帧等待窗口结束后只消费已经完整的响应；splitter 内未完成尾段保留到下一窗口。
+    const count = showAll(responses.splice(0), parsed.sid);
     if (!count) console.log('  （无可解析响应）');
-    rawBuf = Buffer.alloc(0);
   }
 
   console.log('\n探测结束。');

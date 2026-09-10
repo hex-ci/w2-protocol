@@ -4,7 +4,7 @@
  * w2train.js —— 全域造兵
  *
  * 在所有城池（或 --city 指定城）的军工厂批量训练指定兵种（默认侦察机）。
- * 逐城切城 → 扫描军工厂 → 按当前城资源算出各厂最大可造数 → 逐厂下单。
+ * 逐城切城 → 扫描军工厂 → 按当前城已验证资源算出各厂最大可造数 → 逐厂下单。
  *
  * 频控：SDK 自带 500ms 请求间隔，命令间再叠加随机抖动，模拟人工节奏。
  *
@@ -26,9 +26,21 @@ const arg = (n, d) => {
 };
 const has = (n) => argv.includes('--' + n);
 
-const ARMY_ID = parseInt(arg('army', '9'), 10);      // 9 = 侦察机:蚊式
-const MAX_PER_PLANT = arg('max', '') ? parseInt(arg('max', ''), 10) : Infinity;
-const ONLY_CITY = arg('city', '');
+const isU32 = (value, allowZero = true) => {
+  if (!/^\d+$/.test(value)) return false;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed <= 0xffffffff && (allowZero || parsed > 0);
+};
+const isU64 = (value) => /^\d+$/.test(value) && BigInt(value) <= 0xffffffffffffffffn;
+const armyArg = arg('army', '9');
+const maxArg = arg('max', '');
+const cityArg = arg('city', '');
+if (!isU32(armyArg, false)) throw new Error('--army 必须是正整数兵种 ID');
+if (maxArg && !isU32(maxArg)) throw new Error('--max 必须是非负整数');
+if (cityArg && !isU64(cityArg)) throw new Error('--city 必须是无符号 64 位城池 ID');
+const ARMY_ID = Number(armyArg);
+const MAX_PER_PLANT = maxArg ? Number(maxArg) : Infinity;
+const ONLY_CITY = cityArg;
 const DRY = has('dry');
 
 // 频控抖动：每次写操作前随机等待，模拟人工
@@ -148,7 +160,7 @@ const fmtDur = (ms) => {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：先执行 node tools/w2login.js <邮箱或账号> <密码> 完成首次登录');
+    console.log('尚未登录：请先完成首次登录');
     process.exit(1);
   }
 
@@ -160,8 +172,15 @@ const fmtDur = (ms) => {
     process.exit(1);
   }
 
+  const mustRaw = async (cmd, params) => {
+    const r = await c.call(cmd, params);
+    if (!r.ok) throw new Error(`cmd=${cmd} 请求失败${r.message ? `：${r.message}` : ''}`);
+    if (!r.raw) throw new Error(`cmd=${cmd} 响应缺少原始数据`);
+    return r.raw;
+  };
+
   // 城池列表
-  const cities = parseCityList((await c.call(2001, Buffer.alloc(0))).raw);
+  const cities = parseCityList(await mustRaw(2001, Buffer.alloc(0)));
   const targets = ONLY_CITY ? cities.filter((x) => x.cityId === ONLY_CITY) : cities;
   if (!targets.length) {
     console.log('未找到目标城池');
@@ -179,20 +198,25 @@ const fmtDur = (ms) => {
     ],
   })).active_city_id.toString();
 
-  // 3007 兵种原型表：取兵种名用于报告
+  // 3007 兵种原型表分两段返回，取两段中的兵种名用于报告
   let armyName = `兵种${ARMY_ID}`;
-  const protoRaw = (await c.call(3007, Buffer.alloc(0))).raw;
+  const protoRaw = await mustRaw(3007, Buffer.alloc(0));
   {
     let off = 0;
     const u32 = () => { const v = protoRaw.readUInt32BE(off); off += 4; return v; };
     const str = () => { const L = u32(); const s = protoRaw.subarray(off, off + L).toString('utf8'); off += L; return s; };
-    const n = u32();
-    for (let i = 0; i < n; i++) {
-      u32(); const id = u32(); u32();
-      const name = str();
-      str();
-      off += 4 * 14;
-      if (id === ARMY_ID) { armyName = name; break; }
+    for (let group = 0; group < 2 && armyName === `兵种${ARMY_ID}`; group++) {
+      const n = u32();
+      for (let i = 0; i < n; i++) {
+        u32(); const id = u32(); u32();
+        const name = str();
+        str();
+        off += 4 * 14;
+        if (id === ARMY_ID) {
+          armyName = name;
+          break;
+        }
+      }
     }
   }
   console.log(`兵种确认: ${armyName}\n`);
@@ -246,23 +270,23 @@ const fmtDur = (ms) => {
     // 平分策略：总可造数按厂均分，资源是一次性总账（同城同兵种单价一致）
     // 总量 = min(各资源/单价)，每厂 base = floor(总量/N)，前 remainder 个厂各 +1
     const s0 = specs[0].spec;
+    if (s0.nuclear > 0) {
+      plantReports.push('   ○ 该兵种需要核资源；当前脚本未验证核资源余额字段，为避免超额下单而跳过');
+      plantReports.forEach((s) => console.log(s));
+      console.log('');
+      continue;
+    }
     const totalAffordable = Math.floor(Math.min(
       s0.food ? res.food / s0.food : Infinity,
       s0.mineral ? res.mineral / s0.mineral : Infinity,
       s0.oil ? res.oil / s0.oil : Infinity,
       s0.steel ? res.steel / s0.steel : Infinity
     ));
-    const perPlant = Math.min(
-      Math.floor(totalAffordable / specs.length),
-      MAX_PER_PLANT
-    );
-    const remainder = Math.min(
-      MAX_PER_PLANT === Infinity ? totalAffordable % specs.length : 0,
-      totalAffordable - perPlant * specs.length,
-      specs.length
-    );
+    const targetTotal = Math.min(totalAffordable, MAX_PER_PLANT * specs.length);
+    const perPlant = Math.floor(targetTotal / specs.length);
+    const remainder = targetTotal % specs.length;
 
-    if (totalAffordable === 0) {
+    if (targetTotal === 0) {
       plantReports.push(`   ○ 资源不足 1 架（需 粮${s0.food} 矿${s0.mineral} 油${s0.oil} 钢${s0.steel}/架）`);
       plantReports.forEach((s) => console.log(s));
       console.log(`   余量: 粮 ${fmt(res.food)} | 钢 ${fmt(res.steel)} | 矿 ${fmt(res.mineral)} | 油 ${fmt(res.oil)}`);

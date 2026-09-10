@@ -26,9 +26,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   PcapParser,
+  TcpReassembler,
+  W2FrameReassembler,
   decode,
-  framesOut,
-  framesIn,
   decodeBody,
   idNamePairs,
   cjkStrings,
@@ -47,12 +47,20 @@ const has = (n) => argv.includes('--' + n);
 const IP = arg('ip', '') || config.phoneIp;
 const IFACE = arg('iface', '') || config.iface;
 // 游戏服 TCP 端口为常量 8083（各服均为 :8083，见 reference/00-choice.md 服务器列表）
-const PORT = parseInt(arg('port', '8083'), 10);
+const PORT = Number(arg('port', '8083'));
 const TAG = arg('tag', 'op');
 const FILE = arg('file', '');
 const QUIET = has('quiet');
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+  console.log('--port 必须是 1 ~ 65535 的整数');
+  process.exit(1);
+}
+if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(TAG)) {
+  console.log('--tag 只能包含字母、数字、_、-，且长度为 1 ~ 64');
+  process.exit(1);
+}
 if (!IP && !FILE) {
   console.log('需要 --ip <设备内网IP>  或  --file <pcap>');
   process.exit(1);
@@ -79,6 +87,11 @@ const stem = `${hms}_${TAG}`;
 const jsonlPath = path.join(dir, stem + '.jsonl');
 const newPath = path.join(dir, stem + '.new.txt');
 const pcapPath = path.join(dir, stem + '.pcap');
+for (const target of [jsonlPath, newPath, pcapPath]) {
+  if (!path.resolve(target).startsWith(path.resolve(dir) + path.sep)) {
+    throw new Error('抓包输出路径越界');
+  }
+}
 
 const jf = fs.createWriteStream(jsonlPath, { flags: 'a' });
 const newCmds = new Map();
@@ -89,10 +102,22 @@ function emit(ev) { jf.write(JSON.stringify(ev) + '\n'); }
 
 // ---------- 核心解析 ----------
 const parser = new PcapParser();
+const reassembler = new TcpReassembler();
+const frameReassemblers = new Map();
 let t0 = null;
 let phone = IP;
-const seenOut = new Set();   // 请求去重（按 序号+命令）
+const seenOut = new Set();   // 请求去重（按 sessionId+命令）
 const seenIn = new Set();
+
+function protocolFrames(packet, direction, payload) {
+  const key = `${direction}:${packet.src}:${packet.sport}>${packet.dst}:${packet.dport}`;
+  let splitter = frameReassemblers.get(key);
+  if (!splitter) {
+    splitter = new W2FrameReassembler(direction);
+    frameReassemblers.set(key, splitter);
+  }
+  return splitter.push(payload);
+}
 
 function handlePacket(ts, data) {
   const d = decode(data, parser.link);
@@ -100,13 +125,16 @@ function handlePacket(ts, data) {
   if (PORT && d.sport !== PORT && d.dport !== PORT) return;
   if (t0 === null) t0 = ts;
   const rel = +(ts - t0).toFixed(3);
-  const pl = d.payload;
+  const pl = reassembler.push(d);
   if (!pl || pl.length === 0) return;
+  handlePayload(d, rel, pl);
+}
 
+function handlePayload(d, rel, pl) {
   if (d.src === phone || (!IP && d.dport === PORT)) {
     // 客户端 -> 服务器
-    for (const f of framesOut(pl)) {
-      const key = `${f.no}:${f.cmd}`;
+    for (const f of protocolFrames(d, 'out', pl)) {
+      const key = `${f.fieldA}:${f.cmd}`;
       if (seenOut.has(key)) continue;
       seenOut.add(key);
       const nm = nameOf(f.cmd);
@@ -126,7 +154,7 @@ function handlePacket(ts, data) {
     }
   } else {
     // 服务器 -> 客户端
-    for (const f of framesIn(pl)) {
+    for (const f of protocolFrames(d, 'in', pl)) {
       const body = f.body;
       const cmd = body.length >= 4 ? body.readUInt32BE(0) : null;
       const { fields } = decodeBody(body.subarray(4), 14);
@@ -155,6 +183,11 @@ function handlePacket(ts, data) {
 }
 
 function finish(code) {
+  if (FILE) {
+    for (const { packet, payload } of reassembler.flush()) {
+      if (payload?.length) handlePayload(packet, 0, payload);
+    }
+  }
   jf.end();
   if (pcapFd !== null) { try { fs.closeSync(pcapFd); } catch (e) { /* ignore */ } }
   let msg = '';

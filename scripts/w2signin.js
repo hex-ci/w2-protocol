@@ -24,7 +24,17 @@ const arg = (n, d) => {
 };
 const has = (n) => argv.includes('--' + n);
 
-const DAILY_TASKS = config.tasks;
+const isPositiveU32 = (value) => /^[1-9]\d*$/.test(value) && Number(value) <= 0xffffffff;
+const onlyArg = arg('id', '');
+if (onlyArg && !isPositiveU32(onlyArg)) {
+  console.log('--id 必须是正整数任务 ID');
+  process.exit(1);
+}
+const invalidTask = config.tasks.find((id) => !isPositiveU32(id));
+if (invalidTask) {
+  console.log(`W2_TASK_IDS 含无效任务 ID: ${invalidTask}`);
+  process.exit(1);
+}
 
 // 10002 任务详情 schema：已领取/未上架的任务服务端也返回名称，用于展示
 const TASK_DETAIL_SCHEMA = {
@@ -73,7 +83,22 @@ const TASK_LIST_SCHEMA = {
   tail: [['notice', 'string']],
 };
 
-// ---------- 10003 响应 schema（奖励条目） ----------
+// 10006 新手任务响应无稳定字段表，按客户端手工解析：
+// status 后 1 字节 taskType 回显 + u32 计数 + 条目(task_id u32/name/completed/readed) + notice
+function parseRookieList(raw) {
+  let off = 0;
+  off += 1;                                  // 客户端 decode 读取但未使用的 1 字节
+  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
+  const str = () => { const L = u32(); const s = raw.subarray(off, off + L).toString('utf8'); off += L; return s; };
+  const count = u32();
+  const tasks = [];
+  for (let i = 0; i < count; i++) {
+    const task_id = u32();
+    tasks.push({ task_id, task_name: str(), completed: raw[off++], readed: raw[off++] });
+  }
+  return { tasks, notice: str() };
+}
+
 const CLAIM_SCHEMA = {
   list: true,
   item: [
@@ -89,7 +114,7 @@ const CLAIM_SCHEMA = {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：先执行 node tools/w2login.js <邮箱或账号> <密码> 完成首次登录');
+    console.log('尚未登录：请先完成首次登录');
     process.exit(1);
   }
 
@@ -113,8 +138,8 @@ const CLAIM_SCHEMA = {
     console.log('钻石查询失败:', e.message, '（继续执行）');
   }
 
-  const only = arg('id', '');
-  const todo = only ? [Number(only)] : DAILY_TASKS;
+  const only = onlyArg;
+  const todo = only ? [Number(only)] : config.tasks.map(Number);
   if (!todo.length) {
     console.log('\n没有配置每日任务（.env 里 W2_TASK_IDS 为空）');
     c.close();
@@ -131,6 +156,20 @@ const CLAIM_SCHEMA = {
         console.log(`   ${mark}  ${t.task_name}`);
       });
     }
+    // 10006 新手任务按客户端手工解析展示（schema 缺省 → SDK 返回 raw）
+    try {
+      const rookie = await c.call(10006, p.byte(4));
+      if (rookie.ok && rookie.raw && rookie.raw.length) {
+        const parsed = parseRookieList(rookie.raw);
+        if (parsed.tasks.length) {
+          console.log('\n新手任务:');
+          parsed.tasks.slice(0, 20).forEach((t) => {
+            const mark = t.completed === 1 ? '已完成' : '未完成';
+            console.log(`   ${mark}  ${t.task_name}`);
+          });
+        }
+      }
+    } catch (e) { /* 新手任务仅展示，失败不影响领取 */ }
   } catch (e) {
     console.log('任务列表查询失败:', e.message, '（不影响领取，继续）');
   }
