@@ -81,6 +81,7 @@ function parseMilitaryBuildings(raw) {
   const list = [];
   for (let i = 0; i < count; i++) {
     const bid = u64(), proto = u32(), level = u32();
+    u32(); u32();                     // position, status
     u64(); u64(); u64(); u8();        // remainTime, finishTime, totalTime, helped
     list.push({ bid: bid.toString(), proto, level });
   }
