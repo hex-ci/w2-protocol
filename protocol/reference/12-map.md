@@ -952,6 +952,12 @@
 
 ### `cmd=19003` — 执行远征
 
+> 实测修正（SDK 真实会话验证，机制与油耗模型详见 [topics/transport.md](../topics/transport.md)）：
+> mode=0（无 FIND_PATH）请求 93B 成功；`assembly_id`/`alliance_capital_fort` 客户端默认 -1；
+> 末位 `t.key` 为 26022 推送下发的 u64 调度 key（随会话刷新，发帧前取最新值）。
+> TRANSPORT 只能选卡车（armyId=3），commander_id 可填 -1（运输/侦察/派遣不需要名将）。
+> 响应 truce_tag=0 时仅 1 字节；油耗与货物量无关。
+
 **请求参数**（按序拼接为 AES 明文）:
 
 | 顺序 | 类型 | 字段 | 说明 |
@@ -961,21 +967,21 @@
 | 3 | u32 | `select_armies[e].count` | 数量 |
 | 4 | u32 | `target_x` | 地图 X 坐标 |
 | 5 | u32 | `target_y` | 地图 Y 坐标 |
-| 6 | u8 | `expedition_type` | 类型枚举 |
+| 6 | u8 | `expedition_type` | 类型枚举（0=掠夺 1=征服 2=运输 3=侦察 4=派遣 5=伏击 9=迁城） |
 | 7 | u8 | `0` | — |
-| 8 | u64 | `commander_id` | — |
+| 8 | u64 | `commander_id` | 名将 ID，无则 -1 |
 | 9 | u32 | `0` | — |
-| 10 | u64 | `carry_food` | — |
-| 11 | u64 | `carry_steel` | — |
-| 12 | u64 | `carry_oil` | — |
-| 13 | u64 | `carry_mineral` | — |
-| 14 | u64 | `carry_gold` | — |
-| 15 | u32 | `transport_time_interval` | 时间戳（毫秒） |
-| 16 | u32 | `transport_total_num` | 数量 |
-| 17 | u32 | `assembly_id` | — |
-| 18 | u32 | `alliance_capital_fort` | 军团 |
+| 10 | u64 | `carry_food` | 携带粮食 |
+| 11 | u64 | `carry_steel` | 携带钢铁 |
+| 12 | u64 | `carry_oil` | 携带石油 |
+| 13 | u64 | `carry_mineral` | 携带稀矿 |
+| 14 | u64 | `carry_gold` | 携带黄金 |
+| 15 | u32 | `transport_time_interval` | 自动运输间隔（小时），手动=0 |
+| 16 | u32 | `transport_total_num` | 自动运输次数，手动=0 |
+| 17 | u32 | `assembly_id` | 集结道具 ID，客户端默认 -1 |
+| 18 | u32 | `alliance_capital_fort` | 军团首都要塞，客户端默认 -1 |
 | 19 | u8 | `is_break_truce` | 布尔标记（0/1） |
-| 20 | u64 | `t.key` | — |
+| 20 | u64 | `t.key` | 26022 推送下发的调度 key（实测必填，非 0） |
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
@@ -1119,6 +1125,9 @@
 
 ### `cmd=19009` — 查询当前城驻军
 
+> 实测修正：响应无 status 字段偏移问题，布局确认为 `u32 count + N×(u32 armyId + u32 count)`。
+> 客户端仅在 armyId ∈ [1,16]∪[30,34] 时收录展示。这是远征窗口的部队数据源。
+
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
@@ -1127,7 +1136,7 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u32 | `id` | — |
+| 1 | u32 | `id` | 兵种 ID（3=卡车、9=侦察机） |
 | 2 | u32 | `count` | 数量/计数 |
 
 ---
@@ -1251,11 +1260,16 @@
 
 ### `cmd=19015` — 查询我的远征列表
 
+> 实测修正：**服务器对空参请求静默丢弃（SDK 超时无响应）**。
+> 客户端仅在 FIND_PATH 特性开启时由地图组件发送；自动化脚本不要依赖本命令感知行军部队，
+> 改用 15015（行军线路圈查）或 26007/26008 推送。下方响应为客户端 decode 基线，未经实测复核。
+
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
+> 含列表：先读计数字段，再按下列顺序循环读取每个条目（客户端基线，详见 Prot19015.decode，
+> 含 expeditionId/type/state/cityName/officer/path 等字段，服务器实测布局未验证）。
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|

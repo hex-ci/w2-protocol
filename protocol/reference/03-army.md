@@ -144,10 +144,10 @@
 | 12 | u32 | `move_speed` | — |
 | 13 | u32 | `attack_speed` | — |
 | 14 | u32 | `attack_range` | — |
-| 15 | u32 | `load_weight` | — |
+| 15 | u32 | `load_weight` | 载重（3=卡车 1200、9=侦察机 5，实测） |
 | 16 | u32 | `population` | 人口数 |
-| 17 | u32 | `food_cost` | — |
-| 18 | u32 | `oil_cost` | — |
+| 17 | u32 | `food_cost` | 训练耗粮 |
+| 18 | u32 | `oil_cost` | 行军油耗/单位（3=卡车 15、9=侦察机 20，实测） |
 | 19 | u32 | `power_score` | 积分 |
 
 ---
