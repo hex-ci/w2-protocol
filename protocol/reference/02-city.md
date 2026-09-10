@@ -64,13 +64,13 @@
 | 资源 | 偏移 | 类型 | 字段 |
 |---|---:|---|---|
 | 粮食 | +4 | u32 | `food_amount` |
-| 粮食上限 | +8 | u32 | `food_capacity` |
+| 粮食容量 | +8 | u32 | `food_capacity` |
 | 钢铁 | +32 | u32 | `steel_amount` |
-| 钢铁上限 | +36 | u32 | `steel_capacity` |
+| 钢铁容量 | +36 | u32 | `steel_capacity` |
 | 稀矿 | +52 | u32 | `mineral_amount` |
-| 稀矿上限 | +56 | u32 | `mineral_capacity` |
+| 稀矿容量 | +56 | u32 | `mineral_capacity` |
 | 石油 | +72 | u32 | `oil_amount` |
-| 石油上限 | +76 | u32 | `oil_capacity` |
+| 石油容量 | +76 | u32 | `oil_capacity` |
 
 ---
 
@@ -454,30 +454,34 @@
 
 ### `cmd=2027` — 查询政令状态
 
+> 实测修正：Body 固定 68 字节 + 变长文案，布局与客户端基线一致。
+> 返回当前城的民心、民怨、民心趋势、黄金与人口明细，需先 `2002` 切城再查询。
+> 民怨非 0 时客户端以红色高亮显示；民心趋势为正表示持续回升。
+
 **请求参数**: 无
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-| 顺序 | 类型 | 字段 | 说明 |
-|---|---|---|---|
-| 1 | u32 | `morale` | 士气值 |
-| 2 | u32 | `grievance` | — |
-| 3 | u32 | `morale_trend` | 士气值 |
-| 4 | u32 | `gold_amount` | 黄金储量 |
-| 5 | u32 | `gold_capacity` | 黄金容量 |
-| 6 | u32 | `tax_rate` | — |
-| 7 | u32 | `gold_basic_output` | 产量 |
-| 8 | u32 | `gold_title_extra_add` | — |
-| 9 | u32 | `gold_officer_used` | — |
-| 10 | u32 | `gold_output` | 产量 |
-| 11 | u32 | `population_amount` | 人口数 |
-| 12 | u32 | `population_capacity` | 人口数 |
-| 13 | u32 | `population_in_working` | 人口数 |
-| 14 | u32 | `population_idle` | 人口数 |
-| 15 | u32 | `population_trend` | 人口数 |
-| 16 | u32 | `remaining_time` | 时间戳（毫秒） |
-| 17 | u32 | `diamond_cost_to_appease` | — |
-| 18 | string | `rule_description` | 描述文案 |
+| 偏移 | 顺序 | 类型 | 字段 | 说明 |
+|---:|---|---|---|---|
+| +0 | 1 | i32 | `morale` | 民心值 |
+| +4 | 2 | i32 | `grievance` | 民怨值（>0 触发红色预警） |
+| +8 | 3 | i32 | `morale_trend` | 民心趋势（正=回升） |
+| +12 | 4 | i32 | `gold_amount` | 黄金储量 |
+| +16 | 5 | i32 | `gold_capacity` | 黄金容量 |
+| +20 | 6 | i32 | `tax_rate` | 当前税率（百分比） |
+| +24 | 7 | i32 | `gold_basic_output` | 黄金基础产出 |
+| +28 | 8 | i32 | `gold_title_extra_add` | 称号加成 |
+| +32 | 9 | i32 | `gold_officer_used` | 名将俸禄消耗 |
+| +36 | 10 | i32 | `gold_output` | 黄金净产出 |
+| +40 | 11 | i32 | `population_amount` | 当前人口 |
+| +44 | 12 | i32 | `population_capacity` | 人口上限 |
+| +48 | 13 | i32 | `population_in_working` | 务工人口 |
+| +52 | 14 | i32 | `population_idle` | 空闲人口 |
+| +56 | 15 | i32 | `population_trend` | 人口趋势 |
+| +60 | 16 | i32 | `remaining_time` | 政令剩余毫秒数 |
+| +64 | 17 | i32 | `diamond_cost_to_appease` | 钻石安抚民怨开销 |
+| — | 18 | string | `rule_description` | 描述文案 |
 
 ---
 
