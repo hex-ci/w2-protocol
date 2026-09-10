@@ -11,11 +11,14 @@
  * 用法:
  *   node scripts/w2train.js                     所有城造侦察机（资源允许的最大量）
  *   node scripts/w2train.js --army 10           指定兵种（armyId，见 3007 兵种表）
- *   node scripts/w2train.js --city 103636       只在指定城造
+ *   node scripts/w2train.js --city <cityId>     只在指定城造
  *   node scripts/w2train.js --max 100           每厂最多造 100 架（不填=不限，仅受资源约束）
  *   node scripts/w2train.js --dry               只模拟计算，不下单
  */
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
 
@@ -160,7 +163,7 @@ const fmtDur = (ms) => {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成首次登录');
+    console.log('尚未登录：请先完成登录');
     process.exit(1);
   }
 
@@ -339,7 +342,7 @@ const fmtDur = (ms) => {
     }
     console.log('');
     totalTrain += cityTrain;
-    report.push({ city: city.name, trained: cityTrain, before: resBefore, after: res });
+    report.push({ city: city.name, cityId: city.cityId, x: city.x, y: city.y, trained: cityTrain, before: resBefore, after: res });
   }
 
   console.log('—— 总报告 ——');
@@ -348,6 +351,29 @@ const fmtDur = (ms) => {
     if (r.trained > 0) {
       console.log(`   ${r.city}: ${fmt(r.trained)} 架`);
     }
+  }
+
+  // 保存训练状态快照（.train_state.local.json）
+  try {
+    const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+    const stateFile = path.join(rootDir, '.train_state.local.json');
+    const stateData = {
+      timestamp: Date.now(),
+      armyId: ARMY_ID,
+      dry: DRY,
+      totalTrained: totalTrain,
+      cities: report.map((r) => ({
+        cityId: r.cityId,
+        name: r.city,
+        x: r.x,
+        y: r.y,
+        trained: r.trained,
+        after: r.after,
+      })),
+    };
+    fs.writeFileSync(stateFile, JSON.stringify(stateData, null, 2) + '\n');
+  } catch (e) {
+    // 写入状态失败不影响主流程
   }
 
   // 切回操作前的当前城

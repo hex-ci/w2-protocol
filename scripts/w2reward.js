@@ -9,9 +9,9 @@
  *      → [9002] 展示附件明细 → [9008] 逐封领取 → 汇总
  *
  * 用法:
- *   node scripts/w2reward.js              扫描并领取所有带附件的邮件
- *   node scripts/w2reward.js --id 1023247 只处理指定邮件
- *   node scripts/w2reward.js --dry        只扫描展示，不领取
+ *   node scripts/w2reward.js                扫描并领取所有带附件的邮件
+ *   node scripts/w2reward.js --id <mailId>  只处理指定邮件
+ *   node scripts/w2reward.js --dry          只扫描展示，不领取
  */
 
 import config from '../lib/config.js';
@@ -91,7 +91,7 @@ function fmtTime(msBigint) {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成首次登录');
+    console.log('尚未登录：请先完成登录');
     process.exit(1);
   }
 

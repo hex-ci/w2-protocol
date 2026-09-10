@@ -71,7 +71,7 @@ function showAll(frames, expectedSid) {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成首次登录');
+    console.log('尚未登录：请先完成登录');
     process.exit(1);
   }
 

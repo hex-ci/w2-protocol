@@ -14,7 +14,8 @@
     "parse": "node scripts/w2watch.js --file",
     "probe": "node scripts/w2probe.js",
     "genapi": "node tools/genapi.js",
-    "train": "node scripts/w2train.js"
+    "train": "node scripts/w2train.js",
+    "transport": "node scripts/w2transport.js"
   },
   "engines": {
     "node": ">=18"

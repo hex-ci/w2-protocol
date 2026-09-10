@@ -27,12 +27,12 @@ node scripts/w2signin.js --id 5042      # 只领单个任务
 node scripts/w2signin.js --dry          # 只查询不领取
 
 npm run reward                          # 邮件奖励自动领取（等价 node scripts/w2reward.js）
-node scripts/w2reward.js --id 1023247   # 只处理指定邮件
+node scripts/w2reward.js --id <mailId>  # 只处理指定邮件
 node scripts/w2reward.js --dry          # 只扫描展示，不领取
 
 npm run train                           # 全域造兵（默认侦察机，资源允许的最大量）
 node scripts/w2train.js --army 10       # 指定兵种（armyId 见 3007 兵种表）
-node scripts/w2train.js --city 103636   # 只在指定城造
+node scripts/w2train.js --city <cityId> # 只在指定城造
 node scripts/w2train.js --max 100       # 每厂最多造 100 架
 node scripts/w2train.js --dry           # 模拟计算，不下单
 
