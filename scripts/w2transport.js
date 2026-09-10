@@ -87,11 +87,15 @@ function fmtDur(sec) {
   return h > 0 ? `${h}时${m}分` : `${m}分`;
 }
 
-// 拟合油耗估算：oil = round(0.01313 * T^0.72 * N^0.7)
+// 油耗实测模型（296 格、2~8000 车实测偏差 <2%）：单程总耗油 ≈ 0.01313 × T^0.72 × 车数，对车数线性
+function oilPerTruck(d) {
+  if (d <= 0) return 0;
+  return 0.01313 * Math.pow(calcMarchSec(d), 0.72);
+}
+
 function estOil(d, trucks) {
-  if (trucks <= 0 || d <= 0) return 0;
-  const T = calcMarchSec(d);
-  return Math.round(0.01313 * Math.pow(T, 0.72) * Math.pow(trucks, 0.7));
+  if (trucks <= 0) return 0;
+  return Math.round(oilPerTruck(d) * trucks);
 }
 
 // ---------- 拓扑路由与指纹管理 ----------
@@ -340,6 +344,7 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
       res,
       trucks,
       availTrucks: trucks, // 动态扣减
+      fuelBudget: res.oil, // 发车油量以扫描时实际存量为准（在途到货不计入）
     });
   }
   const stateMap = new Map(state.map((s) => [s.cityId, s]));
@@ -379,6 +384,23 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
   // ---------- 调度规划运算 ----------
   const tasks = [];
 
+  // 发车即扣：油耗（及作为货物的石油）从该城可用油量预算中扣除
+  function spendFuel(city, d, trucks, cargoOil = 0) {
+    const fuel = Math.round(oilPerTruck(d) * trucks);
+    city.res.oil = Math.max(0, city.res.oil - fuel - cargoOil);
+    city.fuelBudget = Math.max(0, city.fuelBudget - fuel - cargoOil);
+  }
+
+  // 按本地石油上限约束运输规模：server 端按线性油耗校验，超出城内石油会以「城内资源不足」拒绝
+  function capDispatch(city, dest, surplus, resKey) {
+    if (!dest || surplus <= 0 || city.availTrucks <= 0) return null;
+    const d = dist(city, dest);
+    const per = oilPerTruck(d) + (resKey === 'oil' ? TRUCK_LOAD : 0); // 石油货物本身也占用城内石油
+    const affordable = Math.floor(city.fuelBudget / per);
+    const n = Math.min(Math.ceil(surplus / TRUCK_LOAD), city.availTrucks, affordable);
+    return n > 0 ? { n, d } : null;
+  }
+
   // 阶段 1：组内地缘造机互助配给
   // 各城军工厂需要储备 RESERVE_SCOUT 架侦察机材料
   const reqSteel = RESERVE_SCOUT * SCOUT_COST.steel;
@@ -400,9 +422,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
         );
         if (supplier) {
           const give = Math.min(need, supplier.res.steel - reqSteel * 2);
-          const trNeeded = Math.ceil(give / TRUCK_LOAD);
-          const trUse = Math.min(trNeeded, supplier.availTrucks);
-          if (trUse > 0) {
+          const plan = capDispatch(supplier, city, give, 'steel');
+          if (plan) {
+            const trUse = plan.n;
             const actualGive = Math.min(give, trUse * TRUCK_LOAD);
             tasks.push({
               phase: '阶段1:造机配给',
@@ -410,9 +432,10 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
               dst: city,
               carry: { steel: actualGive },
               trucks: trUse,
-              dist: dist(supplier, city),
+              dist: plan.d,
             });
             supplier.res.steel -= actualGive;
+            spendFuel(supplier, plan.d, trUse);
             supplier.availTrucks -= trUse;
             city.res.steel += actualGive;
           }
@@ -427,9 +450,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
         );
         if (supplier) {
           const give = Math.min(need, supplier.res.mineral - reqMineral * 2);
-          const trNeeded = Math.ceil(give / TRUCK_LOAD);
-          const trUse = Math.min(trNeeded, supplier.availTrucks);
-          if (trUse > 0) {
+          const plan = capDispatch(supplier, city, give, 'mineral');
+          if (plan) {
+            const trUse = plan.n;
             const actualGive = Math.min(give, trUse * TRUCK_LOAD);
             tasks.push({
               phase: '阶段1:造机配给',
@@ -437,9 +460,10 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
               dst: city,
               carry: { mineral: actualGive },
               trucks: trUse,
-              dist: dist(supplier, city),
+              dist: plan.d,
             });
             supplier.res.mineral -= actualGive;
+            spendFuel(supplier, plan.d, trUse);
             supplier.availTrucks -= trUse;
             city.res.mineral += actualGive;
           }
@@ -454,9 +478,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
         );
         if (supplier) {
           const give = Math.min(need, supplier.res.oil - reqOil * 2);
-          const trNeeded = Math.ceil(give / TRUCK_LOAD);
-          const trUse = Math.min(trNeeded, supplier.availTrucks);
-          if (trUse > 0) {
+          const plan = capDispatch(supplier, city, give, 'oil');
+          if (plan) {
+            const trUse = plan.n;
             const actualGive = Math.min(give, trUse * TRUCK_LOAD);
             tasks.push({
               phase: '阶段1:造机配给',
@@ -464,9 +488,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
               dst: city,
               carry: { oil: actualGive },
               trucks: trUse,
-              dist: dist(supplier, city),
+              dist: plan.d,
             });
-            supplier.res.oil -= actualGive;
+            spendFuel(supplier, plan.d, trUse, actualGive);
             supplier.availTrucks -= trUse;
             city.res.oil += actualGive;
           }
@@ -490,9 +514,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     if (city.cityId !== topology.superHubs.food && city.res.food > city.res.foodCap * OVERFLOW_PCT) {
       const surplus = city.res.food - Math.round(city.res.foodCap * 0.4);
       if (surplus > 10000) {
-        const trNeed = Math.ceil(surplus / TRUCK_LOAD);
-        const trUse = Math.min(trNeed, city.availTrucks);
-        if (trUse > 0 && hubFood) {
+        const plan = capDispatch(city, hubFood, surplus, 'food');
+        if (plan) {
+          const trUse = plan.n;
           const actualFood = Math.min(surplus, trUse * TRUCK_LOAD);
           tasks.push({
             phase: '阶段2:超限归集',
@@ -500,9 +524,10 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
             dst: hubFood,
             carry: { food: actualFood },
             trucks: trUse,
-            dist: dist(city, hubFood),
+            dist: plan.d,
           });
           city.res.food -= actualFood;
+          spendFuel(city, plan.d, trUse);
           city.availTrucks -= trUse;
         }
       }
@@ -512,9 +537,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     if (city.cityId !== topology.superHubs.steel && city.availTrucks > 0 && city.res.steel > city.res.steelCap * OVERFLOW_PCT) {
       const surplus = city.res.steel - Math.max(reqSteel, Math.round(city.res.steelCap * 0.4));
       if (surplus > 10000) {
-        const trNeed = Math.ceil(surplus / TRUCK_LOAD);
-        const trUse = Math.min(trNeed, city.availTrucks);
-        if (trUse > 0 && hubSteel) {
+        const plan = capDispatch(city, hubSteel, surplus, 'steel');
+        if (plan) {
+          const trUse = plan.n;
           const actualSteel = Math.min(surplus, trUse * TRUCK_LOAD);
           tasks.push({
             phase: '阶段2:超限归集',
@@ -522,9 +547,10 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
             dst: hubSteel,
             carry: { steel: actualSteel },
             trucks: trUse,
-            dist: dist(city, hubSteel),
+            dist: plan.d,
           });
           city.res.steel -= actualSteel;
+          spendFuel(city, plan.d, trUse);
           city.availTrucks -= trUse;
         }
       }
@@ -534,9 +560,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     if (city.cityId !== topology.superHubs.mineral && city.availTrucks > 0 && city.res.mineral > city.res.mineralCap * OVERFLOW_PCT) {
       const surplus = city.res.mineral - Math.max(reqMineral, Math.round(city.res.mineralCap * 0.4));
       if (surplus > 10000) {
-        const trNeed = Math.ceil(surplus / TRUCK_LOAD);
-        const trUse = Math.min(trNeed, city.availTrucks);
-        if (trUse > 0 && hubMineral) {
+        const plan = capDispatch(city, hubMineral, surplus, 'mineral');
+        if (plan) {
+          const trUse = plan.n;
           const actualMineral = Math.min(surplus, trUse * TRUCK_LOAD);
           tasks.push({
             phase: '阶段2:超限归集',
@@ -544,9 +570,10 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
             dst: hubMineral,
             carry: { mineral: actualMineral },
             trucks: trUse,
-            dist: dist(city, hubMineral),
+            dist: plan.d,
           });
           city.res.mineral -= actualMineral;
+          spendFuel(city, plan.d, trUse);
           city.availTrucks -= trUse;
         }
       }
@@ -556,9 +583,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     if (city.cityId !== topology.superHubs.oil && city.availTrucks > 0 && city.res.oil > city.res.oilCap * OVERFLOW_PCT) {
       const surplus = city.res.oil - Math.max(reqOil * 2, Math.round(city.res.oilCap * 0.4));
       if (surplus > 20000) {
-        const trNeed = Math.ceil(surplus / TRUCK_LOAD);
-        const trUse = Math.min(trNeed, city.availTrucks);
-        if (trUse > 0 && hubOil) {
+        const plan = capDispatch(city, hubOil, surplus, 'oil');
+        if (plan) {
+          const trUse = plan.n;
           const actualOil = Math.min(surplus, trUse * TRUCK_LOAD);
           tasks.push({
             phase: '阶段2:超限归集',
@@ -566,9 +593,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
             dst: hubOil,
             carry: { oil: actualOil },
             trucks: trUse,
-            dist: dist(city, hubOil),
+            dist: plan.d,
           });
-          city.res.oil -= actualOil;
+          spendFuel(city, plan.d, trUse, actualOil);
           city.availTrucks -= trUse;
         }
       }
@@ -578,9 +605,9 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     if (city.cityId !== topology.superHubs.gold && city.availTrucks > 0 && city.res.gold > city.res.goldCap * OVERFLOW_PCT) {
       const surplus = city.res.gold - Math.round(city.res.goldCap * 0.4);
       if (surplus > 100000) {
-        const trNeed = Math.ceil(surplus / TRUCK_LOAD);
-        const trUse = Math.min(trNeed, city.availTrucks);
-        if (trUse > 0 && hubGold) {
+        const plan = capDispatch(city, hubGold, surplus, 'gold');
+        if (plan) {
+          const trUse = plan.n;
           const actualGold = Math.min(surplus, trUse * TRUCK_LOAD);
           tasks.push({
             phase: '阶段2:超限归集',
@@ -588,9 +615,10 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
             dst: hubGold,
             carry: { gold: actualGold },
             trucks: trUse,
-            dist: dist(city, hubGold),
+            dist: plan.d,
           });
           city.res.gold -= actualGold;
+          spendFuel(city, plan.d, trUse);
           city.availTrucks -= trUse;
         }
       }
