@@ -30,6 +30,9 @@
  *
  * 关键约束：每城同时在外部队数 ≤ 该城司令部等级（出征位，实测标定）。
  * 每笔发车占 1 位，与车队规模无关，故按「同路合并 + 多资源混装」凑大批量发送。
+ *
+ * 中心仓推导结果会随拓扑缓存一并落盘，
+ * 供其他脚本读取展示，保证跨脚本看到的仓选口径一致。
  */
 
 import fs from 'fs';
@@ -474,13 +477,7 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     console.log('【拓扑就绪】命中空间指纹缓存，复用已有地缘协作组。');
   } else {
     clusters = computeClusters(cities);
-    const topology = {
-      version: 2,
-      fingerprint: getTopologyFingerprint(cities),
-      clusters,
-    };
-    fs.writeFileSync(ROUTE_CACHE_FILE, JSON.stringify(topology, null, 2) + '\n');
-    console.log(`【拓扑自愈】已重新计算地缘协作组并落盘缓存: ${path.relative(ROOT, ROUTE_CACHE_FILE)}`);
+    console.log('【拓扑自愈】已重新计算地缘协作组。');
   }
 
   // 核心仓：非该资源主产城 + 到「净产货城」加权距离最小（权重 = 稳态富余速率 P−D）
@@ -528,6 +525,22 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     food: resolveHub('food', CLI_OVERRIDES.food),
     gold: resolveHub('gold', CLI_OVERRIDES.gold),
   };
+
+  // 拓扑与中心仓落盘：供其他脚本读取展示（superHubs 存 cityId 便于跨脚本引用）
+  try {
+    const topology = {
+      version: 2,
+      fingerprint: getTopologyFingerprint(cities),
+      clusters,
+      superHubs: Object.fromEntries(
+        Object.entries(superHubs).map(([k, v]) => [k, v ? v.cityId : null])
+      ),
+      computedAt: Date.now(),
+    };
+    fs.writeFileSync(ROUTE_CACHE_FILE, JSON.stringify(topology, null, 2) + '\n');
+  } catch (e) {
+    // 落盘失败不影响主流程
+  }
 
   console.log(`\n全域共 ${cities.length} 座城池，划分 ${clusters.length} 个地缘协作组`);
   console.log(

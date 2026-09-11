@@ -6,6 +6,9 @@
  * 实时扫描全域城池的资源储量、仓储饱和度、民心民怨、驻军编成与军工厂运转状态，
  * 提供宽度感知的终端仪表盘与智能诊断。
  *
+ * 说明: 城池「中心仓」标识来自 w2transport 的推导缓存，
+ *       未运行过 transport 时该列显示「—」，缓存缺失不影响其余功能。
+ *
  * 用法:
  *   node scripts/w2status.js               展示完整总览（宏观看板+资源仓储+军队军工+智能诊断）
  *   node scripts/w2status.js --res         只看各城资源与仓储明细
@@ -17,6 +20,31 @@ import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
 import { renderTable } from '../lib/table.js';
 import { fmtNum, fmtShort, fmtCount, fmtSat, fmtDur } from '../lib/format.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 中心仓缓存：w2transport 每次运行时把推导结果（superHubs: 资源→cityId）写入该文件
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROUTE_CACHE_FILE = path.join(ROOT, '.transport_route.local.json');
+
+function loadHubs() {
+  const byCity = new Map(); // cityId -> [资源中文名]
+  try {
+    if (!fs.existsSync(ROUTE_CACHE_FILE)) return byCity;
+    const cached = JSON.parse(fs.readFileSync(ROUTE_CACHE_FILE, 'utf8'));
+    const hubs = cached.superHubs || {};
+    const CN = { food: '粮', steel: '钢', mineral: '矿', oil: '油', gold: '金' };
+    for (const [res, cityId] of Object.entries(hubs)) {
+      if (!cityId) continue;
+      if (!byCity.has(String(cityId))) byCity.set(String(cityId), []);
+      byCity.get(String(cityId)).push(CN[res] || res);
+    }
+  } catch (e) { /* 缓存缺失/损坏则无标识 */ }
+  return byCity;
+}
+
+const HUBS_BY_CITY = loadHubs();
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -153,6 +181,7 @@ function parseTrainingQueues(raw) {
 
 const RES_COLUMNS = [
   { header: '城池名称', width: 12 },
+  { header: '中心仓', width: 8 },
   { header: '坐标', width: 10 },
   { header: '民心/民怨', width: 11, align: 'right' },
   { header: '粮食 (储/容)', width: 15, align: 'right' },
@@ -307,8 +336,15 @@ const MIL_COLUMNS = [
   // ──────── 板块二：资源与仓储明细 ────────
   if (SHOW_ALL || SHOW_RES) {
     console.log(`\n【各城池资源、民心与仓储饱和度】`);
+    if (HUBS_BY_CITY.size > 0) {
+      console.log(`  （中心仓一览: ${[...HUBS_BY_CITY.entries()].map(([cid, res]) => {
+        const c = allCities.find((x) => x.cityId === cid);
+        return `${c ? c.name : cid}=${res.join('')}`;
+      }).join('  ')}）`);
+    }
     const rows = cityData.map((d) => [
       d.name,
+      HUBS_BY_CITY.has(d.cityId) ? HUBS_BY_CITY.get(d.cityId).join('') : '—',
       `(${d.x},${d.y})`,
       d.status ? `${d.status.morale} / ${d.status.grievance}` : '--',
       fmtSat(d.res.food, d.res.foodCap),
@@ -320,6 +356,7 @@ const MIL_COLUMNS = [
     ]);
     const footer = [
       '全域总计',
+      '',
       '',
       '',
       fmtSat(totalFood, totalFoodCap),
@@ -374,7 +411,8 @@ const MIL_COLUMNS = [
   // ──────── 单城详细透视 ────────
   if (ONLY_CITY) {
     const d = cityData[0];
-    console.log(`\n【单城详细透视】 ${d.name}  坐标(${d.x},${d.y})`);
+    const hubTag = HUBS_BY_CITY.has(d.cityId) ? `  【中心仓: ${HUBS_BY_CITY.get(d.cityId).join('、')}】` : '';
+    console.log(`\n【单城详细透视】 ${d.name}  坐标(${d.x},${d.y})${hubTag}`);
     console.log('─'.repeat(60));
     if (d.status) {
       const trend = d.status.moraleTrend > 0 ? `↑${d.status.moraleTrend}` : (d.status.moraleTrend < 0 ? `↓${Math.abs(d.status.moraleTrend)}` : '持平');
@@ -395,23 +433,34 @@ const MIL_COLUMNS = [
   if (SHOW_ALL) {
     console.log(`\n【智能诊断与行动建议】`);
 
+    // 中心仓对归属资源的超容囤积属设计预期（阶段2 持续堆积），不计入爆仓预警
     const cappedList = [];
+    const hubCappedList = [];
     for (const d of cityData) {
+      const hubRes = HUBS_BY_CITY.get(d.cityId) || [];
       const caps = [];
-      if (d.res.foodCap > 0 && d.res.food >= d.res.foodCap * 0.98) caps.push('粮');
-      if (d.res.steelCap > 0 && d.res.steel >= d.res.steelCap * 0.98) caps.push('钢');
-      if (d.res.mineralCap > 0 && d.res.mineral >= d.res.mineralCap * 0.98) caps.push('矿');
-      if (d.res.oilCap > 0 && d.res.oil >= d.res.oilCap * 0.98) caps.push('油');
-      if (d.status && d.status.goldCap > 0 && d.status.gold >= d.status.goldCap * 0.98) caps.push('金');
+      const hubCaps = [];
+      const check = (name, val, cap) => {
+        if (cap > 0 && val >= cap * 0.98) (hubRes.includes(name) ? hubCaps : caps).push(name);
+      };
+      check('粮', d.res.food, d.res.foodCap);
+      check('钢', d.res.steel, d.res.steelCap);
+      check('矿', d.res.mineral, d.res.mineralCap);
+      check('油', d.res.oil, d.res.oilCap);
+      if (d.status) check('金', d.status.gold, d.status.goldCap);
       if (caps.length > 0) cappedList.push(`${d.name}[${caps.join('/')}]`);
+      if (hubCaps.length > 0) hubCappedList.push(`${d.name}[${hubCaps.join('/')}]`);
     }
 
     if (cappedList.length > 0) {
       console.log(`  ⚠ 仓储爆仓停产预警 (${cappedList.length} 座城): 自然产出停止中`);
       console.log(`    城池: ${cappedList.slice(0, 8).join(', ')}${cappedList.length > 8 ? ` 等 ${cappedList.length} 城` : ''}`);
       console.log(`    → 建议执行: npm run transport（执行全域资源超上限归集，释放自然产能）`);
-    } else {
+    } else if (hubCappedList.length === 0) {
       console.log(`  ✓ 仓储状态健康: 未发现满仓停产城池，各城均处于自然增长中。`);
+    }
+    if (hubCappedList.length > 0) {
+      console.log(`  ℹ 中心仓超容囤积 (${hubCappedList.length} 座城，设计预期): ${hubCappedList.join(', ')}`);
     }
 
     const idlePlants = cityData.filter((d) => d.plants.length > 0 && d.activeQueues.length === 0);
