@@ -42,7 +42,11 @@ node scripts/w2train.js --dry           # 模拟计算，不下单
 
 npm run transport                       # 全域资源智能调度与超上限归集（等价 node scripts/w2transport.js）
 node scripts/w2transport.js --dry       # 模拟规划调度，不发车
-node scripts/w2transport.js --clean-route   # 忽略拓扑缓存，强制重新推导核心仓与路线
+node scripts/w2transport.js --profile   # 只打印全域产需账本（产量/需求/缺口/富余/出征位），不下单
+node scripts/w2transport.js --hours 24  # 训练底仓线小时数（默认 24）
+node scripts/w2transport.js --fuel-reserve 6  # 发车油料保留线小时数（默认 6）
+node scripts/w2transport.js --min-fill 12000  # 阶段1 最小发车量（低于此值攒下次再发）
+node scripts/w2transport.js --clean-route     # 忽略拓扑缓存，强制重新推导协作组
 
 npm run status                          # 全域资产与战备总览（等价 node scripts/w2status.js）
 node scripts/w2status.js --res          # 只看资源仓储明细
@@ -81,6 +85,7 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 
 - ESM：`package.json` 已设 `"type": "module"`，统一 `import`/`export` 写法；无 `__dirname`/`require`，模块目录定位用 `path.dirname(fileURLToPath(import.meta.url))`。
 - 终端输出：表格一律用 `lib/table.js` 的 `renderTable`（含中文字段时禁用 `padEnd`/`padStart`），数字格式化一律用 `lib/format.js`（中文单位千/万/亿，禁 K/M 缩写）。
+- **匿名化（重要）**：入库内容（protocol/ 文档、代码注释、提交信息）只写知识不写身份——不记实测日期（日期可关联 captures/ 目录与操作时间窗）、不写真实城市名/坐标/城池 ID/资产数值/玩家标识（PVP 游戏里城名+坐标可直接搜索定位账号）。实测证据保留数字特征、身份信息去除（如「HQ9 城在外 3 笔后第 7 笔被拒」），示例统一用中性占位（城池 A、`<cityId>`、相对距离）。**边界**：gitignore 的本地文件不受此约束，可保留真实数据——真实数据留在本地不入库即可。
 - 二进制一律大端 `readUInt32BE`（`PcapParser` 的 pcap 头按 magic 判断字节序，其余都是大端）。
 - 命令号/任务 ID 在 JS 里当字符串比较（字典 key 是字符串），注意别直接用整数匹配。
 - 提交信息用 Conventional Commits（英文，如 `feat:` `refactor(core):`）。
