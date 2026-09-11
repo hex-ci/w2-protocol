@@ -142,6 +142,9 @@ function parsePlantInfo(raw) {
  * 2003 当前城资源。服务器实现中储量字段为 u32：
  *   food@4, steel@32, mineral@52, oil@72（各资源块 24B，amount 在块内 +0，容量 +4）
  * 偏移经切城 diff 实测验证，勿按客户端 readLong 定义照搬。
+ *
+ * 注意：2026（服务器实测 100B）与 2003 的储量字段实测一致，
+ * 且 2026 +96 有空闲人口的权威读数（有符号），人口约束从 2026 取。
  */
 function parseResources(raw) {
   const u32 = (o) => raw.readUInt32BE(o);
@@ -151,6 +154,11 @@ function parseResources(raw) {
     mineral: u32(52),
     oil: u32(72),
   };
+}
+
+/** 2026 生产信息（100B）：+96 空闲人口（有符号，部队超编时为负） */
+function parse2026Idle(raw) {
+  return raw.readInt32BE(96);
 }
 
 const fmtDur = (ms) => fmtDurMs(ms, true);
@@ -197,8 +205,9 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
     ],
   })).active_city_id.toString();
 
-  // 3007 兵种原型表分两段返回，取两段中的兵种名用于报告
+  // 3007 兵种原型表分两段返回，取两段中的兵种名与人口占位（后者用于人口约束）
   let armyName = `兵种${ARMY_ID}`;
+  let armyPopulation = 0; // 每单位训练占用人口（3007 population 字段）；0 = 未知
   const protoRaw = await mustRaw(3007, Buffer.alloc(0));
   {
     let off = 0;
@@ -210,9 +219,11 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
         u32(); const id = u32(); u32();
         const name = str();
         str();
-        off += 4 * 14;
+        // 14 个属性 u32：hp、四种攻、防御、移速、攻速、射程、载重、人口、粮耗、油耗、积分
+        const stats = Array.from({ length: 14 }, () => u32());
         if (id === ARMY_ID) {
           armyName = name;
+          armyPopulation = stats[10];
           break;
         }
       }
@@ -240,12 +251,14 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
       continue;
     }
 
-    // 当前城资源
+    // 当前城资源（2003）与空闲人口（2026，人口约束的权威读数）
     const res = parseResources((await c.call(2003, Buffer.alloc(0))).raw);
+    const popIdle = parse2026Idle((await c.call(2026, Buffer.alloc(0))).raw);
     const resBefore = { ...res };
 
     console.log(`━━ ${city.name} (${city.x},${city.y}) 军工厂×${plants.length}`);
     console.log(`   资源: 粮 ${fmt(res.food)} | 钢 ${fmt(res.steel)} | 矿 ${fmt(res.mineral)} | 油 ${fmt(res.oil)}`);
+    console.log(`   空闲人口: ${fmt(popIdle)}${armyPopulation > 0 ? `（每单位训练占 ${armyPopulation}，人口最多支持 ${fmt(Math.max(0, Math.floor(popIdle / armyPopulation)))} 架）` : ''}`);
 
     let cityTrain = 0;
     let cityFinish = 0;
@@ -267,7 +280,8 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
     }
 
     // 平分策略：总可造数按厂均分，资源是一次性总账（同城同兵种单价一致）
-    // 总量 = min(各资源/单价)，每厂 base = floor(总量/N)，前 remainder 个厂各 +1
+    // 总量 = min(各资源/单价, 空闲人口/每架人口)，每厂 base = floor(总量/N)，前 remainder 个厂各 +1
+    // 人口约束：3001 下单即时占用空闲人口（每架 armyPopulation），超限报「空闲人口不足」
     const s0 = specs[0].spec;
     if (s0.nuclear > 0) {
       plantReports.push('   ○ 该兵种需要核资源；当前脚本未验证核资源余额字段，为避免超额下单而跳过');
@@ -281,25 +295,39 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
       s0.oil ? res.oil / s0.oil : Infinity,
       s0.steel ? res.steel / s0.steel : Infinity
     ));
-    const targetTotal = Math.min(totalAffordable, MAX_PER_PLANT * specs.length);
+    const totalByPop = armyPopulation > 0 ? Math.max(0, Math.floor(popIdle / armyPopulation)) : Infinity;
+    const targetTotal = Math.min(totalAffordable, totalByPop, MAX_PER_PLANT * specs.length);
     const perPlant = Math.floor(targetTotal / specs.length);
     const remainder = targetTotal % specs.length;
 
     if (targetTotal === 0) {
-      plantReports.push(`   ○ 资源不足 1 架（需 粮${s0.food} 矿${s0.mineral} 油${s0.oil} 钢${s0.steel}/架）`);
+      const why = totalByPop === 0
+        ? `空闲人口不足（${fmt(popIdle)} < 每架 ${armyPopulation}）`
+        : `资源不足 1 架（需 粮${s0.food} 矿${s0.mineral} 油${s0.oil} 钢${s0.steel}/架）`;
+      plantReports.push(`   ○ ${why}`);
       plantReports.forEach((s) => console.log(s));
       console.log(`   余量: 粮 ${fmt(res.food)} | 钢 ${fmt(res.steel)} | 矿 ${fmt(res.mineral)} | 油 ${fmt(res.oil)}`);
       console.log('');
       continue;
     }
 
+    // 人口预算：实际下单时逐笔扣减；服务器报「空闲人口不足」时归零并跳过该城剩余订单
+    let popRemain = totalByPop === Infinity ? Infinity : targetTotal;
+
     // 第二遍：逐厂下单
     for (let i = 0; i < specs.length; i++) {
       const { plant, spec } = specs[i];
-      const amount = perPlant + (i < remainder ? 1 : 0);
+      let amount = perPlant + (i < remainder ? 1 : 0);
       if (amount === 0) {
         plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 平分后不足 1 架`);
         continue;
+      }
+      if (popRemain !== Infinity) {
+        if (popRemain <= 0) {
+          plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 跳过（人口预算已用尽）`);
+          continue;
+        }
+        amount = Math.min(amount, popRemain);
       }
 
       const finishMs = spec.time * amount;
@@ -311,6 +339,7 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
         res.steel -= spec.steel * amount;
         res.mineral -= spec.mineral * amount;
         res.oil -= spec.oil * amount;
+        if (popRemain !== Infinity) popRemain -= amount;
         cityTrain += amount;
         cityFinish = Math.max(cityFinish, finishMs);
       } else {
@@ -322,10 +351,13 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
           res.steel -= spec.steel * amount;
           res.mineral -= spec.mineral * amount;
           res.oil -= spec.oil * amount;
+          if (popRemain !== Infinity) popRemain -= amount;
           cityTrain += amount;
           cityFinish = Math.max(cityFinish, finishMs);
         } else {
-          plantReports.push(`   ✗ 厂#${plant.bid.slice(-3)}(L${plant.level}): 下单失败${t.message ? '（' + t.message + '）' : ''}`);
+          const popBlocked = /人口/.test(t.message || '');
+          if (popBlocked && popRemain !== Infinity) popRemain = 0; // 服务器裁决为准，跳过该城剩余订单
+          plantReports.push(`   ✗ 厂#${plant.bid.slice(-3)}(L${plant.level}): 下单失败${t.message ? '（' + t.message + '）' : ''}${popBlocked ? '（该城剩余订单已跳过）' : ''}`);
         }
       }
     }
