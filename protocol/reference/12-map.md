@@ -959,7 +959,9 @@
 > 实测修正（SDK 真实会话验证，机制与油耗模型详见 [topics/transport.md](../topics/transport.md)）：
 > mode=0（无 FIND_PATH）请求 93B 成功；`assembly_id`/`alliance_capital_fort` 客户端默认 -1；
 > 末位 `t.key` 为 26022 推送下发的 u64 调度 key（随会话刷新，发帧前取最新值）。
-> TRANSPORT 只能选卡车（armyId=3），commander_id 可填 -1（运输/侦察/派遣不需要名将）。
+> TRANSPORT 只能选卡车（armyId=3），commander_id 可填 -1（运输/侦察不带名将）；
+> **DISPATCH（expedition_type=4）的 commander_id 填军官 ID 即可把该军官派遣到目标城**
+> ——实测可行的军官跨城迁移途径（详见 [10-officer.md](10-officer.md) cmd=11027 条目）。
 > 响应 truce_tag=0 时仅 1 字节；油耗与货物量无关。
 > **实测补充**：`carry_food/steel/oil/mineral/gold` 可同时非零——单笔混装多种资源实测通过（钢+矿同帧成功）；
 > 批量调度应按「同路合并、多资源混装」发送，因为每笔发车占 1 个出征位（上限=该城司令部等级，与车队规模无关）。
