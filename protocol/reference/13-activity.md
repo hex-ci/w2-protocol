@@ -10,20 +10,24 @@
 
 > 含列表：先读计数字段，再按下列顺序循环读取每个条目。
 
+> 实测修正（真机抓包与 SDK 会话整段逐字节消费验证）：本服下发条目**不含** `start_time`/`end_time`——客户端基线中这两个字段为版本条件字段（仅 clientVer >= 3040100 时读取），照表第 4 项直接解析会从第 2 条起全面错位。
+> 实测字段序：`string activity_name` + `u32 activity_id` + `string flag` + `u8 time_limited` + [`=1` 时 `u64 remain_time`] + `u32 activity_type` + [`=2` 时 `u8 activity_sub_type`] + `u32 activity_group_id` + `u32 red_point_type` + [`=2` 时 `u64 red_point_unimark`] + `u32 reg_days_limited`（22 条 1256B 逐字节消费 ✓）。
+> `activity_sub_type` 按有符号字节解释（225 即 -31），客户端以其决定详情接口：-31/225=地标(22017)、-30/226=排行(22016)、-29/227=兑换(22014)、-25/231=充值(22007)。
+
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
 | 1 | string | `activity_name` | 名称 |
 | 2 | u32 | `activity_id` | — |
 | 3 | string | `flag` | — |
-| 4 | u64 | `start_time` | 开始时间戳 |
-| 5 | u64 | `end_time` | 结束时间戳 |
-| 6 | u8 | `time_limited` | 时间戳（毫秒） |
-| 7 | u64 | `remain_time` | 剩余毫秒数 |
+| 4 | u64 | `start_time` | 开始时间戳（仅 clientVer >= 3040100 时下发） |
+| 5 | u64 | `end_time` | 结束时间戳（仅 clientVer >= 3040100 时下发） |
+| 6 | u8 | `time_limited` | 布尔标记（0/1） |
+| 7 | u64 | `remain_time` | 剩余毫秒数（仅 `time_limited=1` 时存在） |
 | 8 | u32 | `activity_type` | 类型枚举 |
-| 9 | u8 | `activity_sub_type` | 类型枚举 |
+| 9 | u8 | `activity_sub_type` | 类型枚举（仅 `activity_type=2` 时存在，按有符号字节读） |
 | 10 | u32 | `activity_group_id` | — |
 | 11 | u32 | `red_point_type` | 类型枚举 |
-| 12 | u64 | `red_point_unimark` | — |
+| 12 | u64 | `red_point_unimark` | —（仅 `red_point_type=2` 时存在） |
 | 13 | u32 | `reg_days_limited` | — |
 
 ---
@@ -148,110 +152,11 @@
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
-
-| 顺序 | 类型 | 字段 | 说明 |
-|---|---|---|---|
-| 1 | u32 | `exchange_id` | — |
-| 2 | u32 | `item_id` | 道具 ID |
-| 3 | string | `name` | 名称 |
-| 4 | string | `description` | 描述文案 |
-| 5 | u32 | `icon` | 图标编号 |
-| 6 | u32 | `amount` | 数量 |
-| 7 | u32 | `cur_amount` | 当前数量 |
-| 8 | u32 | `item_id` | 道具 ID |
-| 9 | string | `name` | 名称 |
-| 10 | string | `description` | 描述文案 |
-| 11 | u32 | `icon` | 图标编号 |
-| 12 | u32 | `amount` | 数量 |
-| 13 | u32 | `max_exchange_times` | 上限 |
-| 14 | u32 | `exchanged_times` | — |
-| 15 | u32 | `activity_id` | — |
-| 16 | u8 | `ranking_to` | 名次 |
-| 17 | string | `name` | 名称 |
-| 18 | string | `description` | 描述文案 |
-| 19 | u32 | `icon` | 图标编号 |
-| 20 | u32 | `amount` | 数量 |
-| 21 | u64 | `player_id` | 玩家 ID |
-| 22 | string | `nick_name` | 名称 |
-| 23 | u32 | `avatar` | — |
-| 24 | string | `alliance_name` | 军团名称 |
-| 25 | u8 | `badge_type` | 类型枚举 |
-| 26 | u32 | `badge` | — |
-| 27 | u32 | `rank` | 军衔等级 |
-| 28 | u64 | `ranking_score` | 名次 |
-| 29 | u32 | `activity_id` | — |
-| 30 | u32 | `section_id` | — |
-| 31 | string | `section_name` | 名称 |
-| 32 | string | `rc_name` | 名称 |
-| 33 | string | `extra_description` | 描述文案 |
-| 34 | u32 | `rc_amount` | 数量 |
-| 35 | u64 | `progress_value` | — |
-| 36 | u64 | `progress_target` | — |
-| 37 | u8 | `collect_status` | 结果状态 |
-| 38 | u32 | `activity_id` | — |
-| 39 | u8 | `code_used` | — |
-| 40 | string | `name` | 名称 |
-| 41 | string | `description` | 描述文案 |
-| 42 | u32 | `icon` | 图标编号 |
-| 43 | u32 | `amount` | 数量 |
-| 44 | string | `code` | — |
-| 45 | string | `code_requirement` | — |
-| 46 | u32 | `invited_count` | 数量/计数 |
-| 47 | u32 | `max_invited_count` | 数量/计数 |
-| 48 | u32 | `section_id` | — |
-| 49 | u8 | `collect_status` | 结果状态 |
-| 50 | string | `section_name` | 名称 |
-| 51 | string | `rc_name` | 名称 |
-| 52 | string | `extra_description` | 描述文案 |
-| 53 | u32 | `rc_amount` | 数量 |
-| 54 | u64 | `progress_value` | — |
-| 55 | u64 | `progress_target` | — |
-| 56 | u8 | `code_used` | — |
-| 57 | string | `code` | — |
-| 58 | string | `code_requirement` | — |
-| 59 | u32 | `invited_count` | 数量/计数 |
-| 60 | u32 | `max_invited_count` | 数量/计数 |
-| 61 | u32 | `section_id` | — |
-| 62 | u8 | `collect_status` | 结果状态 |
-| 63 | string | `section_name` | 名称 |
-| 64 | u64 | `progress_value` | — |
-| 65 | u64 | `progress_target` | — |
-| 66 | string | `rc_name` | 名称 |
-| 67 | string | `extra_description` | 描述文案 |
-| 68 | u32 | `rc_amount` | 数量 |
-| 69 | u32 | `section_id` | — |
-| 70 | string | `section_name` | 名称 |
-| 71 | string | `rc_name` | 名称 |
-| 72 | string | `extra_description` | 描述文案 |
-| 73 | u32 | `rc_amount` | 数量 |
-| 74 | u64 | `progress_value` | — |
-| 75 | u64 | `progress_target` | — |
-| 76 | u32 | `activity_id` | — |
-| 77 | u8 | `ranking_to` | 名次 |
-| 78 | string | `name` | 名称 |
-| 79 | string | `description` | 描述文案 |
-| 80 | u32 | `icon` | 图标编号 |
-| 81 | u32 | `amount` | 数量 |
-| 82 | u32 | `alliance_id` | 军团 ID |
-| 83 | string | `alliance_name` | 军团名称 |
-| 84 | u8 | `badge_type` | 类型枚举 |
-| 85 | u32 | `badge` | — |
-| 86 | u64 | `ranking_score` | 名次 |
-| 87 | u32 | `activity_id` | — |
-| 88 | string | `activity_name` | 名称 |
-| 89 | u32 | `activity_id` | — |
-| 90 | string | `flag` | — |
-| 91 | u64 | `start_time` | 开始时间戳 |
-| 92 | u64 | `end_time` | 结束时间戳 |
-| 93 | u8 | `time_limited` | 时间戳（毫秒） |
-| 94 | u64 | `remain_time` | 剩余毫秒数 |
-| 95 | u32 | `activity_type` | 类型枚举 |
-| 96 | u8 | `activity_sub_type` | 类型枚举 |
-| 97 | u32 | `activity_group_id` | — |
-| 98 | u32 | `red_point_type` | 类型枚举 |
-| 99 | u64 | `red_point_unimark` | — |
-| 100 | u32 | `reg_days_limited` | — |
+> 实测修正（抓包逐字节消费验证，嵌套结构）：
+> `string rich_content` + `u8 count` + count × 兑换条目 + `u32 activity_id`（尾部回显）。
+> 兑换条目 = `u32 exchange_id` + `u8 consume_count` + consume_count × 消耗项 + 产出项 + `u32 max_exchange_times` + `u32 exchanged_times`；
+> 消耗项 = `u32 item_id` + `string name` + `string description` + `u32 icon` + `u32 amount` + `u8 kind` + [`kind` 为 7/9 时 `u32 cur_amount`]（实测 kind=5 的实物类无此字段，客户端按背包自行判定数量）；
+> 产出项 = `u32 item_id` + `string name` + `string description` + `u32 icon` + `u32 amount`。
 
 ---
 
@@ -278,95 +183,10 @@
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
-
-| 顺序 | 类型 | 字段 | 说明 |
-|---|---|---|---|
-| 1 | u8 | `ranking_to` | 名次 |
-| 2 | string | `name` | 名称 |
-| 3 | string | `description` | 描述文案 |
-| 4 | u32 | `icon` | 图标编号 |
-| 5 | u32 | `amount` | 数量 |
-| 6 | u64 | `player_id` | 玩家 ID |
-| 7 | string | `nick_name` | 名称 |
-| 8 | u32 | `avatar` | — |
-| 9 | string | `alliance_name` | 军团名称 |
-| 10 | u8 | `badge_type` | 类型枚举 |
-| 11 | u32 | `badge` | — |
-| 12 | u32 | `rank` | 军衔等级 |
-| 13 | u64 | `ranking_score` | 名次 |
-| 14 | u32 | `activity_id` | — |
-| 15 | u32 | `section_id` | — |
-| 16 | string | `section_name` | 名称 |
-| 17 | string | `rc_name` | 名称 |
-| 18 | string | `extra_description` | 描述文案 |
-| 19 | u32 | `rc_amount` | 数量 |
-| 20 | u64 | `progress_value` | — |
-| 21 | u64 | `progress_target` | — |
-| 22 | u8 | `collect_status` | 结果状态 |
-| 23 | u32 | `activity_id` | — |
-| 24 | u8 | `code_used` | — |
-| 25 | string | `name` | 名称 |
-| 26 | string | `description` | 描述文案 |
-| 27 | u32 | `icon` | 图标编号 |
-| 28 | u32 | `amount` | 数量 |
-| 29 | string | `code` | — |
-| 30 | string | `code_requirement` | — |
-| 31 | u32 | `invited_count` | 数量/计数 |
-| 32 | u32 | `max_invited_count` | 数量/计数 |
-| 33 | u32 | `section_id` | — |
-| 34 | u8 | `collect_status` | 结果状态 |
-| 35 | string | `section_name` | 名称 |
-| 36 | string | `rc_name` | 名称 |
-| 37 | string | `extra_description` | 描述文案 |
-| 38 | u32 | `rc_amount` | 数量 |
-| 39 | u64 | `progress_value` | — |
-| 40 | u64 | `progress_target` | — |
-| 41 | u8 | `code_used` | — |
-| 42 | string | `code` | — |
-| 43 | string | `code_requirement` | — |
-| 44 | u32 | `invited_count` | 数量/计数 |
-| 45 | u32 | `max_invited_count` | 数量/计数 |
-| 46 | u32 | `section_id` | — |
-| 47 | u8 | `collect_status` | 结果状态 |
-| 48 | string | `section_name` | 名称 |
-| 49 | u64 | `progress_value` | — |
-| 50 | u64 | `progress_target` | — |
-| 51 | string | `rc_name` | 名称 |
-| 52 | string | `extra_description` | 描述文案 |
-| 53 | u32 | `rc_amount` | 数量 |
-| 54 | u32 | `section_id` | — |
-| 55 | string | `section_name` | 名称 |
-| 56 | string | `rc_name` | 名称 |
-| 57 | string | `extra_description` | 描述文案 |
-| 58 | u32 | `rc_amount` | 数量 |
-| 59 | u64 | `progress_value` | — |
-| 60 | u64 | `progress_target` | — |
-| 61 | u32 | `activity_id` | — |
-| 62 | u8 | `ranking_to` | 名次 |
-| 63 | string | `name` | 名称 |
-| 64 | string | `description` | 描述文案 |
-| 65 | u32 | `icon` | 图标编号 |
-| 66 | u32 | `amount` | 数量 |
-| 67 | u32 | `alliance_id` | 军团 ID |
-| 68 | string | `alliance_name` | 军团名称 |
-| 69 | u8 | `badge_type` | 类型枚举 |
-| 70 | u32 | `badge` | — |
-| 71 | u64 | `ranking_score` | 名次 |
-| 72 | u32 | `activity_id` | — |
-| 73 | string | `activity_name` | 名称 |
-| 74 | u32 | `activity_id` | — |
-| 75 | string | `flag` | — |
-| 76 | u64 | `start_time` | 开始时间戳 |
-| 77 | u64 | `end_time` | 结束时间戳 |
-| 78 | u8 | `time_limited` | 时间戳（毫秒） |
-| 79 | u64 | `remain_time` | 剩余毫秒数 |
-| 80 | u32 | `activity_type` | 类型枚举 |
-| 81 | u8 | `activity_sub_type` | 类型枚举 |
-| 82 | u32 | `activity_group_id` | — |
-| 83 | u32 | `red_point_type` | 类型枚举 |
-| 84 | u64 | `red_point_unimark` | — |
-| 85 | u32 | `reg_days_limited` | — |
+> 实测修正（抓包逐字节消费验证，嵌套结构）：
+> `string rich_content` + `u8 set_count` + set_count × 奖励档位 + [`set_count > 0` 时 `u16 player_count` + player_count × 玩家条目 + `u32 activity_id`]。
+> 奖励档位 = `u8 ranking_to` + `u8 item_count` + item_count × {`string name` + `string description` + `u32 icon` + `u32 amount`}（`ranking_from` 不上线，取上一档 `ranking_to` + 1，首档从 1 起）；
+> 玩家条目 = `u64 player_id` + `string nick_name` + `u32 avatar` + `string alliance_name` + `u8 badge_type` + `u32 badge` + `u32 rank` + `u64 ranking_score`（名次按列表顺序 1..N 递推）。
 
 ---
 
@@ -380,81 +200,12 @@
 
 **响应**（status 为 **1** 时成功；失败时仅 1 字节状态 + 错误文案字符串）:
 
-> 含列表：先读计数字段，再按下列顺序循环读取每个条目。
-
-| 顺序 | 类型 | 字段 | 说明 |
-|---|---|---|---|
-| 1 | u32 | `section_id` | — |
-| 2 | string | `section_name` | 名称 |
-| 3 | string | `rc_name` | 名称 |
-| 4 | string | `extra_description` | 描述文案 |
-| 5 | u32 | `rc_amount` | 数量 |
-| 6 | u64 | `progress_value` | — |
-| 7 | u64 | `progress_target` | — |
-| 8 | u8 | `collect_status` | 结果状态 |
-| 9 | u32 | `activity_id` | — |
-| 10 | u8 | `code_used` | — |
-| 11 | string | `name` | 名称 |
-| 12 | string | `description` | 描述文案 |
-| 13 | u32 | `icon` | 图标编号 |
-| 14 | u32 | `amount` | 数量 |
-| 15 | string | `code` | — |
-| 16 | string | `code_requirement` | — |
-| 17 | u32 | `invited_count` | 数量/计数 |
-| 18 | u32 | `max_invited_count` | 数量/计数 |
-| 19 | u32 | `section_id` | — |
-| 20 | u8 | `collect_status` | 结果状态 |
-| 21 | string | `section_name` | 名称 |
-| 22 | string | `rc_name` | 名称 |
-| 23 | string | `extra_description` | 描述文案 |
-| 24 | u32 | `rc_amount` | 数量 |
-| 25 | u64 | `progress_value` | — |
-| 26 | u64 | `progress_target` | — |
-| 27 | u8 | `code_used` | — |
-| 28 | string | `code` | — |
-| 29 | string | `code_requirement` | — |
-| 30 | u32 | `invited_count` | 数量/计数 |
-| 31 | u32 | `max_invited_count` | 数量/计数 |
-| 32 | u32 | `section_id` | — |
-| 33 | u8 | `collect_status` | 结果状态 |
-| 34 | string | `section_name` | 名称 |
-| 35 | u64 | `progress_value` | — |
-| 36 | u64 | `progress_target` | — |
-| 37 | string | `rc_name` | 名称 |
-| 38 | string | `extra_description` | 描述文案 |
-| 39 | u32 | `rc_amount` | 数量 |
-| 40 | u32 | `section_id` | — |
-| 41 | string | `section_name` | 名称 |
-| 42 | string | `rc_name` | 名称 |
-| 43 | string | `extra_description` | 描述文案 |
-| 44 | u32 | `rc_amount` | 数量 |
-| 45 | u64 | `progress_value` | — |
-| 46 | u64 | `progress_target` | — |
-| 47 | u32 | `activity_id` | — |
-| 48 | u8 | `ranking_to` | 名次 |
-| 49 | string | `name` | 名称 |
-| 50 | string | `description` | 描述文案 |
-| 51 | u32 | `icon` | 图标编号 |
-| 52 | u32 | `amount` | 数量 |
-| 53 | u32 | `alliance_id` | 军团 ID |
-| 54 | string | `alliance_name` | 军团名称 |
-| 55 | u8 | `badge_type` | 类型枚举 |
-| 56 | u32 | `badge` | — |
-| 57 | u64 | `ranking_score` | 名次 |
-| 58 | u32 | `activity_id` | — |
-| 59 | string | `activity_name` | 名称 |
-| 60 | u32 | `activity_id` | — |
-| 61 | string | `flag` | — |
-| 62 | u64 | `start_time` | 开始时间戳 |
-| 63 | u64 | `end_time` | 结束时间戳 |
-| 64 | u8 | `time_limited` | 时间戳（毫秒） |
-| 65 | u64 | `remain_time` | 剩余毫秒数 |
-| 66 | u32 | `activity_type` | 类型枚举 |
-| 67 | u8 | `activity_sub_type` | 类型枚举 |
-| 68 | u32 | `activity_group_id` | — |
-| 69 | u32 | `red_point_type` | 类型枚举 |
-| 70 | u64 | `red_point_unimark` | — |
-| 71 | u32 | `reg_days_limited` | — |
+> 实测修正（真机抓包与 SDK 会话逐字节消费验证，嵌套结构）：
+> `string rich_content` + `u8 section_count` + section_count × 进度段落 + [`section_count > 0` 时 `u32 activity_id` 尾部回显]。
+> 进度段落 = `u32 section_id` + `string section_name` + `u8 reward_count` + reward_count × 奖励项 + `u64 progress_value` + `u64 progress_target` + `u8 collect_status`；
+> 奖励项 = `string rc_name` + `string extra_description` + `u32 rc_image` + `u32 rc_amount`。
+> 可领取条件（服务器校验）：`progress_value >= progress_target` 且 `collect_status == 0`，领取走 22018。
+> `section_count = 0` 时无 progress 段落，尾部字节不定：实测活动不存在时服务器回显 4B 请求 ID（整段 9B），活动存在时无任何尾部字节；客户端在 count=0 时完全不读尾部，解析侧同样忽略剩余字节即可。
 
 ---
 
@@ -468,6 +219,8 @@
 | 2 | u32 | `section_id` | — |
 
 **响应**: 无业务数据。status 为 **1** 时成功；失败时为状态字节 + 错误文案。
+
+> 实测（SDK 真机会话）：成功时无业务数据（响应体仅 4B 命令字 + 1B 状态）。失败文案三类：条件未达标「先决条件未满足，无法领取该奖励！」、重复领取「请勿重复领取奖励！」、`section_id` 不存在或为 0「非法参数！」——失败均无副作用，可安全按扫描结果批量尝试。
 
 ---
 

@@ -15,6 +15,8 @@
 
 import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
+import { renderTable } from '../lib/table.js';
+import { fmtNum, fmtShort, fmtCount, fmtSat, fmtDur } from '../lib/format.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -37,98 +39,6 @@ const ARMY_NAMES = {
   17: '碉堡', 18: '榴弹炮', 19: '反坦炮', 20: '防空炮', 21: '围墙',
   30: '高炮', 31: '导弹车', 32: '攻击机', 33: '截击机',
 };
-
-// ---------- 宽度感知排版 ----------
-
-function displayWidth(str) {
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.codePointAt(i);
-    if (code > 0xffff) i++;
-    if (
-      (code >= 0x1100 && code <= 0x115f) ||
-      (code >= 0x2e80 && code <= 0xa4cf && code !== 0x303f) ||
-      (code >= 0xac00 && code <= 0xd7a3) ||
-      (code >= 0xf900 && code <= 0xfaff) ||
-      (code >= 0xfe10 && code <= 0xfe19) ||
-      (code >= 0xfe30 && code <= 0xfe6f) ||
-      (code >= 0xff00 && code <= 0xff60) ||
-      (code >= 0xffe0 && code <= 0xffe6) ||
-      (code >= 0x20000 && code <= 0x3fffd)
-    ) {
-      w += 2;
-    } else {
-      w += 1;
-    }
-  }
-  return w;
-}
-
-function padCell(str, width, align = 'left') {
-  const s = String(str);
-  const gap = width - displayWidth(s);
-  if (gap <= 0) return s;
-  return align === 'right' ? ' '.repeat(gap) + s : s + ' '.repeat(gap);
-}
-
-function renderTable(columns, rows, footer = null) {
-  // 列宽取「声明最小宽」与「表头/全部单元格实际宽」的最大值，任何数值都不会顶开表格
-  const allRows = footer ? [...rows, footer] : rows;
-  const widths = columns.map((col, i) => {
-    const cells = [col.header, ...allRows.map((r) => String(r[i] ?? ''))];
-    return Math.max(col.width || 0, ...cells.map(displayWidth));
-  });
-  const line = (cells) => cells.map((cell, i) => padCell(cell, widths[i], columns[i].align || 'left')).join('  ');
-  const header = line(columns.map((c) => c.header));
-  const sep = '─'.repeat(displayWidth(header));
-  const out = [header, sep];
-  for (const row of rows) out.push(line(row));
-  if (footer) {
-    out.push(sep);
-    out.push(line(footer));
-  }
-  out.push(sep);
-  return out.join('\n');
-}
-
-// ---------- 数值格式化 ----------
-
-const fmtNum = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
-const fmtDur = (ms) => {
-  const s = Math.ceil(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}时${m}分` : `${m}分`;
-};
-
-// 紧凑格式：表格专用，宽度有界，中文单位
-function fmtShort(n) {
-  const num = Number(n) || 0;
-  const sign = num < 0 ? '-' : '';
-  const v = Math.abs(num);
-  if (v >= 1e8) {
-    const yi = v / 1e8;
-    return `${sign}${(yi >= 100 ? yi.toFixed(1) : yi.toFixed(2))}亿`;
-  }
-  if (v >= 1e4) {
-    const wan = v / 1e4;
-    return `${sign}${(wan >= 100 ? wan.toFixed(0) : wan.toFixed(1))}万`;
-  }
-  if (v >= 1e3) return `${sign}${(v / 1e3).toFixed(1)}千`;
-  return sign + String(v);
-}
-
-// 计数格式：兵力与人口（万以下保留精确值，便于逐点核对）
-const fmtCount = (n) => (Math.abs(Number(n) || 0) >= 10000 ? fmtShort(n) : fmtNum(n));
-
-// 储/容饱和度：超 / 满 / 百分比
-function fmtSat(amount, cap) {
-  if (!cap || cap <= 0) return `${fmtShort(amount)} / --`;
-  const ratio = amount / cap;
-  if (ratio > 1.005) return `${fmtShort(amount)} / ${fmtShort(cap)} 超`;
-  if (ratio >= 0.98) return `${fmtShort(amount)} / ${fmtShort(cap)} 满`;
-  return `${fmtShort(amount)} / ${fmtShort(cap)} ${Math.round(ratio * 100)}%`;
-}
 
 // ---------- 协议解析 ----------
 
@@ -271,7 +181,7 @@ const MIL_COLUMNS = [
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成登录');
+    console.log('尚未登录：请先运行 npm run login');
     process.exit(1);
   }
 

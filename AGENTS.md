@@ -1,6 +1,6 @@
 # AGENTS.md
 
-某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖仅 `crypto-es`（DES 加密），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下六个业务脚本（嗅探、领奖、邮件、造兵、运输调度、状态总览）与 `tools/w2login.js`（登录）。
+某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖仅 `crypto-es`（DES 加密），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下七个业务脚本（嗅探、领奖、邮件、活动领取、造兵、运输调度、状态总览）与 `tools/w2login.js`（登录）。
 
 > 面向使用者的介绍在 `README.md`；本文件面向开发者与 AI 助手（环境、命令、约定、坑、扩展流程）。
 > 协议事实分层：帧格式、加密和通用约束以 `protocol/NOTES.md` 为准；命令名称/推送/任务 ID 以 `commands.json` 为准；命令字段以 `protocol/reference/` 的客户端基线和实测修正为准。
@@ -29,6 +29,10 @@ node scripts/w2signin.js --dry          # 只查询不领取
 npm run reward                          # 邮件奖励自动领取（等价 node scripts/w2reward.js）
 node scripts/w2reward.js --id <mailId>  # 只处理指定邮件
 node scripts/w2reward.js --dry          # 只扫描展示，不领取
+
+npm run activity                        # 活动奖励自动领取：日常目标 + 月度拿好礼（纯领取，无消耗）
+node scripts/w2activity.js --dry        # 只扫描展示，不领取
+node scripts/w2activity.js --id <id>    # 只处理指定活动（调试用）
 
 npm run train                           # 全域造兵（默认侦察机，资源允许的最大量）
 node scripts/w2train.js --army 10       # 指定兵种（armyId 见 3007 兵种表）
@@ -60,11 +64,13 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 
 ## 目录
 
-- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2train / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
+- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2activity / w2train / w2transport / w2status / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
 - `tools/w2login.js` 登录命令：SSO mlogin（静默续登优先）→ iOS 选服（cmd=2 列表/cmd=1 确认）→ userId + 游戏服地址，全部落盘 `.identity.local.json`。
 - `lib/w2.js` 纯解析库：`PcapParser`、`TcpReassembler`、`W2FrameReassembler`、`decode`（link type→IP→TCP/UDP）、`framesOut`/`framesIn`（WiST/WIST 帧切分）、`decodeBody`（u32 整数与 4 字节长度前缀 UTF-8 字符串混编）、`idNamePairs`、`cjkStrings`。
 - `lib/w2build.js` 帧构造器：`buildFrame(no, sessionId, cmd, params)` + AES/md5 原语 + 参数封装，带自检（`node lib/w2build.js`）。
 - `lib/sdk.js` 接口调用 SDK：`W2Client` 类封装连接/登录/请求-响应配对/推送监听/声明式响应解析，业务脚本直接 `client.call(cmd, params, schema)`，新脚本优先用它而不是裸写 socket。
+- `lib/table.js` 宽度感知表格排版：`displayWidth`（CJK/全角记 2 列）、`padCell`、`computeWidths`、`formatRow`、`renderTable`。**中英混排表格禁用 padEnd/padStart**，统一走这里；需在行间插入其他输出（如逐行执行状态）时用 `computeWidths` + `formatRow` 逐行渲染。
+- `lib/format.js` 数值/时间格式化：`fmtNum`、`fmtShort`（中文千/万/亿）、`fmtCount`、`fmtSat`（储/容 超满百分比）、`fmtDur`（毫秒，可选带秒）、`fmtDateTime`。各脚本不再自建格式化函数。
 - `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.loginParams()`/`config.gameServer()` 读 `.identity.local.json`，`config.tasks` 读 `W2_TASK_IDS` 任务清单。
 - `protocol/NOTES.md` 协议全记录（帧格式、加密算法、命令语义、初始化流程），**协议问题先读它**。
 - `protocol/commands.json` 命令字典（单一数据源）：`names`（全量 cmd→中文名，w2watch/genapi 共用）、`push`（推送类 cmd 编号）、`tasks`（任务/物品 ID）、`_categories`（taskType 分类）。抓包遇到未收录命令会标 `★NEW`，确认后补进 `names`。
@@ -74,6 +80,7 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 ## 约定
 
 - ESM：`package.json` 已设 `"type": "module"`，统一 `import`/`export` 写法；无 `__dirname`/`require`，模块目录定位用 `path.dirname(fileURLToPath(import.meta.url))`。
+- 终端输出：表格一律用 `lib/table.js` 的 `renderTable`（含中文字段时禁用 `padEnd`/`padStart`），数字格式化一律用 `lib/format.js`（中文单位千/万/亿，禁 K/M 缩写）。
 - 二进制一律大端 `readUInt32BE`（`PcapParser` 的 pcap 头按 magic 判断字节序，其余都是大端）。
 - 命令号/任务 ID 在 JS 里当字符串比较（字典 key 是字符串），注意别直接用整数匹配。
 - 提交信息用 Conventional Commits（英文，如 `feat:` `refactor(core):`）。

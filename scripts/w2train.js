@@ -21,6 +21,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
+import { fmtNum as fmt, fmtDur as fmtDurMs } from '../lib/format.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -152,18 +153,13 @@ function parseResources(raw) {
   };
 }
 
-const fmt = (n) => Number(n).toLocaleString('en-US');
-const fmtDur = (ms) => {
-  const s = Math.ceil(ms / 1000);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
-  return h > 0 ? `${h}时${m}分` : (m > 0 ? `${m}分${ss}秒` : `${ss}秒`);
-};
+const fmtDur = (ms) => fmtDurMs(ms, true);
 
 (async function main() {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成登录');
+    console.log('尚未登录：请先运行 npm run login');
     process.exit(1);
   }
 

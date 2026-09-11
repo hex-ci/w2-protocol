@@ -24,6 +24,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
+import { computeWidths, displayWidth, formatRow } from '../lib/table.js';
+import { fmtNum, fmtDur } from '../lib/format.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,7 +70,7 @@ const CLI_OVERRIDES = {
 // 工具函数
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = () => sleep(300 + Math.floor(Math.random() * 400));
-const fmt = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
+const fmt = fmtNum;
 
 function dist(c1, c2) {
   const dx = c1.x - c2.x;
@@ -78,13 +80,6 @@ function dist(c1, c2) {
 
 function calcMarchSec(d) {
   return Math.ceil(MARCH_MIN_TIME + (d * MARCH_ONE_TILE_DISTANCE) / TRUCK_SPEED);
-}
-
-function fmtDur(sec) {
-  const s = Math.ceil(sec);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}时${m}分` : `${m}分`;
 }
 
 // 油耗实测模型（296 格、2~8000 车实测偏差 <2%）：单程总耗油 ≈ 0.01313 × T^0.72 × 车数，对车数线性
@@ -279,7 +274,7 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成登录');
+    console.log('尚未登录：请先运行 npm run login');
     process.exit(1);
   }
 
@@ -635,37 +630,55 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
   }
 
   console.log(`生成 ${tasks.length} 笔调度任务（阶段一造机互补 + 阶段二专库超上限）：\n`);
-  console.log(`  序号  阶段         路线                     距离     单程时间   调运物资             卡车数     预估油耗`);
-  console.log(`  ${'─'.repeat(88)}`);
+
+  // 任务明细表：列宽按实际内容动态计算
+  const TASK_COLUMNS = [
+    { header: '序号', width: 4 },
+    { header: '阶段', width: 12 },
+    { header: '路线', width: 24 },
+    { header: '距离', width: 8, align: 'right' },
+    { header: '单程时间', width: 8, align: 'right' },
+    { header: '调运物资', width: 20 },
+    { header: '卡车数', width: 10, align: 'right' },
+    { header: '预估油耗', width: 10, align: 'right' },
+  ];
 
   let totalResourceMoved = 0;
   let totalOilCost = 0;
   let totalTrucksUsed = 0;
 
-  for (let i = 0; i < tasks.length; i++) {
-    const t = tasks[i];
+  const rows = tasks.map((t, i) => {
     const items = Object.entries(t.carry).map(([k, v]) => {
       const nameMap = { food: '粮', steel: '钢', mineral: '矿', oil: '油', gold: '金' };
       totalResourceMoved += v;
       return `${nameMap[k] || k} ${fmt(v)}`;
     }).join(', ');
-
     const oil = estOil(t.dist, t.trucks);
     totalOilCost += oil;
     totalTrucksUsed += t.trucks;
+    return [
+      `#${i + 1}`,
+      t.phase,
+      `${t.src.name} → ${t.dst.name}`,
+      `${t.dist.toFixed(1)}格`,
+      fmtDur(calcMarchSec(t.dist) * 1000),
+      items,
+      `${fmt(t.trucks)}辆`,
+      `${fmt(oil)}油`,
+    ];
+  });
 
-    const routeStr = `${t.src.name} → ${t.dst.name}`;
-    console.log(
-      `  #${String(i + 1).padEnd(3)} ` +
-      `${t.phase.padEnd(10)} ` +
-      `${routeStr.padEnd(24)} ` +
-      `${t.dist.toFixed(1).padStart(5)}格  ` +
-      `${fmtDur(calcMarchSec(t.dist)).padStart(6)}   ` +
-      `${items.padEnd(20)} ` +
-      `${fmt(t.trucks).padStart(7)}辆   ` +
-      `${fmt(oil).padStart(6)}油`
-    );
+  const widths = computeWidths(TASK_COLUMNS, rows);
+  const headerCells = TASK_COLUMNS.map((col) => col.header);
+  const headerLine = formatRow(headerCells, TASK_COLUMNS, widths);
+  const sep = '─'.repeat(displayWidth(headerLine));
+  console.log(headerLine);
+  console.log(sep);
 
+  for (let i = 0; i < tasks.length; i++) {
+    console.log(formatRow(rows[i], TASK_COLUMNS, widths));
+
+    const t = tasks[i];
     if (!DRY) {
       // 切换到出发城发车
       await jitter();
@@ -687,7 +700,7 @@ function buildTransport19003Payload(trucks, tx, ty, carry, key26022) {
     }
   }
 
-  console.log(`  ${'─'.repeat(88)}`);
+  console.log(sep);
   console.log(`\n—— 调度总计 ——`);
   console.log(`调运总物资: ${fmt(totalResourceMoved)}`);
   console.log(`动用总卡车: ${fmt(totalTrucksUsed)} 辆（占全域 ${((totalTrucksUsed / 2072289) * 100).toFixed(2)}%）`);

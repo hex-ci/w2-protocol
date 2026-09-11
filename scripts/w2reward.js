@@ -16,6 +16,7 @@
 
 import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
+import { fmtDateTime as fmtTime } from '../lib/format.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -81,17 +82,11 @@ function parseDetail(raw) {
   return detail;
 }
 
-function fmtTime(msBigint) {
-  const ms = Number(msBigint || 0);
-  if (!ms) return '';
-  return new Date(ms).toLocaleString('zh-CN', { hour12: false });
-}
-
 (async function main() {
   const lp = config.loginParams();
   const gs = config.gameServer();
   if (!gs || !lp) {
-    console.log('尚未登录：请先完成登录');
+    console.log('尚未登录：请先运行 npm run login');
     process.exit(1);
   }
 
