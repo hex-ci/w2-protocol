@@ -14,6 +14,8 @@
  *   node scripts/w2status.js --res         只看各城资源与仓储明细
  *   node scripts/w2status.js --mil         只看驻军战备与军工厂状态
  *   node scripts/w2status.js --city <id>   单城详细透视（资源、民心、全量驻军与军工队列）
+ *
+ * 扫描受 SDK 频控约束约 50s，期间按阶段 + 按城输出进度；--no-progress 关闭进度输出。
  */
 
 import config from '../lib/config.js';
@@ -21,6 +23,7 @@ import { W2Client, p } from '../lib/sdk.js';
 import { renderTable } from '../lib/table.js';
 import { fmtNum, fmtShort, fmtCount, fmtSat, fmtDur } from '../lib/format.js';
 import { RES_CN } from '../lib/formula.js';
+import { createProgress } from '../lib/progress.js';
 import { readTopologyCache } from '../lib/topology.js';
 import {
   parseCityList, parse2003, parse2027, parse19009, parseBuildings49, parse3005,
@@ -54,6 +57,8 @@ const SHOW_RES = has('res');
 const SHOW_MIL = has('mil');
 const ONLY_CITY = arg('city', '');
 const SHOW_ALL = !SHOW_RES && !SHOW_MIL && !ONLY_CITY;
+// 进度反馈模式：--no-progress / W2_NO_PROGRESS=1 时完全静默（供结构对比与日志采集）
+const NO_PROGRESS = has('no-progress') || process.env.W2_NO_PROGRESS === '1';
 
 // 兵种分类定义、协议解析器见 lib/proto.js（ARMY_NAMES / parseCityList / parse2003 / parse2027 / parse19009 / parseBuildings49 / parse3005）
 
@@ -94,15 +99,20 @@ const MIL_COLUMNS = [
     process.exit(1);
   }
 
+  const prog = createProgress({ mode: NO_PROGRESS ? 'off' : null });
   const c = new W2Client({ host: gs.host, port: gs.port, loginParams: lp });
+
+  prog.stage('连接服务器…');
   try {
     await c.connect();
   } catch (e) {
+    prog.done('连接失败');
     console.log('连接服务器失败:', e.message);
     process.exit(1);
   }
 
   // 1. 玩家基础核心资产 (1005)
+  prog.stage('读取账号信息…');
   const base = await c.call(1005, Buffer.alloc(0), {
     fields: [
       ['game_status', 'u32'],
@@ -113,8 +123,10 @@ const MIL_COLUMNS = [
   const originCityId = base.active_city_id?.toString();
 
   // 2. 城池列表 (2001)
+  prog.stage('拉取城池列表…');
   const r2001 = await c.call(2001, Buffer.alloc(0));
   if (!r2001.ok || !r2001.raw) {
+    prog.done('拉取失败');
     console.log('拉取城池列表失败');
     c.close();
     process.exit(1);
@@ -123,6 +135,7 @@ const MIL_COLUMNS = [
   const targetCities = ONLY_CITY ? allCities.filter((x) => x.cityId === ONLY_CITY) : allCities;
 
   if (targetCities.length === 0) {
+    prog.done('未找到城池');
     console.log(`未找到指定城池 ID: ${ONLY_CITY}`);
     c.close();
     process.exit(1);
@@ -133,6 +146,8 @@ const MIL_COLUMNS = [
   let empirePlantsTotal = 0;
   let empirePlantsActive = 0;
 
+  // 每城 5~6 个请求 × 500ms 频控，是首屏延迟的主要来源：按城推进反馈
+  prog.stage('扫描城池', { total: targetCities.length });
   for (const city of targetCities) {
     await c.call(2002, p.u64(city.cityId));
     const r2003 = await c.call(2003, Buffer.alloc(0));
@@ -156,6 +171,7 @@ const MIL_COLUMNS = [
 
     const sumBy = (ids) => armies.filter((a) => ids.includes(a.id)).reduce((s, a) => s + a.count, 0);
 
+    prog.update(cityData.length + 1);
     cityData.push({
       ...city,
       res,
@@ -174,6 +190,7 @@ const MIL_COLUMNS = [
   // 切回原城池
   if (originCityId) await c.call(2002, p.u64(originCityId));
   c.close();
+  prog.done(SHOW_ALL ? '扫描全域城池' : '扫描完成');
 
   // ---------- 汇总 ----------
   const sum = (fn) => cityData.reduce((s, d) => s + fn(d), 0);

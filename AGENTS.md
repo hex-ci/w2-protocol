@@ -49,7 +49,7 @@ node scripts/w2transport.js --fuel-reserve 6  # 发车油料保留线小时数�
 node scripts/w2transport.js --min-fill 12000  # 阶段1 最小发车量（低于此值攒下次再发）
 node scripts/w2transport.js --clean-route     # 忽略拓扑缓存，强制重新推导协作组
 
-npm run ship                            # 定向运输 TUI（手动单笔调度：选城→装载→实时成本→确认发车；s 键进超容视图直接外运）
+npm run ship                            # 定向运输 TUI（手动单笔调度：选城→装载→实时成本→确认发车）
 node scripts/w2ship.js --dry            # TUI 照常操作但不真正发车
 
 npm run status                          # 全域资产与战备总览（等价 node scripts/w2status.js）
@@ -84,7 +84,7 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 - `lib/expedition.js` 远征公共设施：`DispatchKey`（26022 调度 key 时效管理）、`fetchInFlight`/`countSlotsAt`（19008 在途统计）。
 - `lib/topology.js` 地缘协作组与中心仓缓存：`checkCachedTopology`（空间指纹自愈）、`computeClusters`、`writeTopologyCache`（含 superHubs 落盘，供 status/ship 读取）。
 - `lib/ship-core.js` 定向运输纯计算：`shipPlan`（一笔运输的完整评估与约束校验）、`capFor`/`capDetail`（上限及瓶颈归因）、`cityLimits`（城级发车阻塞）、`clampAmount`/`normalizeLoads`、超容（`excessAt`/`excessList`/`spaceAt`/`receiverRanking`）、预设键（超容/补底仓/全富余/拉满）。可直接单测。
-- `lib/ship-ui.js` 定向运输 TUI 组件（Ink + htm）：表/装载面板/成本面板/顶栏/状态栏，纯展示层，供 `w2ship.js` 与 UI 冒烟测试复用。
+- `lib/ship-ui.js` 定向运输 TUI 组件（Ink + htm）：城池表（资源格统一为「储量/容量」；前导标记各占一位——▸ 光标 / 起 出发城 / 止 目的城 / ★☆ 推荐）、装载面板、成本面板、顶栏、状态栏，纯展示层，供 `w2ship.js` 与 UI 冒烟测试复用。
 - `lib/table.js` 宽度感知表格排版：`displayWidth`（CJK/全角记 2 列）、`padCell`、`computeWidths`、`formatRow`、`renderTable`。**中英混排表格禁用 padEnd/padStart**，统一走这里；需在行间插入其他输出（如逐行执行状态）时用 `computeWidths` + `formatRow` 逐行渲染。
 - `lib/format.js` 数值/时间格式化：`fmtNum`、`fmtShort`（中文千/万/亿）、`fmtCount`、`fmtSat`（储/容 超满百分比）、`fmtDur`（毫秒，可选带秒）、`fmtDateTime`。各脚本不再自建格式化函数。
 - `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.loginParams()`/`config.gameServer()` 读 `.identity.local.json`，`config.tasks` 读 `W2_TASK_IDS` 任务清单。
@@ -121,6 +121,8 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 
 ## 坑
 
+- **长耗时脚本必须给进度反馈，「空白等待」等同于故障**：扫描类脚本受 SDK 500ms 频控约束（16 城 × 5~6 请求 ≈ 50s），首屏前若无任何输出，用户无从判断是在跑还是卡死。一律用 `lib/progress.js`（`createProgress()`）按阶段 + 按单位推进反馈；`lib/scan.js` 的 `scanDomain` 已提供 `onStage`/`onCity` 回调供调用方直接接进度。
+- **进度走 stdout，回归对拍改口径（用户拍板：体验优先，测试辅助）**：进度行与业务结果同走 stdout（用户明确要 stdout 而非 stderr，「比较正规」）；因此**逐字节 diff 不再适用**，对拍改用：① `--no-progress` / `W2_NO_PROGRESS=1` 跑到零输出，得到与改动前等价的干净文本；② 结构指纹比对（剥离数字后只取表格前 N 列 + 表头/分隔线/表宽断言）——「缺口/富余」这类自由文本列会随数据波动改变列宽，逐行全比对必假红。新增输出型功能时同步提供静默开关与结构断言。
 - **帧结构字段认知**：`+9` 是 MD5 校验（前 16 字节二进制）、`+25` 是 sessionId、`+37` 起是 AES-128-ECB 密文，切勿将其误当作固定 Nonce 或帧尾校验。
 - 构造帧三要素缺一会**静默丢弃**（无响应≠服务器没收到）：MD5 输入顺序（no+sid+cmd+密文）、AES key 补零到 16 字符、PKCS7 填充。排查时先本地复算 MD5 再查 AES。
 - 服务器每日约 00:00 重置任务，定时领取建议设在 00:10 后；重复领取会被拒绝但无副作用。

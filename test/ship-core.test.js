@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  totalOf, fuelBudget, shipPlan, maxTrucksFor, capDetail, cityLimits, capFor, clampAmount,
+  totalOf, fuelBudget, shipPlan, maxTrucksFor, capDetail, cityLimits, capFor, clampAmount, wrapIndex,
   presetFill, presetSurplus, presetMax, presetExcess,
   excessAt, excessList, spaceAt, receiverRanking,
 } from '../lib/ship-core.js';
@@ -13,7 +13,8 @@ function city(over = {}) {
     cityId: over.cityId || '1', name: over.name || '城A', x: over.x || 0, y: over.y || 0,
     stock: { food: 100000, steel: 200000, mineral: 300000, oil: 50000, gold: 0, ...over.stock },
     cap: { food: 200000, steel: 400000, mineral: 600000, oil: 100000, gold: 0, ...over.cap },
-    floor: { food: 10000, steel: 20000, mineral: 30000, oil: 5000, gold: 0, ...over.floor },
+    // 真实数据里 floor 只有 4 种资源（黄金无造兵需求，底仓线不存在），桩须一致
+    floor: { food: 10000, steel: 20000, mineral: 30000, oil: 5000, ...over.floor },
     D: { food: 0, steel: 0, mineral: 0, oil: 100, ...over.D },
     availTrucks: over.availTrucks ?? 100,
     physOil: over.physOil ?? 50000,
@@ -220,4 +221,58 @@ test('receiverRanking 按容量余量推荐接收城', () => {
   const ranked = receiverRanking([src, big, small, full], src, 'food');
   assert.deepEqual(ranked.map((x) => x.city.cityId), ['2', '3']);  // 满仓余量 0，排除
   assert.equal(ranked[0].space, 900000);
+});
+
+test('黄金无底仓线：补底仓/全富余对其不生效（防「底仓线缺失被当成 0」）', () => {
+  // 黄金储量充足、容量更大（未超容）
+  const src = city({ stock: { gold: 4000000 }, cap: { gold: 55000000 } });
+  const dst = city({ cityId: '2', x: 100, y: 0 });
+  // 若把缺失的 floor.gold 兜成 0，会把整城黄金判为「富余」一次性运走
+  assert.equal(presetSurplus(src, dst, 'gold', {}, 6), 0, 'y 全富余不应把黄金全运走');
+  assert.equal(presetFill(src, dst, 'gold', {}, 6), 0, 'b 补底仓对黄金无意义');
+  // 超容口径才是黄金的正确外运方式
+  const over = city({ stock: { gold: 60000000 }, cap: { gold: 55000000 }, availTrucks: 100000 });
+  assert.equal(presetExcess(over, dst, 'gold', {}, 6), 5000000, 'e 超容应运出超出容量的部分');
+});
+
+test('excessList 含黄金，且按超出量降序', () => {
+  const c = city({
+    stock: { gold: 60000000, food: 300000 },
+    cap: { gold: 55000000, food: 200000 },
+  });
+  const list = excessList(c);
+  const gold = list.find((x) => x.res === 'gold');
+  assert.ok(gold, 'excessList 应包含黄金');
+  assert.equal(gold.excess, 5000000);
+});
+
+test('cityLimits 的「无资源」判定含黄金', () => {
+  const onlyGold = city({
+    stock: { food: 0, steel: 0, mineral: 0, oil: 0, gold: 5000000 },
+    cap: { gold: 55000000 },
+  });
+  // 只有黄金也应可发车（旧实现只看 RES_KEYS 会误判为无资源）
+  assert.notEqual(cityLimits(onlyGold, null, 6).blocker, 'stock');
+});
+
+test('wrapIndex：列表选择循环（末行向下回首行，首行向上跳末行）', () => {
+  const L = 16;
+  // 中间步进
+  assert.equal(wrapIndex(5, 1, L), 6);
+  assert.equal(wrapIndex(5, -1, L), 4);
+  // 边界环绕
+  assert.equal(wrapIndex(L - 1, 1, L), 0, '末行向下应回到首行');
+  assert.equal(wrapIndex(0, -1, L), L - 1, '首行向上应跳到末行');
+  // 装载清单只有 5 行资源，同样适用
+  assert.equal(wrapIndex(4, 1, 5), 0);
+  assert.equal(wrapIndex(0, -1, 5), 4);
+  // 单元素列表：来回都停在 0
+  assert.equal(wrapIndex(0, 1, 1), 0);
+  assert.equal(wrapIndex(0, -1, 1), 0);
+  // 空列表不得产出 NaN
+  assert.equal(wrapIndex(0, 1, 0), 0);
+  assert.equal(wrapIndex(3, -1, 0), 0);
+  // 跨多步也自洽（翻页类场景）
+  assert.equal(wrapIndex(1, -5, 5), 1);
+  assert.equal(wrapIndex(3, 7, 5), 0);
 });

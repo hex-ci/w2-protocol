@@ -27,6 +27,7 @@
  *   node scripts/w2transport.js --min-stack 120000 阶段2 最小发车量
  *   node scripts/w2transport.js --clean-route      忽略拓扑缓存，强制重算协作组
  *   node scripts/w2transport.js --hub-steel <城>   手工指定某资源中心仓（城名或 cityId）
+ *   node scripts/w2transport.js --no-progress      关闭扫描期进度输出（也可用 W2_NO_PROGRESS=1）
  *
  * 关键约束：每城同时在外部队数 ≤ 该城司令部等级（出征位，实测标定）。
  * 每笔发车占 1 位，与车队规模无关，故按「同路合并 + 多资源混装」凑大批量发送。
@@ -46,6 +47,7 @@ import {
 } from '../lib/formula.js';
 import { scanDomain, citySurplus, cityDeficit, jitter } from '../lib/scan.js';
 import { DispatchKey } from '../lib/expedition.js';
+import { createProgress } from '../lib/progress.js';
 import { checkCachedTopology, computeClusters, writeTopologyCache } from '../lib/topology.js';
 
 const argv = process.argv.slice(2);
@@ -58,6 +60,8 @@ const has = (n) => argv.includes('--' + n);
 const DRY = has('dry');
 const PROFILE = has('profile');
 const CLEAN_ROUTE = has('clean-route');
+// 进度反馈模式：--no-progress / W2_NO_PROGRESS=1 时完全静默（供结构对比与日志采集）
+const NO_PROGRESS = has('no-progress') || process.env.W2_NO_PROGRESS === '1';
 const FLOOR_HOURS = Math.max(1, parseInt(arg('hours', '24'), 10) || 24);
 // 发车油料保留线：城内石油里只留 N 小时的训练用量作底线，其余可用于发车。
 // 不能用 FLOOR_HOURS（24h）——油是双用途资源，训练底仓线过高会锁死全部发车预算。
@@ -96,20 +100,25 @@ const fmt = fmtNum;
     process.exit(1);
   }
 
+  const prog = createProgress({ mode: NO_PROGRESS ? 'off' : null });
   const c = new W2Client({ host: gs.host, port: gs.port, loginParams: lp });
 
   const dispatchKey = new DispatchKey().bind(c);
 
+  prog.stage('连接服务器…');
   try {
     await c.connect();
   } catch (e) {
+    prog.done();
     console.log('连接服务器失败:', e.message);
     process.exit(1);
   }
 
   // 等待 26022 调度 key（会话内约 1 分钟刷新，发帧须用最新值）
+  prog.stage('等待调度 key…');
   await dispatchKey.waitFresh(2500);
   if (!dispatchKey.key) {
+    prog.done();
     console.log('未接收到 26022 调度 key，无法组装远征帧');
     c.close();
     process.exit(1);
@@ -125,8 +134,11 @@ const fmt = fmtNum;
     ({ cities, state, originCityId, bonus19001 } = await scanDomain(c, {
       floorHours: FLOOR_HOURS,
       onCities: (cs) => { cachedTopology = checkCachedTopology(cs, { cleanRoute: CLEAN_ROUTE }); },
+      onCity: (st, i, total) => prog.update(i + 1, total),
+      onStage: (label, meta) => prog.stage(label, meta || {}),
     }));
   } catch (e) {
+    prog.done();
     console.log(e.message);
     c.close();
     process.exit(1);
@@ -138,13 +150,17 @@ const fmt = fmtNum;
 
   // ---------- 拓扑与核心仓推导 ----------
   let clusters;
+  let topoMsg;
   if (cachedTopology) {
     clusters = cachedTopology.clusters;
-    console.log('【拓扑就绪】命中空间指纹缓存，复用已有地缘协作组。');
+    topoMsg = '【拓扑就绪】命中空间指纹缓存，复用已有地缘协作组。';
   } else {
     clusters = computeClusters(cities);
-    console.log('【拓扑自愈】已重新计算地缘协作组。');
+    topoMsg = '【拓扑自愈】已重新计算地缘协作组。';
   }
+
+  // 进度行活跃期间的业务输出统一延迟到 done() 之后打印，避免与进度行串行
+  const deferred = [];
 
   // 核心仓：非该资源主产城 + 到「净产货城」加权距离最小（权重 = 稳态富余速率 P−D）
   // 黄金延续旧逻辑：容量最大且地缘中心（黄金无造兵需求、无主产概念）
@@ -152,7 +168,7 @@ const fmt = fmtNum;
     if (override) {
       const hit = state.find((s) => s.cityId === override || s.name === override);
       if (hit) return hit;
-      console.log(`注意: 未找到指定仓 ${override}（资源 ${resKey}），改用自动推导`);
+      deferred.push(`注意: 未找到指定仓 ${override}（资源 ${resKey}），改用自动推导`);
     }
     if (resKey === 'gold') {
       const maxCap = Math.max(...state.map((s) => s.goldCap || 0));
@@ -195,7 +211,10 @@ const fmt = fmtNum;
   // 拓扑与中心仓落盘：供其他脚本读取展示（superHubs 存 cityId 便于跨脚本引用）
   writeTopologyCache({ cities, clusters, superHubs });
 
-  console.log(`\n全域共 ${cities.length} 座城池，划分 ${clusters.length} 个地缘协作组`);
+  prog.done('扫描全域并推导拓扑');
+  for (const m of deferred) console.log(m);
+  console.log(topoMsg);
+  console.log(`全域共 ${cities.length} 座城池，划分 ${clusters.length} 个地缘协作组`);
   console.log(
     `中心仓: 粮=[${superHubs.food?.name || '-'}] 钢=[${superHubs.steel?.name || '-'}] ` +
     `矿=[${superHubs.mineral?.name || '-'}] 油=[${superHubs.oil?.name || '-'}] 金=[${superHubs.gold?.name || '-'}]`
@@ -250,8 +269,6 @@ const fmt = fmtNum;
     c.close();
     return;
   }
-
-  console.log(`模式: ${DRY ? '【模拟运算 (DRY RUN)】' : '【正式执行下单】'} | 底仓线: ${FLOOR_HOURS}h | 黄金超容阈值: ${Math.round(OVERFLOW_PCT * 100)}%\n`);
 
   // ---------- 调度规划 ----------
   const tasks = [];
@@ -405,6 +422,7 @@ const fmt = fmtNum;
 
   // ---------- 执行与报告 ----------
   if (tasks.length === 0) {
+    console.log(`模式: ${DRY ? '【模拟运算 (DRY RUN)】' : '【正式执行下单】'} | 底仓线: ${FLOOR_HOURS}h`);
     console.log('全域资源状态平衡，暂无需要调度的运输任务。');
     if (originCityId) await c.call(2002, p.u64(originCityId));
     c.close();
@@ -423,7 +441,8 @@ const fmt = fmtNum;
   }
   const slotBusy = state.filter((s) => s.slotsCap !== Infinity && s.slotsUsed >= s.slotsCap);
 
-  console.log(`生成 ${tasks.length} 笔调度任务（阶段1 保底补料 ${phase1} 笔 + 阶段2 仓城堆积 ${tasks.length - phase1} 笔）：\n`);
+  console.log(`模式: ${DRY ? '【模拟运算 (DRY RUN)】' : '【正式执行下单】'} | 底仓线: ${FLOOR_HOURS}h | 黄金超容阈值: ${Math.round(OVERFLOW_PCT * 100)}%`);
+  console.log(`\n生成 ${tasks.length} 笔调度任务（阶段1 保底补料 ${phase1} 笔 + 阶段2 仓城堆积 ${tasks.length - phase1} 笔）：\n`);
 
   const TASK_COLUMNS = [
     { header: '序号', width: 4 },

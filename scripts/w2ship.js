@@ -32,12 +32,12 @@ import { scanDomain } from '../lib/scan.js';
 import { DispatchKey, countSlotsAt } from '../lib/expedition.js';
 import { readTopologyCache } from '../lib/topology.js';
 import {
-  RES_ALL, shipPlan, clampAmount, normalizeLoads,
+  RES_ALL, shipPlan, clampAmount, normalizeLoads, wrapIndex,
   presetFill, presetSurplus, presetMax, presetExcess,
   excessList, spaceAt,
 } from '../lib/ship-core.js';
 import {
-  CITY_COLUMNS, cityCells, RowLine, TableHeader, TableLegend, BlockedLine, OvercapLine, OvercapView, overcapCities,
+  CITY_COLUMNS, cityCells, RowLine, TableHeader, TableLegend, BlockedLine, OvercapLine,
   HeaderBar, LoadPanel, CostPanel, HelpLine,
 } from '../lib/ship-ui.js';
 
@@ -133,7 +133,6 @@ function App() {
   const [resIdx, setResIdx] = useState(0);
   const [editBuf, setEditBuf] = useState('');
   const [result, setResult] = useState(null); // { ok, dry, issues, moved }
-  const [overcapView, setOvercapView] = useState(false); // s 键：超容明细视图（超容外运作业台）
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
 
@@ -148,11 +147,6 @@ function App() {
     return byCity;
   }, [cities]);
   const hubOf = (cityId) => hubMap.get(String(cityId));
-  // 超容视图内的城序：与 OvercapView 共用 lib 的实现（两处排序不一致会导致选中错城）
-  const ocCities = useMemo(
-    () => overcapCities(cities, hubOf).map((x) => x.city),
-    [cities, hubMap],
-  );
   // 顶栏中心仓一览用城名展示（扫描完成后可查）；未扫描时回退显示 cityId
   const hubLine = useMemo(() => {
     const cache = readTopologyCache();
@@ -254,33 +248,11 @@ function App() {
     }
     if (input === 'q' && phase !== 'load') { exit(); return; }
     if (input === 'f' && (phase === 'src' || phase === 'dst')) { rescan(); return; }
-    if (input === 's' && (phase === 'src' || phase === 'dst')) {
-      setOvercapView((v) => !v);
-      setCursor(0);
-      return;
-    }
-
-    // 超容视图（src/dst 相位均可进入）：↑↓ 选城、Enter 选为出发城、s 返回主表
-    if (overcapView && (phase === 'src' || phase === 'dst')) {
-      if (key.upArrow) { setCursor((c) => Math.max(0, c - 1)); return; }
-      if (key.downArrow) { setCursor((c) => Math.min(ocCities.length - 1, c + 1)); return; }
-      if (key.escape || input === 's') { setOvercapView(false); setCursor(0); return; }
-      if (key.return && ocCities[cursor]) {
-        setSrc(ocCities[cursor]);
-        setDst(null);
-        setLoads({});
-        setResIdx(0);
-        setResult(null);
-        setOvercapView(false);
-        setCursor(0);
-        setPhase('dst');
-      }
-      return;
-    }
 
     if (phase === 'src') {
-      if (key.upArrow) setCursor((c) => Math.max(0, c - 1));
-      if (key.downArrow) setCursor((c) => Math.min(cities.length - 1, c + 1));
+      // 上下循环：末行继续向下回到首行；翻页不循环（跳首/末更符合预期）
+      if (key.upArrow) setCursor((c) => wrapIndex(c, -1, cities.length));
+      if (key.downArrow) setCursor((c) => wrapIndex(c, 1, cities.length));
       if (key.pageUp) setCursor((c) => Math.max(0, c - 10));
       if (key.pageDown) setCursor((c) => Math.min(cities.length - 1, c + 10));
       if (key.return && cities[cursor]) {
@@ -302,8 +274,8 @@ function App() {
     }
 
     if (phase === 'dst') {
-      if (key.upArrow) setCursor((c) => Math.max(0, c - 1));
-      if (key.downArrow) setCursor((c) => Math.min(cities.length - 1, c + 1));
+      if (key.upArrow) setCursor((c) => wrapIndex(c, -1, cities.length));
+      if (key.downArrow) setCursor((c) => wrapIndex(c, 1, cities.length));
       if (key.escape) { setPhase('src'); return; }
       if (key.return && cities[cursor] && cities[cursor].cityId !== src.cityId) {
         setDst(cities[cursor]);
@@ -316,8 +288,8 @@ function App() {
 
     if (phase === 'load') {
       const r = RES_ALL[resIdx];
-      if (key.upArrow) { setResIdx((i) => Math.max(0, i - 1)); setEditBuf(''); return; }
-      if (key.downArrow || key.tab) { setResIdx((i) => Math.min(RES_ALL.length - 1, i + 1)); setEditBuf(''); return; }
+      if (key.upArrow) { setResIdx((i) => wrapIndex(i, -1, RES_ALL.length)); setEditBuf(''); return; }
+      if (key.downArrow || key.tab) { setResIdx((i) => wrapIndex(i, 1, RES_ALL.length)); setEditBuf(''); return; }
       if (/^\d+$/.test(input)) { setEditBuf((b) => (b + input).slice(0, 12)); return; }
       if (key.backspace || key.delete) { setEditBuf((b) => b.slice(0, -1)); return; }
       if (key.leftArrow || key.rightArrow) {
@@ -411,6 +383,7 @@ function App() {
       .filter((s) => s.cityId !== src.cityId)
       .map((s) => {
         let score = 0;
+        // 补料型只看有底仓线的 4 种资源：黄金无造兵需求、floor 不存在，不参与该口径
         for (const r of RES_KEYS) {
           const surplus = Math.max(0, src.stock[r] - src.floor[r]);
           const need = Math.max(0, s.floor[r] - s.stock[r]);
@@ -447,6 +420,8 @@ function App() {
       star: phase === 'dst' && recos.has(s.cityId),
       recv: phase === 'dst' && recvSet.has(s.cityId),
       srcPick: (phase === 'src' || phase === 'dst') && i === cursor ? '▸' : ' ',
+      // 已选定的出发/目的城常驻标记，回退重选时也能一眼定位
+      role: src && s.cityId === src.cityId ? 'src' : (dst && s.cityId === dst.cityId ? 'dst' : null),
     }),
     cursor: (phase === 'src' || phase === 'dst') && i === cursor,
   }));
@@ -459,11 +434,6 @@ function App() {
     <${Box} flexDirection="column">
       <${HeaderBar} connected=${!!rt.c?.connected} dry=${DRY} hubs=${hubLine} />
 
-      ${overcapView && (phase === 'src' || phase === 'dst')
-        ? html`<${OvercapView} cities=${cities} cursor=${cursor} fuelHours=${FUEL_HOURS} hubOf=${hubOf} />`
-        : null}
-
-      ${overcapView && (phase === 'src' || phase === 'dst') ? null : html`
       <${Box} flexDirection="column" marginTop=${1}>
         <${Text} bold>
           ${phase === 'src' ? '选择出发城' : phase === 'dst' ? `选择目的城（出发: ${src.name}）` : `${src.name} → ${dst.name}`}
@@ -472,9 +442,9 @@ function App() {
         ${tableRows.map((r) => html`<${RowLine} key=${r.city.cityId} cells=${r.cells} widths=${widths} inverse=${r.cursor} />`)}
         <${TableLegend} />
         <${BlockedLine} cities=${cities} fuelHours=${FUEL_HOURS} />
-      <//>`}
+      <//>
 
-      <${OvercapLine} cities=${cities} overcapView=${overcapView} hubOf=${hubOf} />
+      <${OvercapLine} cities=${cities} hubOf=${hubOf} />
 
       ${inShipFlow
         ? html`<${LoadPanel} src=${src} dst=${dst} loads=${loads} resIdx=${resIdx} editBuf=${editBuf} fuelHours=${FUEL_HOURS} />`
