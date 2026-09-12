@@ -108,8 +108,8 @@ TCP connect
 ```
 
 **会话规则**：
-- 登录帧 `1001` 里的 `wst` token 是唯一凭据，长期有效，可脱离客户端独立建会话。
-- **单账号单会话**：新会话登录成功瞬间，服务端主动断开同账号旧连接（推送 `1003` 被踢下线）。
+- 登录帧 `1001` 里的 `wst` 是会话认证凭据（SSO 下发，协议中无有效期字段）。
+- **单账号单会话**：新会话登录成功瞬间，服务端主动断开同账号旧连接（推送 `1003`）。
 - 断线后重连必须重走 `6 → 1001` 完整握手；服务端无会话恢复机制。
 - 服务端**不校验序号连续性**，但客户端按 500ms/命令做发送频控。
 
@@ -139,7 +139,7 @@ TCP connect
 | appKey | string | 设备持久应用标识 |
 | wst | string | ★ 登录凭据（SSO 换取） |
 | installID | string | 32 位设备安装 ID |
-| stopLoginIfOnline | byte | 顶号确认标记，默认 0 |
+| stopLoginIfOnline | byte | 同账号在线确认标记，默认 0 |
 
 - **响应**：`byte status`；成功后 `byte identity` + `long pushThreshold` + `byte age` + `long onlineTime` + `str realName`。
 - **错误**：凭据失效时 status 为失败值 + 错误文案。
@@ -151,9 +151,9 @@ import { buildFrame, p } from './lib/w2build.js';
 const params = p.cat(
   p.u64(10001),                 // userId
   p.str('0f0e1d2c-3b4a-5968-7700-112233445566'),
-  p.u32(3036900),               // clientVer（示例值）
+  p.u32(3000000),               // clientVer（示例值）
   p.str('ios'),
-  p.str('wst_zh_001'),
+  p.str('<channel>'),
   p.str('zh'),
   p.str('00000000000000000000000000000000'),
   p.str('ST-demoToken-sso.example'),
@@ -165,7 +165,7 @@ socket.write(frame);
 ```
 
 - **凭据获取**：登录命令 `tools/w2login.js`（或 `npm run login`）模拟客户端完整流程：交互式账号密码或静默续登 → 选服服务器 → userId + 游戏服地址，全部凭据自动落盘 `.identity.local.json`。SSO 两步 `mlogin`（① 空表单取 `flowExecutionKey`/`loginTicket`；② `email`/`password` DES-ECB 加密 + `_eventId=loginSubmit`）换取 `WST`。工具使用 HTTPS；SSO 端点与 DES 密钥、appid/app_secret 等常量可由 `.env` 的 `W2_SSO_*` 覆盖。
-- **获取 userId**：userId 不在 SSO 响应中，它由选服协议（cmd=1）响应返回（`u64 _userid`），客户端本地缓存后每次登录复用。`tools/w2login.js` 已自动完成此步骤。注意 userId 必须与 wst 匹配——实测 userId 填 0/错值 + 有效 wst 会触发风控（返回「非法操作行为封停」文案）。userId 是账号终身属性。
+- **获取 userId**：userId 不在 SSO 响应中，它由选服协议（cmd=1）响应返回（`u64 _userid`），客户端本地缓存后每次登录复用。`tools/w2login.js` 已自动完成此步骤。注意 userId 必须与 wst 匹配——实测 userId 填 0/错值 + 有效 wst 会触发风控拦截。userId 是账号终身属性。
 
 #### `cmd=1005` — 玩家核心信息
 - **请求**：无参数。
@@ -325,7 +325,7 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
 
 | cmd | 触发时机 | 数据 |
 |---|---|---|
-| `1003` | 账号被顶号 | 空（客户端弹窗回登录） |
+| `1003` | 同账号新会话建立，旧连接被断开 | 空（客户端弹窗回登录） |
 | `26003` | 任务领取提示 / 活动上线 | 文本 + 末尾十进制 ID 串 |
 | `26022` / `26023` | 功能解锁 | `long key` |
 | `26044` | 会话建立 | `string accessToken`（UUID） |
@@ -360,7 +360,7 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
 | 活动 | 22001~23999 | 22001 列表、22007 充值活动、23001 组队活动 | [13-activity](reference/13-activity.md) |
 | 排行 | 24001~24999 | 24011/24013/24016 | [14-ranking](reference/14-ranking.md) |
 | 推送 | 26001~26999 | 见 §4.10 | [17-push](reference/17-push.md) |
-| 战场玩法 | 29001~29999 | 29003 利刃之战 | [15-battle](reference/15-battle.md) |
+| 战场玩法 | 29001~29999 | 29001~29006 战场玩法系列 | [15-battle](reference/15-battle.md) |
 
 ---
 
@@ -372,7 +372,7 @@ int icon, byte level, int recycleCount, string recycleName, byte useType
    客户端做法是「发出即挂起，靠 `pendingCache` 超时兜底」——自研调用方应对每条请求设 5~10s 超时。
 2. **业务失败看 status**：失败响应只有错误文案字符串，无可编程错误码。
    自动化逻辑建议按「status≠成功 → 查询类接口刷新状态 → 决定重试或放弃」处理。
-3. **幂等性**：服务端不防重放。领取类接口重复调用返回「已领取」短响应，无副作用；但建造/训练类重复调用会真实重复下单，**写操作不幂等**，重试前必须先查询确认。
+3. **幂等性**：请求帧无时效校验。领取类接口重复调用返回「已领取」短响应，无副作用；但建造/训练类重复调用会真实重复下单，**写操作不幂等**，重试前必须先查询确认。
 4. **频控**：客户端 500ms/命令去重；服务端对超频未实测出惩罚，但保守起见同类操作间隔 ≥1s。
 5. **断线重连**：无会话恢复，重连后序号可重置，所有缓存态（任务列表、背包）需重新拉取。
 
@@ -396,7 +396,7 @@ c.onPush(26044, (push) => { /* 服务端推送 */ });
 await c.close();
 ```
 
-- `loginParams` 优先走凭据构造登录；`login`（整帧 hex 重放）仅作调试回退
+- `loginParams` 优先走凭据构造登录；`login`（hex 帧直发）仅作调试回退
 
 - `c.call(cmd, params, schema?, opts?)`：`schema` 声明响应字段表（`fields`/`list`/`item`/`tail`/`skip`），自动解析成对象；`opts.okStatuses` 指定额外成功 status 集合（默认仅 `1`）。同命令并发请求按响应 sessionId 配对。
 - 失败响应统一返回 `{ ok: false, status, message }`，`message` 为服务端错误文案

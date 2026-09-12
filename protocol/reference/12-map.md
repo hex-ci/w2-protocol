@@ -923,22 +923,39 @@
 
 | 顺序 | 类型 | 字段 | 说明 |
 |---|---|---|---|
-| 1 | u16 | `capacity_addition_percent` | 容量上限 |
-| 2 | u16 | `land_spped_addition_percent` | — |
-| 3 | u16 | `air_speed_addition_percent` | — |
-| 4 | u16 | `ally_speed_addition_percent` | — |
-| 5 | u16 | `command_art_addition_percent` | — |
-| 6 | u16 | `army_flag_addition_percent` | — |
-| 7 | u8 | `commander_count` | 数量/计数 |
-| 8 | u64 | `officer_id` | — |
-| 9 | string | `officer_name` | 名称 |
-| 10 | u16 | `add_percent` | — |
-| 11 | string | `skill_oil_cost` | — |
-| 12 | u64 | `cur_server_time` | 时间戳（毫秒） |
-| 13 | string | `consume_oil` | — |
-| 14 | string | `alliance_tech_cost_oil` | 军团 |
-| 15 | readDouble | `global_army_speed_add` | — |
-| 16 | readDouble | `country_mettle_dispatch_army_count_addition` | 数量/计数 |
+| 1 | u16 | `capacity_addition_percent` | 载重容量加成（%） |
+| 2 | u16 | `land_spped_addition_percent` | **陆地行军速度加成（%）**（客户端原字段名拼写如此） |
+| 3 | u16 | `air_speed_addition_percent` | 空军行军速度加成（%） |
+| 4 | u16 | `ally_speed_addition_percent` | 友军/联盟速度加成（%） |
+| 5 | u16 | `command_art_addition_percent` | 统帅/指挥加成（%） |
+| 6 | u16 | `army_flag_addition_percent` | 军旗加成（%） |
+| 7 | u8 | `commander_count` | 随行军官数 |
+| 8 | u64 | `officer_id` | 军官 ID（每条军官） |
+| 9 | string | `officer_name` | 军官名 |
+| 10 | u16 | `add_percent` | 该军官加成（%） |
+| 11 | string | `skill_oil_cost` | 该军官技能油耗 |
+| 12 | u64 | `cur_server_time` | 服务器时间（毫秒） |
+| 13 | string | `consume_oil` | 本次消耗油料（字符串） |
+| 14 | string | `alliance_tech_cost_oil` | 军团科技油耗 |
+| 15 | double | `global_army_speed_add` | **全局行军速度倍率**（乘数） |
+| 16 | double | `country_mettle_dispatch_army_count_addition` | 国魂派遣部队数加成 |
+
+> **实测语义（行军速度模型的关键输入，机制详见 [topics/transport.md](../topics/transport.md)）**：
+> 客户端在发起远征前先请求 19001 取实时加成，用以下公式计算行军时间：
+>
+> ```
+> 实时速度 V = 兵种原型移速 × (1 + land_spped_addition_percent/100 + 0.5 × 运输站等级) × global_army_speed_add
+> 单程秒数 T = 30 + 距离格 × 100000 / V
+> ```
+>
+> - **运输站（proto=20）等级取出发城的**（两笔同距离反向对照实测确权：站 L10 出发 → V≈22445、
+>   站 L9 出发 → V≈20728，与各自出发城等级一致；客户端源码侧该值也取自「当前城」）。
+> - `global_army_speed_add` 为乘数（实测 3 = 3 倍速），不是百分比。
+> - 运输/派遣到「城市」目标时适用上述公式（另有 `.5 × transportStationLevel` 项）；
+>   运输站等级 0~10 → 速度范围与加成倍率成正比。
+> - **注意区分两个 T**：油耗公式（见 transport.md）拟合所用的 T 按**基础移速 1150** 计算
+>   （实测 3 笔交叉验证：真实速度大幅加成后油耗仍与「基础 T」的预测吻合）；
+>   而界面展示的真实行军时间必须用上式（含加成）。二者不可混用。
 
 ---
 
@@ -966,7 +983,7 @@
 > **实测补充**：`carry_food/steel/oil/mineral/gold` 可同时非零——单笔混装多种资源实测通过（钢+矿同帧成功）；
 > 批量调度应按「同路合并、多资源混装」发送，因为每笔发车占 1 个出征位（上限=该城司令部等级，与车队规模无关）。
 > 失败拒绝常见两类文案：『城内资源不足』（石油/货物预算不满足，整单被拒）与
-> 『您已出征在外的部队数超过了上限，请尝试升级您的司令部』（出征位已满，详见 [topics/transport.md](../topics/transport.md) §5）。
+> 出征位已满时返回超限拒绝（详见 [topics/transport.md](../topics/transport.md) §5）。
 
 **请求参数**（按序拼接为 AES 明文）:
 

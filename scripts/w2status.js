@@ -20,27 +20,24 @@ import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
 import { renderTable } from '../lib/table.js';
 import { fmtNum, fmtShort, fmtCount, fmtSat, fmtDur } from '../lib/format.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { RES_CN } from '../lib/formula.js';
+import { readTopologyCache } from '../lib/topology.js';
+import {
+  parseCityList, parse2003, parse2027, parse19009, parseBuildings49, parse3005,
+} from '../lib/proto.js';
 
-// 中心仓缓存：w2transport 每次运行时把推导结果（superHubs: 资源→cityId）写入该文件
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ROUTE_CACHE_FILE = path.join(ROOT, '.transport_route.local.json');
+// 中心仓缓存：w2transport 每次运行时把推导结果（superHubs: 资源→cityId）写入缓存文件
 
 function loadHubs() {
   const byCity = new Map(); // cityId -> [资源中文名]
-  try {
-    if (!fs.existsSync(ROUTE_CACHE_FILE)) return byCity;
-    const cached = JSON.parse(fs.readFileSync(ROUTE_CACHE_FILE, 'utf8'));
-    const hubs = cached.superHubs || {};
-    const CN = { food: '粮', steel: '钢', mineral: '矿', oil: '油', gold: '金' };
-    for (const [res, cityId] of Object.entries(hubs)) {
-      if (!cityId) continue;
-      if (!byCity.has(String(cityId))) byCity.set(String(cityId), []);
-      byCity.get(String(cityId)).push(CN[res] || res);
-    }
-  } catch (e) { /* 缓存缺失/损坏则无标识 */ }
+  const cached = readTopologyCache();
+  if (!cached) return byCity;
+  const hubs = cached.superHubs || {};
+  for (const [res, cityId] of Object.entries(hubs)) {
+    if (!cityId) continue;
+    if (!byCity.has(String(cityId))) byCity.set(String(cityId), []);
+    byCity.get(String(cityId)).push(RES_CN[res] || res);
+  }
   return byCity;
 }
 
@@ -58,124 +55,7 @@ const SHOW_MIL = has('mil');
 const ONLY_CITY = arg('city', '');
 const SHOW_ALL = !SHOW_RES && !SHOW_MIL && !ONLY_CITY;
 
-// 兵种分类定义
-const ARMY_NAMES = {
-  1: '步兵', 2: '骑兵', 3: '卡车', 4: '装甲车',
-  5: '轻坦', 6: '重坦', 7: '突击炮', 8: '火箭',
-  9: '侦察机', 10: '歼击机', 11: '轰炸机',
-  12: '驱逐舰', 13: '潜艇', 14: '战列舰', 15: '航母', 16: '特种兵',
-  17: '碉堡', 18: '榴弹炮', 19: '反坦炮', 20: '防空炮', 21: '围墙',
-  30: '高炮', 31: '导弹车', 32: '攻击机', 33: '截击机',
-};
-
-// ---------- 协议解析 ----------
-
-function parseCityList(raw) {
-  let off = 0;
-  const u8 = () => raw[off++];
-  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
-  const u64 = () => { const v = raw.readBigUInt64BE(off); off += 8; return v; };
-  const str = () => { const L = u32(); const s = raw.subarray(off, off + L).toString('utf8'); off += L; return s; };
-  const joinWar = u8();
-  const count = u8();
-  const list = [];
-  for (let i = 0; i < count; i++) {
-    const cityId = u64().toString(), name = str(), x = u32(), y = u32();
-    str(); // mayor
-    u32(); // population
-    u32(); // morale
-    u32(); u32(); // coastal, hasCarrier
-    str(); // imgID
-    u8();  // isColonial
-    u32(); // mayorIcon
-    u32(); // constructNum
-    u32(); // helpNum
-    if (joinWar === 1) u32();
-    u32(); u32(); u32(); u8(); // trainingCount, officerCount, officerCountMax, tail
-    list.push({ cityId, name, x, y });
-  }
-  return list;
-}
-
-/** 2003 城内资源：food@4/8, steel@32/36, mineral@52/56, oil@72/76 */
-function parseResources(raw2003) {
-  const u32 = (o) => raw2003.readUInt32BE(o);
-  return {
-    food: u32(4), foodCap: u32(8),
-    steel: u32(32), steelCap: u32(36),
-    mineral: u32(52), mineralCap: u32(56),
-    oil: u32(72), oilCap: u32(76),
-  };
-}
-
-/** 2027 政令状态：民心/民怨/黄金/人口（当前城） */
-function parseCityStatus(raw2027) {
-  if (!raw2027 || raw2027.length < 68) return null;
-  return {
-    morale: raw2027.readUInt32BE(0),
-    grievance: raw2027.readUInt32BE(4),
-    moraleTrend: raw2027.readInt32BE(8),
-    gold: raw2027.readUInt32BE(12),
-    goldCap: raw2027.readUInt32BE(16),
-    taxRate: raw2027.readUInt32BE(20),
-    popAmount: raw2027.readUInt32BE(40),
-    popCap: raw2027.readUInt32BE(44),
-    popWorking: raw2027.readUInt32BE(48),
-    popIdle: raw2027.readInt32BE(52),
-  };
-}
-
-function parseArmies(raw) {
-  if (!raw || raw.length < 4) return [];
-  let o = 0;
-  const n = raw.readUInt32BE(o); o += 4;
-  const list = [];
-  for (let i = 0; i < n; i++) {
-    const aid = raw.readUInt32BE(o); o += 4;
-    const count = raw.readUInt32BE(o); o += 4;
-    list.push({ id: aid, name: ARMY_NAMES[aid] || `兵种#${aid}`, count });
-  }
-  return list;
-}
-
-function parseMilitaryPlants(raw) {
-  if (!raw || raw.length < 1) return [];
-  let o = 0;
-  const count = raw[o++];
-  const plants = [];
-  for (let i = 0; i < count; i++) {
-    const bid = raw.readBigUInt64BE(o).toString(); o += 8;
-    const proto = raw.readUInt32BE(o); o += 4;
-    const level = raw.readUInt32BE(o); o += 4;
-    o += 8;  // position, status
-    o += 24; // remainTime, finishTime, totalTime
-    o += 1;  // helped
-    if (proto === 14) { // 军工厂原型 ID 为 14
-      plants.push({ bid, level });
-    }
-  }
-  return plants;
-}
-
-function parseTrainingQueues(raw) {
-  if (!raw || raw.length < 4) return [];
-  let o = 0;
-  const qCount = raw.readUInt32BE(o); o += 4;
-  const queues = [];
-  for (let i = 0; i < qCount; i++) {
-    o += 8; // bid
-    o += 4; // position
-    const status = raw.readUInt32BE(o); o += 4;
-    if (status === 1) {
-      o += 8; // trainingId
-      const armyId = raw.readUInt32BE(o); o += 4;
-      const remainMs = Number(raw.readBigUInt64BE(o)); o += 8;
-      o += 8; // totalTime
-      queues.push({ armyId, name: ARMY_NAMES[armyId] || `兵种#${armyId}`, remainMs });
-    }
-  }
-  return queues;
-}
+// 兵种分类定义、协议解析器见 lib/proto.js（ARMY_NAMES / parseCityList / parse2003 / parse2027 / parse19009 / parseBuildings49 / parse3005）
 
 // ---------- 表格列定义 ----------
 
@@ -260,15 +140,15 @@ const MIL_COLUMNS = [
     const r19009 = await c.call(19009, Buffer.alloc(0));
     const r17001 = await c.call(17001, Buffer.alloc(0));
 
-    const res = parseResources(r2003.raw);
-    const status = parseCityStatus(r2027.raw);
-    const armies = parseArmies(r19009.raw);
-    const plants = parseMilitaryPlants(r17001.raw);
+    const res = parse2003(r2003.raw);
+    const status = parse2027(r2027.raw);
+    const armies = parse19009(r19009.raw);
+    const plants = parseBuildings49(r17001.raw, 1).filter((b) => b.proto === 14).map((b) => ({ bid: b.bid, level: b.level }));
 
     let activeQueues = [];
     if (plants.length > 0) {
       const r3005 = await c.call(3005, Buffer.alloc(0));
-      if (r3005.raw) activeQueues = parseTrainingQueues(r3005.raw);
+      if (r3005.raw) activeQueues = parse3005(r3005.raw);
     }
 
     empirePlantsTotal += plants.length;

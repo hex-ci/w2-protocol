@@ -8,7 +8,7 @@
 
 以下字段/行为来自 iOS 真机抓包，服务端虽不强校验，但模拟请求应保持一致：
 
-- **登录参数**：`platform="ios"`、`channel="wst_ios_zh_002"`、`language="zh"`（iOS 渠道值，账号绑定 iOS 区，改动会导致渠道不匹配）；`clientVer` 与真机版本一致。
+- **登录参数**：`platform`、`channel`、`language` 由渠道分发决定，须与所用渠道一致（渠道不匹配会导致登录失败）；`clientVer` 同理。部署侧取值见 `.env.example` 的 `W2_LOGIN_*`。
 - **序号 no**：真机按「批次」递增——同一批并行请求共享同一 no，下一批 +1；模拟端逐帧递增亦被服务端接受（no 仅参与 MD5 计算）。
 - **sessionId**：iOS 客户端从 100001 起递增分配（Android 客户端实现为 `parseInt(2147483647*Math.random())` 全域随机）；两端策略不同但服务端均接受。
 - **请求时序**：真机初始化阶段按「批」突发多帧（如 no=7 一次并发 7 个查询）；模拟端按 500ms+抖动逐帧发送，节奏更平缓。
@@ -28,7 +28,7 @@
 | 出站帧格式 / 加密算法 | ✅ 完全解析 | AES-128-ECB + MD5 前 16 字节截断（`lib/w2build.js`） |
 | 入站帧格式 / 通用响应骨架 | ✅ 已验证 | WIST 头 + cmd/status + 命令级字段（`lib/w2.js`） |
 | 任意命令组帧构造 | ✅ 已支持 | 可构造任意已知参数序列；命令级字段需以抓包/客户端复核 |
-| 凭据重放与长连接认证 | ✅ 稳定可用 | 提取握手 wst token 即可脱离客户端维持业务会话 |
+| 长连接认证 | ✅ 稳定可用 | 凭据经 1001 提交后建立连接级会话（帧内无 token 字段） |
 | 自动化任务领取 | ✅ 稳定可用 | 每日自动领取职位工资、军衔补助、钻石奖励（`scripts/w2signin.js`） |
 
 ---
@@ -122,8 +122,8 @@
 
 1. **身份验证 = 连接级会话绑定**：协议没有 token/会话 ID 类字段。登录（1001）成功后，服务器将该 TCP 连接绑定到 userId，之后所有业务帧靠「这条连接是谁的」识别（帧内不含任何身份字段，实测未登录发业务请求返回 status=-2 拒绝）。因此**每条新连接必须先登录**，不存在「缓存凭据免登录」。
 2. **单会话互斥**：同一账号仅允许一条活跃业务长连接，新连接登录成功即踢旧连接。脚本一次运行只建一个 socket。
-3. **凭据长期有效**：`wst` 是登录参数中的长期凭据（SSO 下发），缓存它可让每次连接的登录动作都能成功；但它只是登录的入场券，不能省略登录。
-4. **不防重放**：整帧原样重发长期有效（跨天验证过）；重复领取返回短响应但无副作用。
+3. **凭据无显式有效期**：`wst` 由 SSO 下发且无有效期字段，可缓存复用；但它只是登录的入场券，每次连接仍必须走 1001 登录。
+4. **帧校验无时效字段**：校验不包含时间戳或有效期；重复领取返回短响应但无副作用。
 5. **随机会话密钥**：服务器按帧内 sessionId 推导 AES 密钥解密，客户端每帧可独立随机生成。
 6. **连接只能登录一次**：同连接二次登录返回 status=-10（拒绝），SDK 的 connect() 已按此实现。
 7. **频控**：客户端对同命令 500ms 内去重；SDK 也串行保留最小 500ms 间隔。服务器侧未见同类限制。
@@ -137,13 +137,13 @@
 | taskType | 分类名称 | 典型收录任务 |
 |---|---|---|
 | `0` | 日常军事 | 290（职位工资）、307（军衔补助）、5042（钻石奖励）、15138、50620 |
-| `2` | 日常操作 | 15470（日常目标）、50620 |
+| `2` | 日常操作 | 15470（每日活动目标）、50620 |
 | `3` | 兑换奖励 | 3448（绿色奖章兑换）、3764（迁城行动）、50628 |
 | `4` | 名将兑换 | 11179（名将招募）、11200、11243 |
 
 `w2signin.js` 采用直发 `10003` 领取帧模式，任务清单来自 `.env` 的 `W2_TASK_IDS`，不依赖 `10001` 列表返回结果（已领尽的分类返回空列表）。
 
-**活动类批量领取不属于本系统**：「日常目标」「月度拿好礼」等走活动系统（22001 定位 → 22017 查各档位进度 → 22018 领取），与 10001/10003 任务领取是两套体系。领取条件为 `progress_value >= progress_target` 且 `collect_status == 0`；字段细节见 `reference/13-activity.md` 的 22017/22018 条目。
+**活动类批量领取不属于本系统**：每日活动目标、月度活动奖励等走活动系统（22001 定位 → 22017 查各档位进度 → 22018 领取），与 10001/10003 任务领取是两套体系。领取条件为 `progress_value >= progress_target` 且 `collect_status == 0`；字段细节见 `reference/13-activity.md` 的 22017/22018 条目。
 
 ---
 
@@ -153,13 +153,13 @@
 
 ```
 ① SSO 账号登录   POST mlogin → WST(凭据) + WTGT(续登票据) + wistoneId
-② iOS 选服      独立 TCP 8081，明文 WIST 帧 → userId + 游戏服地址(ip:port)
+② iOS 选服      独立 TCP（choice 地址，见 §8.2），明文 WIST 帧 → userId + 游戏服地址(ip:port)
 ③ 游戏服握手     8083，hello(6) → 登录(1001) → 业务
 ```
 
 ### 8.1 SSO 账号登录（mlogin）
 
-- **端点**：`https://sso.wistone.com/wistoneSSO/mlogin`（`W2_SSO_URL`，代码内置缺省 + .env 覆盖；工具拒绝 HTTP）。
+- **端点**：`W2_SSO_URL` 下的 `mlogin` 表单（代码内置缺省 + .env 覆盖；工具拒绝 HTTP）。
 - **两步 POST**（`application/x-www-form-urlencoded`）：
   1. `login_type=0` 空表单 → `resultType=0`，取 `flowExecutionKey`/`loginTicket`/`sessionId`；
   2. `login_type=1`，`email`/`password` 经 DES-ECB/PKCS7 加密（密钥 = SECURITY_KEY 常量，HEX 大写），附 `execution`/`l_t`/`_eventId=loginSubmit` → `resultType=1`。
@@ -168,11 +168,11 @@
   - `WTGT`（152 位 hex）——静默续登票据，客户端缓存，冷启动时免密码换新 `WST`。
   - `wistoneId`（64 hex）——DES 解密即 `username`（36 字符 UUID），与抓包 1001 帧的 username 三方一致。
 - **静默续登**：缓存有 `WTGT` 时发 `login_type=0` + `WID`（= `DES(username)`，80 hex）+ `WTGT`，免密码重新换取 `WST`；失败（服务器对无效请求回 HTML 错误页而非 JSON）自动回退账号密码登录。
-- **iOS 真机表单**：设备字段 `device_id/open_udid/advertising_id/for_vendor_id`（Android 为 `android_id/mac_address/imei/sim_serial_number`），`lang=zh_CN`、`version=1.0.2`。SSO 常量（appid/app_secret/SECURITY_KEY）全渠道唯一、不分平台。
+- **iOS 真机表单**：设备字段 `device_id/open_udid/advertising_id/for_vendor_id`（Android 为 `android_id/mac_address/imei/sim_serial_number`），`lang=zh_CN`、`version` 由 `W2_SSO_VERSION` 配置。SSO 常量（appid/app_secret/securityKey）全渠道唯一、不分平台。
 
 ### 8.2 选服服务器（choice）
 
-- **独立于游戏服**：iOS = `w2vcn_G.ios.wistone.com:8081`（裸 TCP 明文 WIST 帧）；Android = `w2v-g-add-choice.wistone.com:8087`（**WebSocket** 端口，裸 TCP 发 WIST 无响应）。**按平台隔离部署，服务端校验 platform/channel 匹配**——iOS 服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`。
+- **独立于游戏服**：两端各自独立部署（地址与端口由 `W2_SSO_CHOICE_HOST` / `W2_SSO_CHOICE_PORT` 配置，内置缺省）。iOS 走裸 TCP 明文 WIST 帧；Android 走 **WebSocket**（裸 TCP 发 WIST 帧无响应）。**按平台隔离部署，服务端校验 platform/channel 匹配**——平台不匹配时返回 `status=-1` 并附错误文案。
 - **明文帧**（无 AES/MD5）：`WIST + u32 sessionId + u32 L + u32 cmd + 明文 payload`。SDK 用 `new W2Client({mode:'choice'})` 复用同一套收发逻辑。
 - **`cmd=2` 拉服务器列表**：`str username + str platform + str channel + str language + str device_info + u32 client_tag + str client_version`，返回 `u32 count + N×(u32 serverId + str serverName + str serverHost + u32 pri + u8 game_entry_flag)`。
 - **`cmd=1` 选服登录**：参数在 cmd=2 基础上多 `u8 is_self + u32 server_id`（其中 server_id 是客户端缓存的上次服务器号）、前置 4 参相同。响应（status=1/2 成功）：
@@ -180,7 +180,7 @@
   - `u32 server_id + str server_name + str server_host`（游戏服地址 ip:port，服务端下发）、`u32 server_sort`、条件字段 `u8 game_entry_flag`（=1 才跟 string）、`str init_channel`、`u64 timevalue/timeoffset`。
   - status=3 = 换服需确认，仅 `str confirm_message`。
 - **选服机制 = 客户端记忆 + 服务器核对**：客户端缓存上次的 serverId/host，发进 cmd=1 的 server_id 供服务器核对；全新设备先 cmd=2 拉列表再选。游戏服地址是选服下发的，**不写死**。
-- **⚠️ userId 必配且必须与 wst 匹配**：填 0/错值 + 有效 wst 触发风控（「非法操作行为封停」）。
+- **⚠️ userId 必配且必须与 wst 匹配**：填 0/错值 + 有效 wst 会触发风控拦截。
 
 ### 8.3 游戏服握手与登录
 
@@ -232,7 +232,7 @@
 22001 ~ 22999 活动系统（22001: 活动列表、22002: 配置同步、22007: 充值活动、22016: 排行榜）
 24001 ~ 24999 榜单排行（24011: 自身名次、24013: 积分榜、24016: 战力榜）
 26001 ~ 26999 服务端广播推送（26001: 闪光、26003: 动作追踪/活动通知、26044: 会话凭据）
-29003 ~ 29999 战场玩法（利刃之战等）
+29003 ~ 29999 战场玩法系列
 ```
 
 > ＊ 号命令（6020 / 8016）仅在 iOS 客户端抓包中出现，Android 客户端协议定义中未包含，
@@ -269,7 +269,7 @@
 4. **大端序与 64 位整数（u64）**：
    所有网络序列均为大端序。特别是玩家 ID、城池 ID、建筑实例 ID、时间戳等均为 8 字节整数（对应客户端 `writeLong`/`readLong`），必须使用 `readBigUInt64BE` 读取，当作 32 位整数读取会导致高位截断或偏移错位。
 5. **单会话互斥机制**：
-   脚本连接登录后，在线的移动客户端会被强制下线；同样若在客户端点击重新登录，脚本的业务 Socket 会被服务端断开。测试或定时任务执行时必须考虑单会话互斥，避免双端频繁互相踢下线。
+   脚本连接登录后，在线的移动客户端旧连接会被服务端断开；同样若在客户端重新登录，脚本的业务 Socket 会被断开。测试或定时任务执行时必须考虑单会话互斥，避免双端频繁互断。
 6. **软路由流量卸载（Flow Offloading）对抓包的影响**：
    在搭载 OpenWrt / Linux 的软路由上使用 `tcpdump` 抓包时，若开启了硬件/软件流量卸载（Flow Offload / Shortcut-FE / SFE），经过路由直通转发的 TCP 载荷包不会进入内核协议栈，导致只能抓到三次握手与挥手包，业务数据完全丢失。抓包前必须关闭流量卸载。
 7. **客户端休眠断连**：

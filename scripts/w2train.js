@@ -22,6 +22,8 @@ import { fileURLToPath } from 'url';
 import config from '../lib/config.js';
 import { W2Client, p } from '../lib/sdk.js';
 import { fmtNum as fmt, fmtDur as fmtDurMs } from '../lib/format.js';
+import { parseCityList, parseBuildings49, parse3006, parse2003, parse2026 } from '../lib/proto.js';
+import { trainResCap, trainPopCap, trainFinishMs, splitEvenly } from '../lib/formula.js';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -51,115 +53,7 @@ const DRY = has('dry');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = () => sleep(300 + Math.floor(Math.random() * 500));
 
-// ---------- 解析器 ----------
-
-/**
- * 2001 城池列表 → [{ cityId, name, x, y }]
- * 服务器实现与客户端 Cityinfo 定义有差异，本解析按实测字节序：
- *   u8 isJoinLeagueWar + u8 count + N×{
- *     u64 cityId, str name, u32 x, u32 y, str mayor,
- *     u32 population, u32 morale, u32 coastal, u32 hasCarrier, str imgID,
- *     u8 isColonial, u32 mayorIcon, u32 constructNum, u32 helpNum,
- *     u32 trainingCount, u32 officerCount, u32 officerCountMax, u8 未知尾字节
- *   }
- * 偏移经真机逐字段核对（字符串长度前缀定位），仅取前 5 个字段。
- */
-function parseCityList(raw) {
-  let off = 0;
-  const u8 = () => raw[off++];
-  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
-  const u64 = () => { const v = raw.readBigUInt64BE(off); off += 8; return v; };
-  const str = () => { const L = u32(); const s = raw.subarray(off, off + L).toString('utf8'); off += L; return s; };
-  const joinWar = u8();
-  const count = u8();
-  const cities = [];
-  for (let i = 0; i < count; i++) {
-    const cityId = u64(), name = str(), x = u32(), y = u32();
-    str();                                 // mayor
-    u32(); u32(); u32(); u32();            // population, morale, coastal, hasCarrier
-    str();                                 // imgID
-    u8();                                  // isColonial
-    u32(); u32(); u32();                   // mayorIcon, constructNum, helpNum
-    if (joinWar === 1) u32();              // leagueScorePlunderable
-    u32(); u32(); u32(); u8();             // trainingCount, officerCount, officerCountMax, 未知
-    cities.push({ cityId: cityId.toString(), name, x, y });
-  }
-  return cities;
-}
-
-/** 17001 军事建筑列表（当前城）→ [{ bid, proto, level }] */
-function parseMilitaryBuildings(raw) {
-  let off = 0;
-  const u8 = () => raw[off++];
-  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
-  const u64 = () => { const v = raw.readBigUInt64BE(off); off += 8; return v; };
-  const count = u8();
-  const list = [];
-  for (let i = 0; i < count; i++) {
-    const bid = u64(), proto = u32(), level = u32();
-    u32(); u32();                     // position, status
-    u64(); u64(); u64(); u8();        // remainTime, finishTime, totalTime, helped
-    list.push({ bid: bid.toString(), proto, level });
-  }
-  return list;
-}
-
-/**
- * 3006 兵营信息 → { training: [队列], trainables: {armyId: {cur, food, mineral, oil, steel, time}} }
- * 结构依据客户端 Prot3006.decode：头部 1 个被丢弃的 int + 两段列表 + speedupPrice
- */
-function parsePlantInfo(raw) {
-  let off = 0;
-  const u8 = () => raw[off++];
-  const u32 = () => { const v = raw.readUInt32BE(off); off += 4; return v; };
-  const u64 = () => { const v = raw.readBigUInt64BE(off); off += 8; return v; };
-  const str = () => { const L = u32(); const s = raw.subarray(off, off + L).toString('utf8'); off += L; return s; };
-  off += 4;                           // 客户端 decode 里 readInt() 后未使用的字段
-  const queueCount = u32();
-  const training = [];
-  for (let i = 0; i < queueCount; i++) {
-    training.push({ trainingId: u64().toString(), armyId: u32(), amount: u32(), remain: Number(u64()) });
-    u64(); u8();                      // totalTime, allowSpeedup
-  }
-  const trainCount = u32();
-  const trainables = {};
-  for (let i = 0; i < trainCount; i++) {
-    const armyId = u32();
-    const cur = u32(), food = u32(), mineral = u32(), oil = u32(), steel = u32(), nuclear = u32();
-    const bN = u32();
-    for (let j = 0; j < bN; j++) { u32(); u32(); u32(); }
-    const tN = u32();
-    for (let j = 0; j < tN; j++) { u32(); u32(); u32(); }
-    const iN = u32();
-    for (let j = 0; j < iN; j++) { u32(); str(); u32(); u32(); }
-    const time = Number(u64());
-    trainables[armyId] = { cur, food, mineral, oil, steel, nuclear, time };
-  }
-  return { training, trainables };
-}
-
-/**
- * 2003 当前城资源。服务器实现中储量字段为 u32：
- *   food@4, steel@32, mineral@52, oil@72（各资源块 24B，amount 在块内 +0，容量 +4）
- * 偏移经切城 diff 实测验证，勿按客户端 readLong 定义照搬。
- *
- * 注意：2026（服务器实测 100B）与 2003 的储量字段实测一致，
- * 且 2026 +96 有空闲人口的权威读数（有符号），人口约束从 2026 取。
- */
-function parseResources(raw) {
-  const u32 = (o) => raw.readUInt32BE(o);
-  return {
-    food: u32(4),
-    steel: u32(32),
-    mineral: u32(52),
-    oil: u32(72),
-  };
-}
-
-/** 2026 生产信息（100B）：+96 空闲人口（有符号，部队超编时为负） */
-function parse2026Idle(raw) {
-  return raw.readInt32BE(96);
-}
+// ---------- 解析器见 lib/proto.js（parseCityList / parseBuildings49 / parse3006 / parse2003 / parse2026） ----------
 
 const fmtDur = (ms) => fmtDurMs(ms, true);
 
@@ -244,7 +138,7 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
     }
 
     // 军工厂（BuildingType.ARMS_PLANT = 14）
-    const plants = parseMilitaryBuildings((await c.call(17001, Buffer.alloc(0))).raw)
+    const plants = parseBuildings49((await c.call(17001, Buffer.alloc(0))).raw, 1)
       .filter((b) => b.proto === 14);
     if (!plants.length) {
       console.log(`○ ${city.name}: 无军工厂，跳过`);
@@ -252,13 +146,13 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
     }
 
     // 当前城资源（2003）与空闲人口（2026，人口约束的权威读数）
-    const res = parseResources((await c.call(2003, Buffer.alloc(0))).raw);
-    const popIdle = parse2026Idle((await c.call(2026, Buffer.alloc(0))).raw);
+    const res = parse2003((await c.call(2003, Buffer.alloc(0))).raw);
+    const popIdle = parse2026((await c.call(2026, Buffer.alloc(0))).raw).popIdle;
     const resBefore = { ...res };
 
     console.log(`━━ ${city.name} (${city.x},${city.y}) 军工厂×${plants.length}`);
     console.log(`   资源: 粮 ${fmt(res.food)} | 钢 ${fmt(res.steel)} | 矿 ${fmt(res.mineral)} | 油 ${fmt(res.oil)}`);
-    console.log(`   空闲人口: ${fmt(popIdle)}${armyPopulation > 0 ? `（每单位训练占 ${armyPopulation}，人口最多支持 ${fmt(Math.max(0, Math.floor(popIdle / armyPopulation)))} 架）` : ''}`);
+    console.log(`   空闲人口: ${fmt(popIdle)}${armyPopulation > 0 ? `（每单位训练占 ${armyPopulation}，人口最多支持 ${fmt(trainPopCap(popIdle, armyPopulation))} 架）` : ''}`);
 
     let cityTrain = 0;
     let cityFinish = 0;
@@ -268,7 +162,7 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
     const specs = [];
     for (const plant of plants) {
       await jitter();
-      const info = parsePlantInfo((await c.call(3006, p.u64(plant.bid))).raw);
+      const info = parse3006((await c.call(3006, p.u64(plant.bid))).raw);
       const spec = info.trainables[ARMY_ID];
       if (spec) specs.push({ plant, spec });
       else plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 不支持该兵种`);
@@ -281,7 +175,7 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
 
     // 平分策略：总可造数按厂均分，资源是一次性总账（同城同兵种单价一致）
     // 总量 = min(各资源/单价, 空闲人口/每架人口)，每厂 base = floor(总量/N)，前 remainder 个厂各 +1
-    // 人口约束：3001 下单即时占用空闲人口（每架 armyPopulation），超限报「空闲人口不足」
+    // 人口约束：3001 下单即时占用空闲人口（每架 armyPopulation），超限时服务器拒绝
     const s0 = specs[0].spec;
     if (s0.nuclear > 0) {
       plantReports.push('   ○ 该兵种需要核资源；当前脚本未验证核资源余额字段，为避免超额下单而跳过');
@@ -289,20 +183,14 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
       console.log('');
       continue;
     }
-    const totalAffordable = Math.floor(Math.min(
-      s0.food ? res.food / s0.food : Infinity,
-      s0.mineral ? res.mineral / s0.mineral : Infinity,
-      s0.oil ? res.oil / s0.oil : Infinity,
-      s0.steel ? res.steel / s0.steel : Infinity
-    ));
-    const totalByPop = armyPopulation > 0 ? Math.max(0, Math.floor(popIdle / armyPopulation)) : Infinity;
+    const totalAffordable = trainResCap(res, { food: s0.food, mineral: s0.mineral, oil: s0.oil, steel: s0.steel });
+    const totalByPop = trainPopCap(popIdle, armyPopulation);
     const targetTotal = Math.min(totalAffordable, totalByPop, MAX_PER_PLANT * specs.length);
-    const perPlant = Math.floor(targetTotal / specs.length);
-    const remainder = targetTotal % specs.length;
+    const allocations = splitEvenly(targetTotal, specs.length);
 
     if (targetTotal === 0) {
       const why = totalByPop === 0
-        ? `空闲人口不足（${fmt(popIdle)} < 每架 ${armyPopulation}）`
+        ? `受空闲人口限制（${fmt(popIdle)} < 每架 ${armyPopulation}）`
         : `资源不足 1 架（需 粮${s0.food} 矿${s0.mineral} 油${s0.oil} 钢${s0.steel}/架）`;
       plantReports.push(`   ○ ${why}`);
       plantReports.forEach((s) => console.log(s));
@@ -311,13 +199,13 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
       continue;
     }
 
-    // 人口预算：实际下单时逐笔扣减；服务器报「空闲人口不足」时归零并跳过该城剩余订单
+    // 人口预算：实际下单时逐笔扣减；服务器因人口拒绝时归零并跳过该城剩余订单
     let popRemain = totalByPop === Infinity ? Infinity : targetTotal;
 
     // 第二遍：逐厂下单
     for (let i = 0; i < specs.length; i++) {
       const { plant, spec } = specs[i];
-      let amount = perPlant + (i < remainder ? 1 : 0);
+      let amount = allocations[i];
       if (amount === 0) {
         plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 平分后不足 1 架`);
         continue;
@@ -330,7 +218,7 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
         amount = Math.min(amount, popRemain);
       }
 
-      const finishMs = spec.time * amount;
+      const finishMs = trainFinishMs(spec.time, amount);
       const finishAt = new Date(Date.now() + finishMs).toLocaleTimeString('zh-CN', { hour12: false });
 
       if (DRY) {

@@ -3,12 +3,11 @@
 /**
  * w2activity.js —— 活动奖励自动领取
  *
- * 领取「日常目标」（每日重置）与「月度拿好礼」（每月一期）两类**纯领取型**地标活动中
- * 所有已达标未领取的档位奖励。两类活动同属活动系统（22001 定位 → 22017 查进度 →
- * 22018 逐档领取），不消耗任何道具。
+ * 领取两类**纯领取型**地标活动（每日重置活动与月度活动）中所有已达标未领取的档位奖励。
+ * 两类活动同属活动系统（22001 定位 → 22017 查进度 → 22018 逐档领取），不消耗任何道具。
  *
- * 顺序依赖：拿好礼的进度即「日常活跃凭证」持有数，而日常目标的奖励正是发凭证——
- * 先领日常目标再查拿好礼，同一轮可能连环解锁新档位。
+ * 顺序依赖：月度活动的进度即凭证类道具持有数，而每日活动的奖励正是发凭证——
+ * 先领每日活动再查月度活动，同一轮可能连环解锁新档位。
  *
  * 用法:
  *   node scripts/w2activity.js              扫描并领取两类活动的全部可领档位
@@ -104,7 +103,7 @@ function parseLandmark(raw) {
 const isClaimable = (s) => s.progressValue >= s.progressTarget && s.collectStatus === 0;
 const isPending = (s) => s.collectStatus === 0 && s.progressValue < s.progressTarget;
 
-// 两类纯领取型活动的定位：日常目标（名称固定）、月度拿好礼（名称按月变，包含匹配）
+// 两类纯领取型活动的定位：每日活动（名称固定）、月度活动（名称按月变，包含匹配）
 const isTarget = (a) => a.name === '日常目标' || a.name.includes('拿好礼');
 
 (async function main() {
@@ -141,11 +140,11 @@ const isTarget = (a) => a.name === '日常目标' || a.name.includes('拿好礼'
     return isTarget(a) && (a.timeLimited !== 1 || Number(a.remainTime) > 0);
   });
   if (!targets.length) {
-    console.log(onlyArg ? `未找到活动 ${onlyArg}` : '未找到可处理的活动（日常目标 / 月度拿好礼）');
+    console.log(onlyArg ? `未找到活动 ${onlyArg}` : '未找到可处理的活动');
     c.close();
     return;
   }
-  // 拿好礼排在日常目标之后：先领日常目标，凭证增加后再查拿好礼
+  // 月度活动排在每日活动之后：先领每日活动，凭证增加后再查月度活动
   targets.sort((x, y) => (x.name === '日常目标' ? -1 : y.name === '日常目标' ? 1 : 0));
   console.log(`发现 ${targets.length} 个待处理活动\n`);
 

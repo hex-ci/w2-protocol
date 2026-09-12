@@ -1,6 +1,6 @@
 # AGENTS.md
 
-某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖仅 `crypto-es`（DES 加密），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下七个业务脚本（嗅探、领奖、邮件、活动领取、造兵、运输调度、状态总览）与 `tools/w2login.js`（登录）。
+某手游私有 TCP 协议的逆向记录 + 解析/自动化工具。运行时依赖 `crypto-es`（DES 加密）与 Ink/React（TUI），无构建、无 CI。核心是 `lib/w2.js`（pcap 解析）+ `lib/sdk.js`（会话层），配 `scripts/` 下八个业务脚本（嗅探、领奖、邮件、活动领取、造兵、运输调度、定向运输 TUI、状态总览）与 `tools/w2login.js`（登录）。
 
 > 面向使用者的介绍在 `README.md`；本文件面向开发者与 AI 助手（环境、命令、约定、坑、扩展流程）。
 > 协议事实分层：帧格式、加密和通用约束以 `protocol/NOTES.md` 为准；命令名称/推送/任务 ID 以 `commands.json` 为准；命令字段以 `protocol/reference/` 的客户端基线和实测修正为准。
@@ -13,8 +13,8 @@
 
 ## 环境
 
-- 运行时依赖仅 `crypto-es`：`npm install` 一次即可，无 lockfile、无 build 步骤。
-- 登录凭据（wst/username/userId）与游戏服地址由 `node tools/w2login.js [邮箱]` 交互式登录后写入 `.identity.local.json`（gitignore）；`.env` 只放服务端不会下发的配置（`W2_PLATFORM`、`W2_TASK_IDS`、`W2_SSO_*` 渠道常量兜底）。当前登录工具仅支持 iOS 选服。抓包设备 IP 放 `W2_PHONE_IP`/`W2_IFACE`。
+- 运行时依赖：`crypto-es`（DES）+ `ink`/`react`/`htm`/`@inkjs/ui`（TUI，仅 `w2ship.js` 使用）；`npm install` 一次即可，无 lockfile、无 build 步骤。Node ≥ 22（Ink 7 要求）。
+- 登录凭据（wst/username/userId）与游戏服地址由 `node tools/w2login.js [邮箱]` 交互式登录后写入 `.identity.local.json`（gitignore）；`.env` 只放服务端不会下发的配置（`W2_PLATFORM`、`W2_TASK_IDS`、`W2_SSO_*` 渠道常量兜底、`W2_LOGIN_UA` UA 模板）。当前登录工具仅支持 iOS 选服。抓包设备 IP 放 `W2_PHONE_IP`/`W2_IFACE`。
 - 实时嗅探依赖本机 `tcpdump`（需 root/sudo 或已在路由器上）。
 
 ## 常用命令
@@ -30,7 +30,7 @@ npm run reward                          # 邮件奖励自动领取（等价 node
 node scripts/w2reward.js --id <mailId>  # 只处理指定邮件
 node scripts/w2reward.js --dry          # 只扫描展示，不领取
 
-npm run activity                        # 活动奖励自动领取：日常目标 + 月度拿好礼（纯领取，无消耗）
+npm run activity                        # 活动奖励自动领取：每日活动目标 + 月度活动奖励（纯领取，无消耗）
 node scripts/w2activity.js --dry        # 只扫描展示，不领取
 node scripts/w2activity.js --id <id>    # 只处理指定活动（调试用）
 
@@ -47,6 +47,9 @@ node scripts/w2transport.js --hours 24  # 训练底仓线小时数（默认 24�
 node scripts/w2transport.js --fuel-reserve 6  # 发车油料保留线小时数（默认 6）
 node scripts/w2transport.js --min-fill 12000  # 阶段1 最小发车量（低于此值攒下次再发）
 node scripts/w2transport.js --clean-route     # 忽略拓扑缓存，强制重新推导协作组
+
+npm run ship                            # 定向运输 TUI（手动单笔调度：选城→装载→实时成本→确认发车）
+node scripts/w2ship.js --dry            # TUI 照常操作但不真正发车
 
 npm run status                          # 全域资产与战备总览（等价 node scripts/w2status.js）
 node scripts/w2status.js --res          # 只看资源仓储明细
@@ -68,11 +71,18 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 
 ## 目录
 
-- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2activity / w2train / w2transport / w2status / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
+- `scripts/` 功能脚本（w2watch / w2signin / w2reward / w2activity / w2train / w2transport / w2ship / w2status / w2probe），各自文件头有中文用法注释（改动行为后记得同步）。
 - `tools/w2login.js` 登录命令：SSO mlogin（静默续登优先）→ iOS 选服（cmd=2 列表/cmd=1 确认）→ userId + 游戏服地址，全部落盘 `.identity.local.json`。
 - `lib/w2.js` 纯解析库：`PcapParser`、`TcpReassembler`、`W2FrameReassembler`、`decode`（link type→IP→TCP/UDP）、`framesOut`/`framesIn`（WiST/WIST 帧切分）、`decodeBody`（u32 整数与 4 字节长度前缀 UTF-8 字符串混编）、`idNamePairs`、`cjkStrings`。
 - `lib/w2build.js` 帧构造器：`buildFrame(no, sessionId, cmd, params)` + AES/md5 原语 + 参数封装，带自检（`node lib/w2build.js`）。
 - `lib/sdk.js` 接口调用 SDK：`W2Client` 类封装连接/登录/请求-响应配对/推送监听/声明式响应解析，业务脚本直接 `client.call(cmd, params, schema)`，新脚本优先用它而不是裸写 socket。
+- `lib/proto.js` 响应解析共享库：2001/2003/2026/2018/2027/17001/17002/3006/3005/19001/19009/19008 的字段解析与 19003 帧构造。**新脚本不要再自建副本**——字段偏移修正只改这里一处。
+- `lib/formula.js` **全项目通用数值公式库**（纯函数，零依赖）：按域分区——几何（`distance`）、行军远征（`calcMarchSec` 油耗口径 T / `realMarchSec` 真实行军时间含加成、`oilPerTruck`、`estOil`）、资源产需（`prodRate`/`demandRate`/`baselineOf`/`surplusOf`/`deficitOf`）、训练（`trainResCap`/`trainPopCap`/`trainFinishMs`/`splitEvenly`）、运输物流（`trucksFor`/`carryCapacity`/`fuelBudgetOf`/`trucksByBudget`）、远征配额（`expeditionSlots`）。**新公式加到对应分区并在 `test/formula.test.js` 补断言；脚本内不再内联同口径计算。两个 T 口径不可混用**（详见 transport.md §2）。
+- `lib/scan.js` 全域扫描编排（transport/ship 共用）：`scanDomain`（城池列表 + 19001 行军加成 + 逐城切城拉取 + 产需层 P/D/floor + 运输站等级 + 出征位统计）；城池状态便利形态 `citySurplus`/`cityDeficit`（原语在 formula.js）。
+- `lib/expedition.js` 远征公共设施：`DispatchKey`（26022 调度 key 时效管理）、`fetchInFlight`/`countSlotsAt`（19008 在途统计）。
+- `lib/topology.js` 地缘协作组与中心仓缓存：`checkCachedTopology`（空间指纹自愈）、`computeClusters`、`writeTopologyCache`（含 superHubs 落盘，供 status/ship 读取）。
+- `lib/ship-core.js` 定向运输纯计算：`shipPlan`（一笔运输的完整评估与约束校验）、`capFor`/`clampAmount`/`normalizeLoads`、预设键（补底仓/全富余/拉满）。可直接单测。
+- `lib/ship-ui.js` 定向运输 TUI 组件（Ink + htm）：表/装载面板/成本面板/顶栏/状态栏，纯展示层，供 `w2ship.js` 与 UI 冒烟测试复用。
 - `lib/table.js` 宽度感知表格排版：`displayWidth`（CJK/全角记 2 列）、`padCell`、`computeWidths`、`formatRow`、`renderTable`。**中英混排表格禁用 padEnd/padStart**，统一走这里；需在行间插入其他输出（如逐行执行状态）时用 `computeWidths` + `formatRow` 逐行渲染。
 - `lib/format.js` 数值/时间格式化：`fmtNum`、`fmtShort`（中文千/万/亿）、`fmtCount`、`fmtSat`（储/容 超满百分比）、`fmtDur`（毫秒，可选带秒）、`fmtDateTime`。各脚本不再自建格式化函数。
 - `lib/config.js` 配置加载，优先级 `process.env > .env > 默认值`；`config.loginParams()`/`config.gameServer()` 读 `.identity.local.json`，`config.tasks` 读 `W2_TASK_IDS` 任务清单。
@@ -85,7 +95,9 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 
 - ESM：`package.json` 已设 `"type": "module"`，统一 `import`/`export` 写法；无 `__dirname`/`require`，模块目录定位用 `path.dirname(fileURLToPath(import.meta.url))`。
 - 终端输出：表格一律用 `lib/table.js` 的 `renderTable`（含中文字段时禁用 `padEnd`/`padStart`），数字格式化一律用 `lib/format.js`（中文单位千/万/亿，禁 K/M 缩写）。
-- **匿名化（重要）**：入库内容（protocol/ 文档、代码注释、提交信息）只写知识不写身份——不记实测日期（日期可关联 captures/ 目录与操作时间窗）、不写真实城市名/坐标/城池 ID/资产数值/玩家标识（PVP 游戏里城名+坐标可直接搜索定位账号）。实测证据保留数字特征、身份信息去除（如「HQ9 城在外 3 笔后第 7 笔被拒」），示例统一用中性占位（城池 A、`<cityId>`、相对距离）。**边界**：gitignore 的本地文件不受此约束，可保留真实数据——真实数据留在本地不入库即可。
+- **数值公式统一走 `lib/formula.js`**：脚本内不内联可复用的计算（车数=ceil(量/载重)、油料预算、产需率、训练人口上限等）——业务参数（小时数、阈值）可以在脚本里，换算逻辑必须走公式库；新公式加到对应分区并补 `test/formula.test.js`。
+- **TUI 约定（w2ship）**：Ink + htm（`html\`\`` 模板，无构建、无 JSX 转译）。渲染约束：字符串必须包在 `<Text>` 里、列表元素必须带 key、`@inkjs/ui` 提供 Spinner 等现成组件（Ink 本体没有）。UI 组件放 `lib/ship-ui.js` 纯展示层，便于用 `ink-testing-library` 做按键流冒烟测试（`test/ship-ui.test.js`）。
+- **匿名化（重要）**：入库内容（protocol/ 文档、代码注释、提交信息）只写知识不写身份——不记实测日期（日期可关联 captures/ 目录与操作时间窗）、不写真实城市名/坐标/城池 ID/资产数值/玩家标识（PVP 游戏里城名+坐标可直接搜索定位账号）。实测证据保留数字特征、身份信息去除（如「HQ9 城在外 3 笔后第 7 笔被拒」），示例统一用中性占位（城池 A、`<cityId>`、相对距离）。厂商识别信息（域名、渠道值真值、游戏名含 UA 形态、玩法/活动专名、服务器文案全句）同样不进文档/字典；脚本内匹配服务器下发文本的功能匹配串保留原串。**边界**：gitignore 的本地文件不受此约束，可保留真实数据——真实数据留在本地不入库即可。**每次改动入库文件后、汇报「完成」前，跑一遍项目级隐私审计**（`.agents/skills/repo-privacy-audit/`：`python3 .agents/skills/repo-privacy-audit/scripts/audit.py --root .`；词表 `references/w2-extra.local.json` 与 `references/w2-keep.local.json` 为本地敏感文件不入库，换机器后需按 SKILL.md 重建）。
 - 二进制一律大端 `readUInt32BE`（`PcapParser` 的 pcap 头按 magic 判断字节序，其余都是大端）。
 - 命令号/任务 ID 在 JS 里当字符串比较（字典 key 是字符串），注意别直接用整数匹配。
 - 提交信息用 Conventional Commits（英文，如 `feat:` `refactor(core):`）。
@@ -113,9 +125,9 @@ W2_PROTO_SRC=/path/to/index.js npm run genapi -- --write # 临时改用其他客
 - 任务列表 `cmd=10001` 参数是 **1 字节 taskType**，单分类查不全，且已领尽的分类返回空列表 →
   `w2signin.js` 不依赖列表、直接按 `.env` 的 `W2_TASK_IDS` 逐个领取；任务名展示走 `cmd=10002`
   详情接口（已领任务也能取到名），改这个逻辑前先读 `protocol/NOTES.md` §7。
-- **单会话限制**：同一账号只能维持一个业务长连接，新登录会挤掉旧会话（客户端被踢下线）。
-  因此脚本内所有操作必须**复用同一个 socket**，中途另建连接会把自己的前一个连接挤掉。
-  测试时注意：跑脚本会把正在运行的客户端踢下线，这是预期行为，不是 bug。
+- **单会话限制**：同一账号只能维持一个业务长连接，新登录会断开旧会话。
+  因此脚本内所有操作必须**复用同一个 socket**，中途另建连接会使自己的前一个连接失效。
+  测试时注意：跑脚本会使在线的游戏客户端断开（登录互斥），这是预期行为，不是 bug。
 - 软路由开流量卸载（flow offload / SFE / Shortcut-FE）会导致 tcpdump 抓不到业务数据（握手能抓到、数据抓不到）。
   `w2watch.js` 在线模式启动时会自动检测；若发现 OFFLOAD 连接，先按提示关闭再抓。
 - `idNamePairs` 的 ID 过滤下限别抬高：曾设 500 导致 290/307 这些低 ID 任务被漏掉。

@@ -3,7 +3,7 @@
 某手游移动端客户端与其业务服务器之间的**私有 TCP 协议**逆向记录，附带解析工具与自动化脚本。
 
 > 抓包样本取自 iOS 端；游戏服帧格式已在 iOS/Android 抓包间交叉核验。
-> Node 18+；运行时依赖 `crypto-es`，开发校验使用 ESLint。
+> Node 22+；
 > 目前仅 iOS 选服链路可登录；Android 选服为 WebSocket，尚未实现。
 
 > 本项目仅用于**网络协议分析与安全技术学习研究**，探讨二进制封包与长连接通信机制。
@@ -22,6 +22,8 @@ npm install
 ```
 scripts/    功能脚本
 lib/        w2.js 协议解析库 · w2build.js 帧构造器 · sdk.js 会话 SDK · config.js 配置加载
+            proto.js 响应解析共享库 · formula.js 通用公式库 · scan.js 全域扫描编排
+            topology.js 拓扑与中心仓缓存 · expedition.js 远征公共设施 · ship-core.js / ship-ui.js 定向运输计算与 TUI 组件
 protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
 tools/      w2login.js 登录（SSO→选服→userId 全自动） · genapi.js 客户端基线生成器（默认读取 protocol/source/index.js，输出到 protocol/reference.generated/）
 ```
@@ -68,17 +70,6 @@ tools/      w2login.js 登录（SSO→选服→userId 全自动） · genapi.js 
    （详见 NOTES §4/§11）
 3. 按 NOTES §2/§3 或调用 `lib/w2build.js` 组帧发送
 4. 验证：按该命令文档的成功 status 判断；完全无响应通常表示帧被静默丢弃，也可能是链路异常。
-
-## 坑记录
-
-- **单会话限制**：同一账号在业务长连接上**只能有一个会话**。脚本登录会把已在线的客户端挤下线
-  （客户端提示断开/要求关闭）。因此：
-  - 定时任务建议安排在不玩游戏的时间（如凌晨）
-  - 一次脚本运行只建立一个连接、只踢一次
-- **flow offload**：软路由开了流量卸载后抓不到长连接数据，需先关闭（抓完记得开回去）。
-  `w2watch.js` 在线模式启动时会自动检测并提示。
-- **设备端**：关「随机 MAC 地址」；**保持屏幕常亮**——锁屏后 App 被挂起、连接会断。
-  `w2watch.js` 启动预检会发现无活动连接的情况。
 
 ## 许可
 

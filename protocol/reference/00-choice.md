@@ -8,10 +8,10 @@
 
 | 平台 | 选服地址 | 协议形态 |
 |---|---|---|
-| iOS | `w2vcn_G.ios.wistone.com:8081` | 裸 TCP，明文 WIST 帧 |
-| Android | `w2v-g-add-choice.wistone.com:8087` | WebSocket（8087 端口裸 TCP 不响应） |
+| iOS | `W2_SSO_CHOICE_HOST`（内置缺省） | 裸 TCP，明文 WIST 帧 |
+| Android | 独立部署（WebSocket 端口） | WebSocket（裸 TCP 不响应） |
 
-服务端校验 platform/channel 与所选服务器匹配：iOS 选服服收到 android 渠道参数返回 `status=-1「没有可用的服务器！」`；跨服连地址则静默丢弃。客户端的地址来自内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。
+服务端校验 platform/channel 与所选服务器匹配：平台不匹配时返回 `status=-1` 并附错误文案；连错平台地址则静默丢弃。客户端的地址来自内置 + 渠道配置（loginData 的 `choice_hosts`）覆盖。
 
 ### `cmd=1` — 选服登录（客户端用它换 userId + 游戏服地址）
 
