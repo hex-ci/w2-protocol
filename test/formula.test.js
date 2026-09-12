@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   distance, calcMarchSec, realMarchSpeed, realMarchSec, oilPerTruck, estOil,
-  prodRate, demandRate, baselineOf, surplusOf, deficitOf,
+  prodRate, demandRate, baselineOf, surplusOf, deficitOf, excessOf, spaceLeftOf,
   trainResCap, trainPopCap, trainFinishMs, splitEvenly,
   trucksFor, carryCapacity, fuelBudgetOf, trucksByBudget,
   expeditionSlots,
@@ -87,4 +87,14 @@ test('配额：出征位', () => {
 
 test('常量：RES_ALL 含黄金且顺序稳定（帧构造依赖）', () => {
   assert.deepEqual(RES_ALL, ['food', 'steel', 'mineral', 'oil', 'gold']);
+});
+
+test('excessOf / spaceLeftOf：超容量与容量余量', () => {
+  assert.equal(excessOf(150, 100), 50);
+  assert.equal(excessOf(80, 100), 0);
+  assert.equal(excessOf(100, 100), 0);
+  assert.equal(excessOf(150, 0), 0);          // 容量未知/为 0 时不计超容
+  assert.equal(spaceLeftOf(30, 100), 70);
+  assert.equal(spaceLeftOf(120, 100), 0);
+  assert.equal(spaceLeftOf(30, 0), Infinity); // 容量未知视为不限
 });

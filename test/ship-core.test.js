@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  totalOf, fuelBudget, shipPlan, maxTrucksFor, capFor, clampAmount,
-  presetFill, presetSurplus, presetMax,
+  totalOf, fuelBudget, shipPlan, maxTrucksFor, capDetail, cityLimits, capFor, clampAmount,
+  presetFill, presetSurplus, presetMax, presetExcess,
+  excessAt, excessList, spaceAt, receiverRanking,
 } from '../lib/ship-core.js';
 import { distance, calcMarchSec, oilPerTruck, estOil, realMarchSpeed, realMarchSec } from '../lib/formula.js';
 
@@ -11,6 +12,7 @@ function city(over = {}) {
   return {
     cityId: over.cityId || '1', name: over.name || '城A', x: over.x || 0, y: over.y || 0,
     stock: { food: 100000, steel: 200000, mineral: 300000, oil: 50000, gold: 0, ...over.stock },
+    cap: { food: 200000, steel: 400000, mineral: 600000, oil: 100000, gold: 0, ...over.cap },
     floor: { food: 10000, steel: 20000, mineral: 30000, oil: 5000, gold: 0, ...over.floor },
     D: { food: 0, steel: 0, mineral: 0, oil: 100, ...over.D },
     availTrucks: over.availTrucks ?? 100,
@@ -135,4 +137,87 @@ test('预设键：f 补底仓 / s 全富余 / a 拉满', () => {
   assert.ok(max > 0 && max <= 100000);
   // 载入其它资源后 f 会被可装空间夹住
   assert.equal(presetFill(src, dst, 'food', { steel: 119000 }, 6), 1000);
+});
+
+test('capDetail 指出上限的瓶颈来源（库存/卡车/油料）', () => {
+  const dst = city({ x: 100, y: 0 });
+  // 正常：库存最小
+  const a = capDetail(city(), dst, 'food', {}, 6);
+  assert.equal(a.cap, 100000);
+  assert.equal(a.limiter, 'stock');
+  // 卡车为 0（发车后典型）→ 上限 0 且瓶颈为卡车
+  const b = capDetail(city({ availTrucks: 0 }), dst, 'food', {}, 6);
+  assert.equal(b.cap, 0);
+  assert.equal(b.limiter, 'trucks');
+  assert.deepEqual(b.limits, { stock: 100000, trucks: 0, oil: 0 });
+  // 油料预算为 0 → 上限 0 且瓶颈为油料
+  const c = capDetail(city({ physOil: 100, D: { oil: 1000 } }), dst, 'food', {}, 6);
+  assert.equal(c.cap, 0);
+  assert.equal(c.limiter, 'oil');
+  // 上限非 0 但被油料压住（预算够跑有限车数；库存与卡车都更充裕）
+  const d = capDetail(city({ physOil: 10000, D: { oil: 0 }, availTrucks: 100000, stock: { food: 5000000, steel: 0, mineral: 0, oil: 0, gold: 0 } }), dst, 'food', {}, 6);
+  assert.ok(d.cap > 0 && d.cap < 5000000, `cap=${d.cap}`);
+  assert.equal(d.limiter, 'oil');
+  // capFor 与 capDetail 口径一致
+  assert.equal(capFor(city(), dst, 'food', {}, 6), a.cap);
+});
+
+test('cityLimits 城级阻塞判定（位 → 车 → 油 → 货）', () => {
+  const dst = city({ x: 100, y: 0 });
+  assert.equal(cityLimits(city(), dst, 6).blocker, null);
+  assert.equal(cityLimits(city({ slotsUsed: 10, slotsCap: 10 }), dst, 6).blocker, 'slots');
+  assert.equal(cityLimits(city({ availTrucks: 0 }), dst, 6).blocker, 'trucks');
+  // 油料预算为 0（物理油不够 6h 训练保留）
+  assert.equal(cityLimits(city({ physOil: 100, D: { oil: 1000 } }), dst, 6).blocker, 'oil');
+  // 无资源
+  assert.equal(cityLimits(city({ stock: { food: 0, steel: 0, mineral: 0, oil: 0, gold: 0 } }), dst, 6).blocker, 'stock');
+  // 不依赖目的城：dst 为 null 也能判定城级阻塞
+  assert.equal(cityLimits(city({ availTrucks: 0 }), null, 6).blocker, 'trucks');
+  assert.equal(cityLimits(city(), null, 6).blocker, null);
+  // numbers 供 UI 展示
+  const n = cityLimits(city({ physOil: 100, D: { oil: 1000 } }), dst, 6).numbers;
+  assert.equal(n.reserve, 6000);
+  assert.equal(n.budget, 0);
+});
+
+test('presetExcess 装入超容部分（区别于 presetSurplus 的底仓线口径）', () => {
+  // 粮 100000，容量 60000 → 超容 40000；底仓线 10000 → 富余 90000
+  const src = city({ cap: { food: 60000, steel: 0, mineral: 0, oil: 0, gold: 0 } });
+  const dst = city({ cityId: '2', x: 100, y: 0 });
+  assert.equal(presetExcess(src, dst, 'food', {}, 6), 40000);
+  assert.equal(presetSurplus(src, dst, 'food', {}, 6), 90000); // 口径不同
+  // 未超容时为 0
+  const none = city({ cap: { food: 200000, steel: 0, mineral: 0, oil: 0, gold: 0 } });
+  assert.equal(presetExcess(none, dst, 'food', {}, 6), 0);
+  // 超出可装上限时被夹紧（卡车 100 辆 → 载重 12 万 > 4 万，此处不夹）
+  const tight = city({ availTrucks: 1, cap: { food: 60000, steel: 0, mineral: 0, oil: 0, gold: 0 } });
+  assert.equal(presetExcess(tight, dst, 'food', {}, 6), 1200);
+});
+
+test('excessAt / excessList / spaceAt：超容与容量余量', () => {
+  const c = city({ stock: { food: 100000, steel: 200000, mineral: 50000, oil: 50000, gold: 0 },
+                   cap: { food: 60000, steel: 400000, mineral: 30000, oil: 100000, gold: 0 } });
+  assert.equal(excessAt(c, 'food'), 40000);
+  assert.equal(excessAt(c, 'steel'), 0);
+  assert.equal(excessAt(c, 'mineral'), 20000);
+  const list = excessList(c);
+  assert.equal(list.length, 2);
+  assert.equal(list[0].res, 'food');            // 按超出量降序
+  assert.equal(list[0].excess, 40000);
+  assert.equal(spaceAt(c, 'steel'), 200000);
+  assert.equal(spaceAt(c, 'food'), 0);
+  assert.equal(spaceAt(c, 'gold'), Infinity);   // 容量 0 = 不限
+});
+
+test('receiverRanking 按容量余量推荐接收城', () => {
+  const src = city({ cityId: '1' });
+  const big = city({ cityId: '2', name: '大仓', stock: { food: 0, steel: 0, mineral: 0, oil: 0, gold: 0 },
+                     cap: { food: 900000, steel: 0, mineral: 0, oil: 0, gold: 0 } });
+  const small = city({ cityId: '3', name: '小仓', stock: { food: 0, steel: 0, mineral: 0, oil: 0, gold: 0 },
+                       cap: { food: 100000, steel: 0, mineral: 0, oil: 0, gold: 0 } });
+  const full = city({ cityId: '4', name: '满仓', stock: { food: 500000, steel: 0, mineral: 0, oil: 0, gold: 0 },
+                      cap: { food: 500000, steel: 0, mineral: 0, oil: 0, gold: 0 } });
+  const ranked = receiverRanking([src, big, small, full], src, 'food');
+  assert.deepEqual(ranked.map((x) => x.city.cityId), ['2', '3']);  // 满仓余量 0，排除
+  assert.equal(ranked[0].space, 900000);
 });

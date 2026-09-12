@@ -16,9 +16,9 @@
  * 失败自动回退到账号密码登录。
  *
  * 用法:
- *   node tools/w2login.js                    # 静默续登（有 WTGT 缓存）或交互式完整登录
- *   node tools/w2login.js <邮箱或账号>         # 提供账号后安全输入密码
- *   node tools/w2login.js --list             # 强制列出服务器列表重选
+ *   node scripts/w2login.js                    # 静默续登（有 WTGT 缓存）或交互式完整登录
+ *   node scripts/w2login.js <邮箱或账号>         # 提供账号后安全输入密码
+ *   node scripts/w2login.js --list             # 强制列出服务器列表重选
  */
 
 import https from 'https';
@@ -330,7 +330,7 @@ async function choiceLogin(username, serverId, confirmed = false) {
   }
   if (!sso) {
     console.log('缺少凭据：缓存 WTGT 已失效时请在终端交互式输入账号和密码');
-    console.log('用法: node tools/w2login.js [邮箱或账号]');
+    console.log('用法: node scripts/w2login.js [邮箱或账号]');
     process.exit(1);
   }
 
@@ -406,7 +406,7 @@ async function choiceLogin(username, serverId, confirmed = false) {
   console.log('');
   console.log('全部信息已缓存到 .identity.local.json');
   console.log('');
-  console.log('下次登录只需: node tools/w2login.js（静默续登，免密码）');
+  console.log('下次登录只需: node scripts/w2login.js（静默续登，免密码）');
 })().catch((e) => {
   console.log('登录失败:', e.message);
   process.exit(1);

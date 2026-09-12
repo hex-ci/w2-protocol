@@ -33,10 +33,12 @@ import { DispatchKey, countSlotsAt } from '../lib/expedition.js';
 import { readTopologyCache } from '../lib/topology.js';
 import {
   RES_ALL, shipPlan, clampAmount, normalizeLoads,
-  presetFill, presetSurplus, presetMax,
+  presetFill, presetSurplus, presetMax, presetExcess,
+  excessList, spaceAt,
 } from '../lib/ship-core.js';
 import {
-  CITY_COLUMNS, cityCells, RowLine, TableHeader, TableLegend, HeaderBar, LoadPanel, CostPanel, HelpLine,
+  CITY_COLUMNS, cityCells, RowLine, TableHeader, TableLegend, BlockedLine, OvercapLine, OvercapView, overcapCities,
+  HeaderBar, LoadPanel, CostPanel, HelpLine,
 } from '../lib/ship-ui.js';
 
 const html = htm.bind(React.createElement);
@@ -131,6 +133,7 @@ function App() {
   const [resIdx, setResIdx] = useState(0);
   const [editBuf, setEditBuf] = useState('');
   const [result, setResult] = useState(null); // { ok, dry, issues, moved }
+  const [overcapView, setOvercapView] = useState(false); // s 键：超容明细视图（超容外运作业台）
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
 
@@ -145,6 +148,11 @@ function App() {
     return byCity;
   }, [cities]);
   const hubOf = (cityId) => hubMap.get(String(cityId));
+  // 超容视图内的城序：与 OvercapView 共用 lib 的实现（两处排序不一致会导致选中错城）
+  const ocCities = useMemo(
+    () => overcapCities(cities, hubOf).map((x) => x.city),
+    [cities, hubMap],
+  );
   // 顶栏中心仓一览用城名展示（扫描完成后可查）；未扫描时回退显示 cityId
   const hubLine = useMemo(() => {
     const cache = readTopologyCache();
@@ -246,6 +254,29 @@ function App() {
     }
     if (input === 'q' && phase !== 'load') { exit(); return; }
     if (input === 'f' && (phase === 'src' || phase === 'dst')) { rescan(); return; }
+    if (input === 's' && (phase === 'src' || phase === 'dst')) {
+      setOvercapView((v) => !v);
+      setCursor(0);
+      return;
+    }
+
+    // 超容视图（src/dst 相位均可进入）：↑↓ 选城、Enter 选为出发城、s 返回主表
+    if (overcapView && (phase === 'src' || phase === 'dst')) {
+      if (key.upArrow) { setCursor((c) => Math.max(0, c - 1)); return; }
+      if (key.downArrow) { setCursor((c) => Math.min(ocCities.length - 1, c + 1)); return; }
+      if (key.escape || input === 's') { setOvercapView(false); setCursor(0); return; }
+      if (key.return && ocCities[cursor]) {
+        setSrc(ocCities[cursor]);
+        setDst(null);
+        setLoads({});
+        setResIdx(0);
+        setResult(null);
+        setOvercapView(false);
+        setCursor(0);
+        setPhase('dst');
+      }
+      return;
+    }
 
     if (phase === 'src') {
       if (key.upArrow) setCursor((c) => Math.max(0, c - 1));
@@ -302,6 +333,7 @@ function App() {
       if (input === 'b') { setLoads((prev) => ({ ...prev, [r]: presetFill(src, dst, r, prev, FUEL_HOURS) })); return; }
       if (input === 'y') { setLoads((prev) => ({ ...prev, [r]: presetSurplus(src, dst, r, prev, FUEL_HOURS) })); return; }
       if (input === 'm') { setLoads((prev) => ({ ...prev, [r]: presetMax(src, dst, r, prev, FUEL_HOURS) })); return; }
+      if (input === 'e') { setLoads((prev) => ({ ...prev, [r]: presetExcess(src, dst, r, prev, FUEL_HOURS) })); return; }
       if (input === 'x') { setLoads((prev) => ({ ...prev, [r]: 0 })); return; }
       if (key.escape) {
         if (editBuf) { setEditBuf(''); return; }
@@ -369,8 +401,11 @@ function App() {
     `;
   }
 
-  // dst 模式下的推荐：Σ min(源城富余, 目的城缺口) 最高的前 3 城
+  // dst 模式下的双口径推荐：
+  //   ★ 补料型 = Σ min(源城富余, 目的城底仓线缺口) 前 3 —— 救急补料
+  //   ☆ 接收型 = 按源城超容资源的「容量余量」降序前 3 —— 超容外运（倒货只需对方装得下）
   const recos = new Set();
+  const recvSet = new Set();
   if (phase === 'dst' && src) {
     const scored = cities
       .filter((s) => s.cityId !== src.cityId)
@@ -387,6 +422,22 @@ function App() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
     for (const x of scored) recos.add(x.cityId);
+
+    // 接收型：按「能装下源城超容量」的合计排序取前 3（而非每项资源各取 3，避免标记过多）
+    const recvScored = cities
+      .filter((s) => s.cityId !== src.cityId)
+      .map((s) => {
+        let score = 0;
+        for (const e of excessList(src)) {
+          const space = spaceAt(s, e.res);
+          if (space > 0) score += Math.min(e.excess, space === Infinity ? e.excess : space);
+        }
+        return { cityId: s.cityId, score };
+      })
+      .filter((x) => x.score > 1)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+    for (const x of recvScored) recvSet.add(x.cityId);
   }
 
   const tableRows = cities.map((s, i) => ({
@@ -394,6 +445,7 @@ function App() {
     cells: cityCells(s, {
       hubOf,
       star: phase === 'dst' && recos.has(s.cityId),
+      recv: phase === 'dst' && recvSet.has(s.cityId),
       srcPick: (phase === 'src' || phase === 'dst') && i === cursor ? '▸' : ' ',
     }),
     cursor: (phase === 'src' || phase === 'dst') && i === cursor,
@@ -407,6 +459,11 @@ function App() {
     <${Box} flexDirection="column">
       <${HeaderBar} connected=${!!rt.c?.connected} dry=${DRY} hubs=${hubLine} />
 
+      ${overcapView && (phase === 'src' || phase === 'dst')
+        ? html`<${OvercapView} cities=${cities} cursor=${cursor} fuelHours=${FUEL_HOURS} hubOf=${hubOf} />`
+        : null}
+
+      ${overcapView && (phase === 'src' || phase === 'dst') ? null : html`
       <${Box} flexDirection="column" marginTop=${1}>
         <${Text} bold>
           ${phase === 'src' ? '选择出发城' : phase === 'dst' ? `选择目的城（出发: ${src.name}）` : `${src.name} → ${dst.name}`}
@@ -414,7 +471,10 @@ function App() {
         <${TableHeader} widths=${widths} />
         ${tableRows.map((r) => html`<${RowLine} key=${r.city.cityId} cells=${r.cells} widths=${widths} inverse=${r.cursor} />`)}
         <${TableLegend} />
-      <//>
+        <${BlockedLine} cities=${cities} fuelHours=${FUEL_HOURS} />
+      <//>`}
+
+      <${OvercapLine} cities=${cities} overcapView=${overcapView} hubOf=${hubOf} />
 
       ${inShipFlow
         ? html`<${LoadPanel} src=${src} dst=${dst} loads=${loads} resIdx=${resIdx} editBuf=${editBuf} fuelHours=${FUEL_HOURS} />`

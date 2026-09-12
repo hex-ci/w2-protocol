@@ -20,12 +20,13 @@ npm install
 ## 目录
 
 ```
-scripts/    功能脚本
+scripts/    功能脚本（menu 引导菜单 · w2login 登录 · watch 嗅探 · signin 任务领取 · reward 邮件
+             activity 活动 · train 造兵 · transport 资源调度 · ship 定向运输 TUI · status 资产总览 · probe 发帧探测）
 lib/        w2.js 协议解析库 · w2build.js 帧构造器 · sdk.js 会话 SDK · config.js 配置加载
             proto.js 响应解析共享库 · formula.js 通用公式库 · scan.js 全域扫描编排
             topology.js 拓扑与中心仓缓存 · expedition.js 远征公共设施 · ship-core.js / ship-ui.js 定向运输计算与 TUI 组件
 protocol/   NOTES.md 协议全记录 · API.md 接口文档 · reference/ 全量参数表 · commands.json 命令字典
-tools/      w2login.js 登录（SSO→选服→userId 全自动） · genapi.js 客户端基线生成器（默认读取 protocol/source/index.js，输出到 protocol/reference.generated/）
+tools/      genapi.js 客户端基线生成器（默认读取 protocol/source/index.js，输出到 protocol/reference.generated/）
 ```
 
 > 登录凭据与游戏服地址由登录命令写入 `.identity.local.json`（不入库）；`.env` 只放服务端不会下发的配置（见 `.env.example`）。
