@@ -1,0 +1,369 @@
+{
+  "_comment": "兵种数据表（tools/genarmy.js 从 3006/3007 导出）。cost 为单价、全域一致；baseTimeMs 与 timeRangeMs 仅作参考——单件耗时受城内加成影响（实测按城不同），运行期一律逐城实时读 3006。population 用于训练人口上限约束，speed/load 用于行军与运载计算。",
+  "arms": [
+    {
+      "id": 1,
+      "name": "步兵",
+      "cost": {
+        "food": 50,
+        "steel": 70,
+        "mineral": 100,
+        "oil": 10
+      },
+      "population": 1,
+      "speed": 300,
+      "load": 50,
+      "baseTimeMs": 24916,
+      "timeRangeMs": [
+        13111,
+        27075
+      ]
+    },
+    {
+      "id": 2,
+      "name": "摩托化骑兵:WLA",
+      "cost": {
+        "food": 100,
+        "steel": 120,
+        "mineral": 50,
+        "oil": 30
+      },
+      "population": 2,
+      "speed": 1400,
+      "load": 110,
+      "baseTimeMs": 29069,
+      "timeRangeMs": [
+        15297,
+        31588
+      ]
+    },
+    {
+      "id": 3,
+      "name": "卡车:GMC",
+      "cost": {
+        "food": 50,
+        "steel": 250,
+        "mineral": 10,
+        "oil": 50
+      },
+      "population": 2,
+      "speed": 1150,
+      "load": 1200,
+      "baseTimeMs": 37375,
+      "timeRangeMs": [
+        19667,
+        40613
+      ]
+    },
+    {
+      "id": 4,
+      "name": "装甲车:BA-20",
+      "cost": {
+        "food": 50,
+        "steel": 500,
+        "mineral": 550,
+        "oil": 150
+      },
+      "population": 3,
+      "speed": 450,
+      "load": 210,
+      "baseTimeMs": 62292,
+      "timeRangeMs": [
+        32779,
+        67689
+      ]
+    },
+    {
+      "id": 5,
+      "name": "轻型坦克:谢尔曼",
+      "cost": {
+        "food": 300,
+        "steel": 750,
+        "mineral": 300,
+        "oil": 400
+      },
+      "population": 4,
+      "speed": 850,
+      "load": 80,
+      "baseTimeMs": 83056,
+      "timeRangeMs": [
+        43706,
+        90252
+      ]
+    },
+    {
+      "id": 6,
+      "name": "重型坦克:IS-3",
+      "cost": {
+        "food": 500,
+        "steel": 1200,
+        "mineral": 400,
+        "oil": 600
+      },
+      "population": 7,
+      "speed": 700,
+      "load": 95,
+      "baseTimeMs": 103820,
+      "timeRangeMs": [
+        54632,
+        112815
+      ]
+    },
+    {
+      "id": 7,
+      "name": "突击炮:SU-76",
+      "cost": {
+        "food": 250,
+        "steel": 500,
+        "mineral": 750,
+        "oil": 300
+      },
+      "population": 5,
+      "speed": 420,
+      "load": 50,
+      "baseTimeMs": 74750,
+      "timeRangeMs": [
+        39335,
+        81227
+      ]
+    },
+    {
+      "id": 8,
+      "name": "火箭:喀秋莎",
+      "cost": {
+        "food": 450,
+        "steel": 1800,
+        "mineral": 1800,
+        "oil": 2700
+      },
+      "population": 12,
+      "speed": 380,
+      "load": 100,
+      "baseTimeMs": 199335,
+      "timeRangeMs": [
+        104895,
+        216606
+      ]
+    },
+    {
+      "id": 9,
+      "name": "侦察机:蚊式",
+      "cost": {
+        "food": 50,
+        "steel": 150,
+        "mineral": 50,
+        "oil": 100
+      },
+      "population": 1,
+      "speed": 5000,
+      "load": 5,
+      "baseTimeMs": 31146,
+      "timeRangeMs": [
+        16389,
+        33844
+      ]
+    },
+    {
+      "id": 10,
+      "name": "歼击机:P38闪电",
+      "cost": {
+        "food": 50,
+        "steel": 300,
+        "mineral": 150,
+        "oil": 500
+      },
+      "population": 4,
+      "speed": 2000,
+      "load": 10,
+      "baseTimeMs": 87209,
+      "timeRangeMs": [
+        45891,
+        94765
+      ]
+    },
+    {
+      "id": 11,
+      "name": "轰炸机:B17",
+      "cost": {
+        "food": 100,
+        "steel": 500,
+        "mineral": 250,
+        "oil": 800
+      },
+      "population": 6,
+      "speed": 1750,
+      "load": 25,
+      "baseTimeMs": 99667,
+      "timeRangeMs": [
+        52447,
+        108303
+      ]
+    },
+    {
+      "id": 12,
+      "name": "驱逐舰:弗莱彻",
+      "cost": {
+        "food": 500,
+        "steel": 2600,
+        "mineral": 900,
+        "oil": 1500
+      },
+      "population": 15,
+      "speed": 1000,
+      "load": 1000,
+      "baseTimeMs": 290697,
+      "timeRangeMs": [
+        152972,
+        315884
+      ]
+    },
+    {
+      "id": 13,
+      "name": "潜艇:加托",
+      "cost": {
+        "food": 300,
+        "steel": 1800,
+        "mineral": 2000,
+        "oil": 1300
+      },
+      "population": 14,
+      "speed": 1700,
+      "load": 500,
+      "baseTimeMs": 215946,
+      "timeRangeMs": [
+        113636,
+        234657
+      ]
+    },
+    {
+      "id": 14,
+      "name": "战列舰:乔治五世",
+      "cost": {
+        "food": 2000,
+        "steel": 27000,
+        "mineral": 14500,
+        "oil": 11000
+      },
+      "population": 40,
+      "speed": 900,
+      "load": 2500,
+      "baseTimeMs": 1868770,
+      "timeRangeMs": [
+        983391,
+        2030685
+      ]
+    },
+    {
+      "id": 15,
+      "name": "航母:列克星敦",
+      "cost": {
+        "food": 8500,
+        "steel": 21000,
+        "mineral": 25000,
+        "oil": 8000
+      },
+      "population": 55,
+      "speed": 850,
+      "load": 10000,
+      "baseTimeMs": 2761627,
+      "timeRangeMs": [
+        1453234,
+        3000902
+      ]
+    },
+    {
+      "id": 16,
+      "name": "特种兵:101空降兵",
+      "cost": {
+        "food": 2000,
+        "steel": 700,
+        "mineral": 1500,
+        "oil": 600
+      },
+      "population": 10,
+      "speed": 2500,
+      "load": 10,
+      "baseTimeMs": 74750,
+      "timeRangeMs": [
+        39335,
+        81227
+      ]
+    },
+    {
+      "id": 30,
+      "name": "高炮:ZSU-23-4",
+      "cost": {
+        "food": 4500,
+        "steel": 10800,
+        "mineral": 5000,
+        "oil": 6000,
+        "nuclear": 15
+      },
+      "population": 32,
+      "speed": 800,
+      "load": 300,
+      "baseTimeMs": 996677,
+      "timeRangeMs": [
+        524475,
+        1083032
+      ]
+    },
+    {
+      "id": 31,
+      "name": "导弹车:飞毛腿B",
+      "cost": {
+        "food": 4200,
+        "steel": 8000,
+        "mineral": 8000,
+        "oil": 12000,
+        "nuclear": 25
+      },
+      "population": 40,
+      "speed": 650,
+      "load": 280,
+      "baseTimeMs": 1370431,
+      "timeRangeMs": [
+        721153,
+        1489169
+      ]
+    },
+    {
+      "id": 32,
+      "name": "攻击机:Su-7",
+      "cost": {
+        "food": 2000,
+        "steel": 4500,
+        "mineral": 2000,
+        "oil": 8000,
+        "nuclear": 18
+      },
+      "population": 26,
+      "speed": 1200,
+      "load": 40,
+      "baseTimeMs": 872093,
+      "timeRangeMs": [
+        458916,
+        947653
+      ]
+    },
+    {
+      "id": 33,
+      "name": "截击机:F-86",
+      "cost": {
+        "food": 1000,
+        "steel": 5500,
+        "mineral": 2500,
+        "oil": 6000,
+        "nuclear": 20
+      },
+      "population": 20,
+      "speed": 2200,
+      "load": 55,
+      "baseTimeMs": 872093,
+      "timeRangeMs": [
+        458916,
+        947653
+      ]
+    }
+  ]
+}
