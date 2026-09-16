@@ -15,7 +15,7 @@
  *   node scripts/w2status.js --mil         只看驻军战备与军工厂状态
  *   node scripts/w2status.js --city <id>   单城详细透视（资源、民心、全量驻军与军工队列）
  *
- * 扫描受 SDK 频控约束约 50s，期间按阶段 + 按城输出进度；--no-progress 关闭进度输出。
+ * 扫描受 SDK 帧间隔约束约 1 分钟，期间按阶段 + 按城输出进度；--no-progress 关闭进度输出。
  */
 
 import config from '../lib/config.js';

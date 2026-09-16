@@ -10,7 +10,7 @@
  * 队列：每厂上限 = 厂等级（实测 L9=9 / L10=10，见 formula.trainQueueCap），且**串行**，
  * 单笔即可吃满资源上限——故分散下单的目的是覆盖多厂并行，而非堆积队列条数。
  *
- * 频控：SDK 自带 500ms 请求间隔，命令间再叠加随机抖动，模拟人工节奏。
+ * 频控：SDK 帧间隔自带随机抖动（500ms 起），命令间再叠加写前抖动。
  *
  * 用法:
  *   node scripts/w2train.js                     所有城造侦察机（资源允许的最大量）
@@ -58,7 +58,7 @@ const MAX_PER_PLANT = maxArg ? Number(maxArg) : Infinity;
 const ONLY_CITY = cityArg;
 const DRY = has('dry');
 
-// 频控抖动：每次写操作前随机等待，模拟人工
+// 频控抖动：每次写操作前随机等待
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = () => sleep(300 + Math.floor(Math.random() * 500));
 

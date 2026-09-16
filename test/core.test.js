@@ -114,6 +114,27 @@ test('SDK pairs concurrent same-command responses by session ID', async () => {
   await close(server);
 });
 
+test('SDK 帧间隔在基础值上随机抖动，且不低于基础值', async () => {
+  const arrivals = [];
+  const server = await listen((socket) => socket.on('data', (chunk) => {
+    for (const r of parseChoiceRequests(chunk)) {
+      arrivals.push(Date.now());
+      socket.write(wist(r.sid, r.cmd, 1, Buffer.from('ok')));
+    }
+  }));
+  const client = new W2Client({ host: '127.0.0.1', port: server.address().port, mode: 'choice', interRequest: 200 });
+  await client.connect();
+  for (let i = 0; i < 10; i++) await client.call(77);
+  client.close();
+  await close(server);
+
+  const gaps = arrivals.slice(1).map((t, i) => t - arrivals[i]);
+  // 基础间隔是下限：低于它会落回客户端同命令去重窗口内
+  assert.ok(gaps.every((g) => g >= 190), `间隔不得低于基础值: ${gaps}`);
+  // 0~50% 均匀抖动
+  assert.ok(new Set(gaps.map((g) => Math.round(g / 10))).size > 1, `间隔应有随机性: ${gaps}`);
+});
+
 test('SDK parses choice schema and accepts documented status variants', async () => {
   const server = await listen((socket) => socket.on('data', (chunk) => {
     const { sid, cmd } = parseChoiceRequests(chunk)[0];

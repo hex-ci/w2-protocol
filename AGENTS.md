@@ -22,7 +22,7 @@
 - `lib/w2.js` 纯解析（pcap/TCP 重组/帧切分/混编解码）；`lib/w2build.js` 出站帧构造（`node lib/w2build.js` 自检）；`lib/sdk.js` `W2Client` 会话层——**新脚本必须走 `client.call(cmd, params, schema)`，不裸写 socket**；`lib/proto.js` 共享响应解析（字段偏移只改这里）。
 - `lib/formula.js` 全项目数值公式库（纯函数）：新公式进对应分区并在 `test/formula.test.js` 补断言，脚本内不内联同口径计算。
 - `lib/table.js` 宽度感知表格（CJK 记 2 列）+ `lib/format.js` 中文单位格式化——中英混排表格禁用 `padEnd/padStart`。
-- `lib/progress.js` 进度反馈：长耗时脚本（SDK 500ms 频控，全域扫描 ≈50s）必须按阶段推进，「空白等待」等同故障；进度走 stdout（用户拍板体验优先），回归对拍用 `--no-progress`/`W2_NO_PROGRESS=1` + 结构指纹比对，不做逐字节 diff。
+- `lib/progress.js` 进度反馈：长耗时脚本（SDK 帧间隔 500ms 起随机抖动，全域扫描 ≈1 分钟）必须按阶段推进，「空白等待」等同故障；进度走 stdout（用户拍板体验优先），回归对拍用 `--no-progress`/`W2_NO_PROGRESS=1` + 结构指纹比对，不做逐字节 diff。
 - `scripts/` 各文件头有中文用法注释，改行为后同步。`w2menu.js` 的 `GROUPS` 登记表是菜单唯一数据源；Ink 交接机制 `unmount() → stdin.pause() → spawn(stdio:'inherit')`，不能省 `pause()`。
 - TUI（w2ship）用 Ink + htm（`html\`\`` 模板，无 JSX 转译）：字符串必须包 `<Text>`、列表元素必须带 key、Spinner 等组件来自 `@inkjs/ui`。UI 组件放 `lib/ship-ui.js` 纯展示层，用 `ink-testing-library` 做按键流冒烟测试。
 - `protocol/reference.generated/` 与 `protocol/source/*` 是 gitignore 产物，不手改、不入库；`captures/` 同样 gitignore。

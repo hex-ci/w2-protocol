@@ -401,7 +401,7 @@ await c.close();
 
 - `c.call(cmd, params, schema?, opts?)`：`schema` 声明响应字段表（`fields`/`list`/`item`/`tail`/`skip`），自动解析成对象；`opts.okStatuses` 指定额外成功 status 集合（默认仅 `1`）。同命令并发请求按响应 sessionId 配对。
 - 失败响应统一返回 `{ ok: false, status, message }`，`message` 为服务端错误文案
-- 内置 10s 超时、500ms 请求间隔、连接关闭时立即拒绝 pending 请求；同一账号仍应只维持一条业务连接
+- 内置 10s 超时、500ms 基础间隔 + 0~50% 随机抖动、连接关闭时立即拒绝 pending 请求；同一账号仍应只维持一条业务连接
 - 推送：`c.onPush(cmd, fn)`，收到 `26000` 段帧时触发回调
 
 | 工具 | 用途 |
