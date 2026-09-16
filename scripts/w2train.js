@@ -99,14 +99,15 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
   }
   console.log(`共 ${cities.length} 座城池，本次处理 ${targets.length} 座\n`);
 
-  // 记录操作前的当前城，全部结束后切回（当前城 = 1005.activeCityId）
-  const originCityId = (await c.call(1005, Buffer.alloc(0), {
+  // 记录操作前的当前城，全部结束后切回（当前城 = 1005.activeCityId）；读取失败只放弃还原
+  const base = await c.call(1005, Buffer.alloc(0), {
     fields: [
       ['game_status', 'u32'],
       ['diamond_owned', 'u32'],
       ['active_city_id', 'u64'],
     ],
-  })).active_city_id.toString();
+  });
+  const originCityId = base.active_city_id?.toString();
 
   // 兵种属性取自数据表（tools/genarmy.js 从 3006/3007 导出，与服务器下发一致）。
   // 运行期单价/耗时仍逐城实时读 3006（单价全域一致，但耗时受城内加成影响）。
@@ -125,17 +126,26 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
       continue;
     }
 
-    // 军工厂（BuildingType.ARMS_PLANT = 14）
-    const plants = parseBuildings49((await c.call(17001, Buffer.alloc(0))).raw, 1)
-      .filter((b) => b.proto === 14);
+    // 读取阶段逐请求校验后解析：非成功响应无 raw，直接取用会崩。
+    // 失败跳城而非中止——脚本无断点续跑，中途退出会让补跑对已下单的城重复下单。
+    let plants;
+    let res;
+    let popIdle;
+    try {
+      // 军工厂（BuildingType.ARMS_PLANT = 14）
+      plants = parseBuildings49(await mustRaw(17001, Buffer.alloc(0)), 1)
+        .filter((b) => b.proto === 14);
+      // 当前城资源（2003）与空闲人口（2026，人口约束的权威读数）
+      res = parse2003(await mustRaw(2003, Buffer.alloc(0)));
+      popIdle = parse2026(await mustRaw(2026, Buffer.alloc(0))).popIdle;
+    } catch (e) {
+      console.log(`✗ ${city.name}: 数据读取失败（${e.message}），跳过该城`);
+      continue;
+    }
     if (!plants.length) {
       console.log(`○ ${city.name}: 无军工厂，跳过`);
       continue;
     }
-
-    // 当前城资源（2003）与空闲人口（2026，人口约束的权威读数）
-    const res = parse2003((await c.call(2003, Buffer.alloc(0))).raw);
-    const popIdle = parse2026((await c.call(2026, Buffer.alloc(0))).raw).popIdle;
     const resBefore = { ...res };
 
     console.log(`━━ ${city.name} (${city.x},${city.y}) 军工厂×${plants.length}`);
@@ -146,11 +156,17 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
     let cityFinish = 0;
     const plantReports = [];
 
-    // 第一遍：收集各厂该兵种的规格（单价/耗时）与当前队列深度
+    // 第一遍：收集各厂该兵种的规格（单价/耗时）与当前队列深度；单厂读取失败只跳该厂
     const specs = [];
     for (const plant of plants) {
       await jitter();
-      const info = parse3006((await c.call(3006, p.u64(plant.bid))).raw);
+      let info;
+      try {
+        info = parse3006(await mustRaw(3006, p.u64(plant.bid)));
+      } catch (e) {
+        plantReports.push(`   ○ 厂#${plant.bid.slice(-3)}(L${plant.level}): 规格读取失败，本厂跳过（${e.message}）`);
+        continue;
+      }
       const spec = info.trainables[ARMY_ID];
       const depth = (info.training || []).length;
       const cap = trainQueueCap(plant.level);
@@ -289,8 +305,14 @@ const fmtDur = (ms) => fmtDurMs(ms, true);
             // 重读 3006 看该厂队列是否真满——满说明本地读数与下单之间存在竞态，份额转给
             // 同城还有空槽的厂；未满则视为资源/人口约束，本城剩余订单不再尝试。
             await jitter();
-            const nowInfo = parse3006((await c.call(3006, p.u64(plant.bid))).raw);
-            const nowDepth = (nowInfo.training || []).length;
+            // 拒单复核本身也可能失败：读不到队列深度时按「复核失败」处理，不把订单转厂
+            let nowDepth;
+            try {
+              nowDepth = (parse3006(await mustRaw(3006, p.u64(plant.bid))).training || []).length;
+            } catch (e) {
+              plantReports.push(`   ✗ 厂#${plant.bid.slice(-3)}(L${plant.level}): 下单失败且队列复核失败（${e.message}），份额作废`);
+              continue;
+            }
             if (nowDepth >= cap) {
               queueLeft.set(plant.bid, 0);
               const target = open.find((x) => x.plant.bid !== plant.bid && queueLeft.get(x.plant.bid) > 0);

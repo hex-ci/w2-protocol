@@ -97,10 +97,15 @@ async function connectClient() {
  */
 async function preflightAndSend(src, dst, loads) {
   const c = rt.c;
-  await c.call(2002, p.u64(src.cityId));
+  // 切城失败必须中止：复核会静默拿到上一座城的资源/卡车数，发出注定被拒的帧
+  const sw = await c.call(2002, p.u64(src.cityId));
+  if (!sw.ok) throw new Error(`切城失败${sw.message ? `：${sw.message}` : ''}`);
   const r2003 = await c.call(2003, Buffer.alloc(0));
   const r2026 = await c.call(2026, Buffer.alloc(0));
   const r19009 = await c.call(19009, Buffer.alloc(0));
+  if (!r2003.ok || !r2003.raw) throw new Error('资源读取失败');
+  if (!r2026.ok || !r2026.raw) throw new Error('生产信息读取失败');
+  if (!r19009.ok || !r19009.raw) throw new Error('驻军读取失败');
   const freshStock = parse2003(r2003.raw);
   const prod = parse2026(r2026.raw);
   const trucks = countArmy(r19009.raw, 3);
@@ -184,6 +189,7 @@ function App() {
         floorHours: FLOOR_HOURS,
         armyId: ARMY_ID,
         onCity: (s, i, total) => { if (mounted.current) setScanMsg(`扫描城池 ${i + 1}/${total} ${s.name}`); },
+        onWarn: (m) => { if (mounted.current) setErrMsg((prev) => (prev ? `${prev}\n${m}` : m)); },
       });
       if (!mounted.current) return;
       rt.originCityId = rt.originCityId || originCityId;

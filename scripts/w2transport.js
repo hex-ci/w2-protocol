@@ -138,6 +138,8 @@ const fmt = fmtNum;
   requireArmy(ARMY_ID);
 
   // 扫描全域（城池列表 → 逐城切城拉取 → 出征位统计由 lib/scan.js 统一编排）
+  // 扫描域跳城/跳厂告警：声明在 deferred 之前（扫描期间 deferred 尚未初始化）
+  const scanWarnings = [];
   let cachedTopology = null;
   let cities = [];
   let state = [];
@@ -150,6 +152,7 @@ const fmt = fmtNum;
       onCities: (cs) => { cachedTopology = checkCachedTopology(cs, { cleanRoute: CLEAN_ROUTE }); },
       onCity: (st, i, total) => prog.update(i + 1, total),
       onStage: (label, meta) => prog.stage(label, meta || {}),
+      onWarn: (m) => scanWarnings.push(m),
     }));
   } catch (e) {
     prog.done();
@@ -246,6 +249,7 @@ const fmt = fmtNum;
   writeTopologyCache({ cities, clusters, superHubs });
 
   prog.done('扫描全域并推导拓扑');
+  for (const m of scanWarnings) console.log(m);
   for (const m of deferred) console.log(m);
   console.log(topoMsg);
   // 冻结说明：让用户知道仓选是复用的还是刚推导的（否则会以为每次都在变）

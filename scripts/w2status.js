@@ -31,6 +31,14 @@ import {
 
 // 中心仓缓存：w2transport 每次运行时把推导结果（superHubs: 资源→cityId）写入缓存文件
 
+/** 读类请求统一校验：非成功响应无 raw，直接取用会在解析层崩 */
+async function mustRaw(c, cmd, params) {
+  const r = await c.call(cmd, params);
+  if (!r.ok) throw new Error(`cmd=${cmd} 请求失败${r.message ? `：${r.message}` : ''}`);
+  if (!r.raw) throw new Error(`cmd=${cmd} 响应缺少原始数据`);
+  return r.raw;
+}
+
 function loadHubs() {
   const byCity = new Map(); // cityId -> [资源中文名]
   const cached = readTopologyCache();
@@ -150,17 +158,31 @@ const MIL_COLUMNS = [
 
   // 每城 5~6 个请求 × 500ms 频控，是首屏延迟的主要来源：按城推进反馈
   prog.stage('扫描城池', { total: targetCities.length });
+  const scanWarnings = [];  // 跳城告警延迟到 prog.done() 后打印，避免与进度行串行
   for (const city of targetCities) {
-    await c.call(2002, p.u64(city.cityId));
-    const r2003 = await c.call(2003, Buffer.alloc(0));
-    const r2027 = await c.call(2027, Buffer.alloc(0));
-    const r19009 = await c.call(19009, Buffer.alloc(0));
-    const r17001 = await c.call(17001, Buffer.alloc(0));
-
-    const res = parse2003(r2003.raw);
-    const status = parse2027(r2027.raw);
-    const armies = parse19009(r19009.raw);
-    const plants = parseBuildings49(r17001.raw, 1).filter((b) => b.proto === 14).map((b) => ({ bid: b.bid, level: b.level }));
+    // 切城失败必须跳过：后续读取会静默拿到上一座城的数据，展示成别的城就是错报
+    const sw = await c.call(2002, p.u64(city.cityId));
+    if (!sw.ok) {
+      scanWarnings.push(`✗ ${city.name}: 切城失败，跳过${sw.message ? `（${sw.message}）` : ''}`);
+      continue;
+    }
+    let res;
+    let status;
+    let armies;
+    let plants;
+    try {
+      const r2003 = await mustRaw(c, 2003, Buffer.alloc(0));
+      const r2027 = await mustRaw(c, 2027, Buffer.alloc(0));
+      const r19009 = await mustRaw(c, 19009, Buffer.alloc(0));
+      const r17001 = await mustRaw(c, 17001, Buffer.alloc(0));
+      res = parse2003(r2003);
+      status = parse2027(r2027);
+      armies = parse19009(r19009);
+      plants = parseBuildings49(r17001, 1).filter((b) => b.proto === 14).map((b) => ({ bid: b.bid, level: b.level }));
+    } catch (e) {
+      scanWarnings.push(`✗ ${city.name}: 数据读取失败，跳过（${e.message}）`);
+      continue;
+    }
 
     let activeQueues = [];
     if (plants.length > 0) {
@@ -222,6 +244,7 @@ const MIL_COLUMNS = [
   if (originCityId) await c.call(2002, p.u64(originCityId));
   c.close();
   prog.done(SHOW_ALL ? '扫描全域城池' : '扫描完成');
+  for (const m of scanWarnings) console.log(m);
 
   // ---------- 汇总 ----------
   const sum = (fn) => cityData.reduce((s, d) => s + fn(d), 0);
